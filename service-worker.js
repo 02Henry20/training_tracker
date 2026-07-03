@@ -1,4 +1,4 @@
-const CACHE_NAME = "training-track-v0.1.0";
+const CACHE_NAME = "training-track-v0.2.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./styles/components.css",
   "./styles/layout.css",
   "./styles/responsive.css",
+  "./styles/redesign.css",
   "./js/app.js",
   "./js/firebase-config.js",
   "./js/firebase.js",

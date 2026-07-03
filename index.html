@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#060a12">
+  <meta name="theme-color" content="#11130f">
   <meta name="description" content="Training progress, strength ranking, activity tracking and muscle-balance analytics.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icons/icon-192.png">
@@ -12,63 +12,84 @@
   <link rel="stylesheet" href="./styles/components.css">
   <link rel="stylesheet" href="./styles/layout.css">
   <link rel="stylesheet" href="./styles/responsive.css">
+  <link rel="stylesheet" href="./styles/redesign.css">
   <title>Training Track</title>
 </head>
 <body>
   <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
 
   <main id="auth-shell" class="auth-shell">
-    <section class="auth-brand">
-      <div class="brand-rune" aria-hidden="true"><span></span><b>T</b></div>
-      <p class="eyebrow">PROGRESS · RANK · RECOVER</p>
-      <h1>Training<br><span>Track</span></h1>
-      <p class="auth-copy">Log strength sessions and endurance activities, measure progression, reveal neglected muscle groups and turn consistency into a visible rank.</p>
-      <div class="auth-feature-row">
-        <div><strong>Train</strong><span>Sets, reps, pace and distance</span></div>
-        <div><strong>Analyse</strong><span>PRs, volume and muscle balance</span></div>
-        <div><strong>Advance</strong><span>Levels, streaks and progression</span></div>
+    <section class="auth-stage" aria-label="Training Track introduction">
+      <div class="auth-stage-top">
+        <div class="track-mark" aria-hidden="true"><span>TT</span><i></i></div>
+        <span class="auth-build">PERSONAL TRAINING OS</span>
+      </div>
+
+      <div class="auth-stage-copy">
+        <p class="auth-index">01 / PERFORMANCE LOG</p>
+        <h1>TRAINING<br><span>TRACK</span></h1>
+        <p class="auth-copy">A focused record of strength, endurance, progression and recovery—built around the work you actually complete.</p>
+      </div>
+
+      <div class="auth-motion-board" aria-hidden="true">
+        <div class="motion-axis"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="motion-trace"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="motion-readout"><b>LOAD</b><strong>72.4</strong><span>LIVE HISTORY</span></div>
+      </div>
+
+      <div class="auth-stage-footer">
+        <span>OFFLINE READY</span><span>FIREBASE SYNC</span><span>PRIVATE ARCHIVE</span>
       </div>
     </section>
 
-    <section class="auth-card panel">
-      <div id="boot-status" class="status-pill"><i></i><span id="boot-text">Connecting to Firebase…</span></div>
-      <div class="auth-tabs" role="tablist">
-        <button class="active" data-auth-mode="signin" type="button">Sign in</button>
-        <button data-auth-mode="create" type="button">Create account</button>
+    <section class="auth-card">
+      <div class="auth-card-head">
+        <span class="auth-card-number">ACCESS / 01</span>
+        <div id="boot-status" class="status-pill"><i></i><span id="boot-text">Connecting to Firebase…</span></div>
       </div>
-      <h2 id="auth-title">Enter the system</h2>
-      <p id="auth-subtitle" class="muted">Your training history stays available offline after the first sign-in.</p>
-      <form id="auth-form" class="stack-form">
+      <div class="auth-heading">
+        <p class="eyebrow">RETURN TO YOUR LOG</p>
+        <h2 id="auth-title">Sign in</h2>
+        <p id="auth-subtitle" class="muted">Continue with your existing Firebase account.</p>
+      </div>
+      <form id="auth-form" class="stack-form auth-form">
         <label class="field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
-        <label class="field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required></label>
-        <button id="auth-submit" class="primary-button" type="submit">Sign in</button>
-        <button id="password-reset" class="text-button" type="button">Send password-reset email</button>
+        <label class="field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="Password" required></label>
+        <button id="auth-submit" class="primary-button auth-enter" type="submit"><span>Enter training log</span><b>↗</b></button>
+        <button id="password-reset" class="text-button" type="button">Reset password</button>
         <p id="auth-message" class="form-message" aria-live="polite"></p>
       </form>
+      <p class="auth-security">Your cached history remains available on this device after the first successful sign-in.</p>
     </section>
   </main>
 
   <div id="app-shell" class="app-shell" hidden>
-    <aside class="sidebar">
-      <div class="sidebar-brand"><div class="brand-rune small"><span></span><b>T</b></div><div><strong>Training Track</strong><small>Personal progression system</small></div></div>
-      <nav class="main-nav" aria-label="Main navigation">
-        <button class="nav-button active" data-view="dashboard" type="button"><span>⌂</span><b>Dashboard</b></button>
-        <button class="nav-button" data-view="workout" type="button"><span>＋</span><b>Workout</b></button>
-        <button class="nav-button" data-view="calendar" type="button"><span>▦</span><b>Calendar</b></button>
-        <button class="nav-button" data-view="stats" type="button"><span>↗</span><b>Statistics</b></button>
-        <button class="nav-button" data-view="muscles" type="button"><span>◈</span><b>Muscles</b></button>
-        <button class="nav-button" data-view="settings" type="button"><span>⚙</span><b>Settings</b></button>
-      </nav>
-      <div class="sidebar-footer">
-        <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
-        <button id="sign-out" class="ghost-button full-width" type="button">Sign out</button>
+    <header class="command-header">
+      <div class="command-brand">
+        <div class="track-mark small" aria-hidden="true"><span>TT</span><i></i></div>
+        <div><strong>TRAINING TRACK</strong><small>PERFORMANCE LOG</small></div>
       </div>
-    </aside>
+
+      <nav class="main-nav desktop-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-view="dashboard" type="button"><span>01</span><b>Overview</b></button>
+        <button class="nav-button" data-view="workout" type="button"><span>02</span><b>Session</b></button>
+        <button class="nav-button" data-view="calendar" type="button"><span>03</span><b>History</b></button>
+        <button class="nav-button" data-view="stats" type="button"><span>04</span><b>Progress</b></button>
+        <button class="nav-button" data-view="muscles" type="button"><span>05</span><b>Balance</b></button>
+        <button class="nav-button" data-view="settings" type="button"><span>06</span><b>Setup</b></button>
+      </nav>
+
+      <div class="command-actions">
+        <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
+        <span id="user-chip" class="user-chip"></span>
+        <button id="sign-out" class="command-exit" type="button" aria-label="Sign out" title="Sign out">↗</button>
+      </div>
+    </header>
 
     <div class="workspace">
       <header class="topbar">
-        <div><p id="view-kicker" class="eyebrow">STATUS</p><h2 id="view-title">Dashboard</h2></div>
-        <div class="top-actions"><span id="user-chip" class="user-chip"></span><button id="top-start-workout" class="primary-button compact" type="button">＋ Train</button></div>
+        <div class="view-heading"><span class="view-index">SECTION</span><p id="view-kicker" class="eyebrow">STATUS</p><h2 id="view-title">Dashboard</h2></div>
+        <button id="top-start-workout" class="primary-button compact" type="button"><span>Start session</span><b>＋</b></button>
       </header>
 
       <div class="content-scroll">
@@ -178,7 +199,7 @@
               <div class="two-col"><label class="field"><span>Weekly session target</span><input id="setting-session-target" type="number" min="1" max="14"></label><label class="field"><span>Weekly target sets / muscle</span><input id="setting-muscle-target" type="number" min="1" max="40"></label></div>
               <div class="two-col"><label class="field"><span>Default statistics window</span><input id="setting-stats-window" type="number" min="7" max="730"></label><label class="field"><span>Default rest timer (seconds)</span><input id="setting-rest" type="number" min="15" max="600" step="15"></label></div>
               <label class="toggle-row"><input id="setting-auto-rest" type="checkbox"><span><strong>Automatic rest timer</strong><small>Start the timer when a set is marked complete.</small></span></label>
-              <div class="two-col"><label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label><label class="field"><span>Accent</span><select id="setting-accent"><option value="cyan">System cyan</option><option value="violet">Void violet</option><option value="ember">Ember</option><option value="green">Emerald</option></select></label></div>
+              <div class="two-col"><label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label><label class="field"><span>Accent</span><select id="setting-accent"><option value="cyan">Volt lime</option><option value="violet">Void violet</option><option value="ember">Ember</option><option value="green">Emerald</option></select></label></div>
               <label class="field"><span>Motion</span><select id="setting-motion"><option value="on">Animations on</option><option value="off">Reduced motion</option></select></label>
               <button class="primary-button" type="submit">Save settings</button><p id="settings-message" class="form-message"></p>
             </form></article>
@@ -194,7 +215,7 @@
     </div>
 
     <nav class="mobile-nav" aria-label="Mobile navigation">
-      <button class="active" data-view="dashboard" type="button"><span>⌂</span><small>Home</small></button><button data-view="workout" type="button"><span>＋</span><small>Train</small></button><button data-view="calendar" type="button"><span>▦</span><small>Calendar</small></button><button data-view="stats" type="button"><span>↗</span><small>Stats</small></button><button data-view="muscles" type="button"><span>◈</span><small>Muscles</small></button><button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
+      <button class="active" data-view="dashboard" type="button"><span>⌂</span><small>Home</small></button><button data-view="workout" type="button"><span>＋</span><small>Train</small></button><button data-view="calendar" type="button"><span>▦</span><small>Days</small></button><button data-view="stats" type="button"><span>↗</span><small>Stats</small></button><button data-view="muscles" type="button"><span>◈</span><small>Body</small></button><button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
     </nav>
   </div>
 

@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
   browserLocalPersistence,
-  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -38,7 +37,6 @@ export async function initializeAuthPersistence() {
 
 export {
   collection,
-  createUserWithEmailAndPassword,
   deleteDoc,
   doc,
   getDocs,

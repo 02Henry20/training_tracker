@@ -1,6 +1,6 @@
 # Training Track
 
-Training Track is a mobile-first progressive web app for logging gym sessions and endurance activities. It uses the same Firebase project as CalStat but stores its data under a separate Firestore path.
+Training Track is a mobile-first progressive web app for logging gym sessions and endurance activities. Version 0.2 uses a distinct industrial performance-logbook interface with a horizontal desktop command bar, compact mobile dock and sign-in-only entry screen. It uses the same Firebase project as CalStat but stores its data under a separate Firestore path.
 
 ## Included functionality
 
@@ -29,7 +29,8 @@ training-track-app/
 │   ├── base.css
 │   ├── components.css
 │   ├── layout.css
-│   └── responsive.css
+│   ├── responsive.css
+│   └── redesign.css
 └── js/
     ├── app.js
     ├── calculations.js

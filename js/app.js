@@ -1,6 +1,5 @@
 import {
   auth,
-  createUserWithEmailAndPassword,
   initializeAuthPersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -56,14 +55,14 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION = "0.2.0";
 const VIEW_META = {
-  dashboard: ["STATUS", "Dashboard"],
-  workout: ["SESSION", "Workout"],
-  calendar: ["HISTORY", "Calendar"],
-  stats: ["PROGRESSION", "Statistics"],
-  muscles: ["BALANCE", "Muscle groups"],
-  settings: ["CONTROL", "Settings"]
+  dashboard: ["LIVE LOG", "Overview"],
+  workout: ["SESSION BUILD", "Session"],
+  calendar: ["TRAINING ARCHIVE", "History"],
+  stats: ["PERFORMANCE", "Progress"],
+  muscles: ["LOAD BALANCE", "Balance"],
+  settings: ["SYSTEM", "Setup"]
 };
 
 const elements = {
@@ -94,7 +93,6 @@ const elements = {
 };
 
 let activeView = "dashboard";
-let authMode = "signin";
 let activeModal = null;
 let confirmationResolver = null;
 let pickerFilter = "all";
@@ -221,18 +219,6 @@ async function initializeAuthentication() {
   });
 }
 
-function setAuthMode(mode) {
-  authMode = mode === "create" ? "create" : "signin";
-  document.querySelectorAll("[data-auth-mode]").forEach(button => button.classList.toggle("active", button.dataset.authMode === authMode));
-  elements.authTitle.textContent = authMode === "create" ? "Create your account" : "Enter the system";
-  elements.authSubtitle.textContent = authMode === "create"
-    ? "Your private training data is stored under your Firebase user ID."
-    : "Your training history stays available offline after the first sign-in.";
-  elements.authSubmit.textContent = authMode === "create" ? "Create account" : "Sign in";
-  elements.authPassword.autocomplete = authMode === "create" ? "new-password" : "current-password";
-  setMessage(elements.authMessage, "");
-}
-
 async function submitAuth(event) {
   event.preventDefault();
   for (const control of elements.authForm.querySelectorAll("button,input")) control.disabled = true;
@@ -240,8 +226,7 @@ async function submitAuth(event) {
   try {
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
-    if (authMode === "create") await createUserWithEmailAndPassword(auth, email, password);
-    else await signInWithEmailAndPassword(auth, email, password);
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     setMessage(elements.authMessage, firebaseErrorMessage(error), true);
   } finally {
@@ -1016,7 +1001,6 @@ function setupServiceWorker() {
 
 function bindEvents() {
   elements.authForm.addEventListener("submit", submitAuth);
-  document.querySelectorAll("[data-auth-mode]").forEach(button => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
   document.querySelector("#password-reset").addEventListener("click", resetPassword);
   elements.signOut.addEventListener("click", () => signOut(auth));
 
