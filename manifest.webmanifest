@@ -1,13 +1,13 @@
 {
-  "name": "Training Track",
-  "short_name": "TrainTrack",
-  "description": "Training progress, exercise rankings, activity tracking and muscle-balance analytics.",
+  "name": "Ascend",
+  "short_name": "Ascend",
+  "description": "Ranked training progress, exercise rankings, activity tracking and muscle-balance analytics.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#11130f",
-  "theme_color": "#dfff43",
+  "background_color": "#040712",
+  "theme_color": "#43daff",
   "icons": [
     { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "./icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },

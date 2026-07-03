@@ -2,7 +2,6 @@ import {
   auth,
   initializeAuthPersistence,
   onAuthStateChanged,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut
 } from "./firebase.js";
@@ -10,16 +9,17 @@ import {
   DEFAULT_SETTINGS,
   connectUserData,
   deleteCustomExercise,
-  deleteTemplate,
   deleteWorkout,
   disconnectUserData,
   exportState,
+  getSyncSummary,
   hasPendingWrites,
   importState,
   isUsingCacheOnly,
+  resetAllData,
+  resolveSyncChoice,
   saveCustomExercise,
   saveSettings,
-  saveTemplate,
   saveWorkout,
   setStoreErrorHandler,
   state,
@@ -55,12 +55,11 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.2.1";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
-  calendar: ["TRAINING ARCHIVE", "History"],
-  stats: ["PERFORMANCE", "Progress"],
+  stats: ["PROGRESS / HISTORY", "Progress"],
   muscles: ["LOAD BALANCE", "Balance"],
   settings: ["SYSTEM", "Setup"]
 };
@@ -87,9 +86,7 @@ const elements = {
   modalBackdrop: document.querySelector("#modal-backdrop"),
   toastContainer: document.querySelector("#toast-container"),
   builderList: document.querySelector("#exercise-builder-list"),
-  builderEmpty: document.querySelector("#builder-empty"),
-  restTimer: document.querySelector("#rest-timer"),
-  restTime: document.querySelector("#rest-time")
+  builderEmpty: document.querySelector("#builder-empty")
 };
 
 let activeView = "dashboard";
@@ -98,9 +95,8 @@ let confirmationResolver = null;
 let pickerFilter = "all";
 let calendarMonth = startOfMonth(localDateString());
 let selectedCalendarDate = localDateString();
+let selectedHistoryMonth = localDateString().slice(0, 7);
 let draftWorkout = createEmptyDraft();
-let restDeadline = null;
-let restInterval = null;
 let renderQueued = false;
 let lastCatalogSignature = "";
 let statsWindowInitialized = false;
@@ -210,6 +206,7 @@ async function initializeAuthentication() {
       document.querySelector("#settings-email").textContent = user.email ?? user.uid;
       connectUserData(user);
       navigateTo("dashboard");
+      window.setTimeout(() => { void maybeOfferSyncChoice(); }, 600);
     } else {
       disconnectUserData();
       elements.authShell.hidden = false;
@@ -234,21 +231,40 @@ async function submitAuth(event) {
   }
 }
 
-async function resetPassword() {
-  const email = elements.authEmail.value.trim();
-  if (!email) {
-    setMessage(elements.authMessage, "Enter your email address first.", true);
-    return;
-  }
+async function maybeOfferSyncChoice() {
+  if (!navigator.onLine || !state.user) return;
   try {
-    await sendPasswordResetEmail(auth, email);
-    setMessage(elements.authMessage, "Password-reset email sent.");
+    const summary = await getSyncSummary();
+    if (!summary.hasLocal || !summary.differs) return;
+    renderSyncSummary(summary);
+    openModal("sync");
   } catch (error) {
-    setMessage(elements.authMessage, firebaseErrorMessage(error), true);
+    console.warn("Sync comparison unavailable", error);
+  }
+}
+
+function renderSyncSummary(summary) {
+  document.querySelector("#sync-local-summary").textContent = `${summary.local.workouts} workouts, ${summary.local.customExercises} custom movements`;
+  document.querySelector("#sync-cloud-summary").textContent = `${summary.cloud.workouts} workouts, ${summary.cloud.customExercises} custom movements`;
+}
+
+async function handleSyncChoice(mode) {
+  const buttons = document.querySelectorAll("[data-sync-choice]");
+  buttons.forEach(button => { button.disabled = true; });
+  try {
+    await resolveSyncChoice(mode);
+    closeModal();
+    const title = mode === "cloud" ? "Cloud data fetched" : mode === "device" ? "Device data pushed" : "Data merged";
+    showToast(title, "Sync state is being reconciled with Firebase.");
+  } catch (error) {
+    showToast("Sync choice failed", firebaseErrorMessage(error), "error");
+  } finally {
+    buttons.forEach(button => { button.disabled = false; });
   }
 }
 
 function navigateTo(view) {
+  if (view === "calendar") view = "stats";
   if (!VIEW_META[view]) return;
   activeView = view;
   document.querySelectorAll("[data-view-section]").forEach(section => section.classList.toggle("active", section.dataset.viewSection === view));
@@ -324,19 +340,19 @@ function createDraftEntry(exercise) {
 
   let sets;
   if (previous?.sets?.length) {
-    sets = previous.sets.map(set => ({ ...deepClone(set), completed: false }));
+    sets = previous.sets.map(set => ({ ...deepClone(set), completed: true }));
   } else {
     sets = Array.from({ length: exercise.defaults?.sets ?? 3 }, () => ({
       weightKg: 0,
       reps: exercise.inputType === "timedSets" ? 0 : exercise.defaults?.reps ?? 10,
       seconds: exercise.inputType === "timedSets" ? exercise.defaults?.seconds ?? 30 : 0,
       rir: "",
-      completed: false
+      completed: true
     }));
   }
   return {
     exerciseId: exercise.id,
-    restSeconds: exercise.defaults?.restSeconds ?? state.settings.defaultRestSeconds,
+    restSeconds: exercise.defaults?.restSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds,
     notes: "",
     sets,
     activity: null
@@ -356,7 +372,7 @@ function startNewWorkout(source = null, keepId = false) {
     };
     draftWorkout.exercises = draftWorkout.exercises.map(entry => ({
       ...entry,
-      sets: (entry.sets ?? []).map(set => ({ ...set, completed: false }))
+      sets: (entry.sets ?? []).map(set => ({ ...set, completed: true }))
     }));
   }
   syncDraftMetaToForm();
@@ -366,9 +382,7 @@ function startNewWorkout(source = null, keepId = false) {
 
 function syncDraftMetaToForm() {
   document.querySelector("#workout-date").value = draftWorkout.date || localDateString();
-  document.querySelector("#workout-title").value = draftWorkout.title || "Training session";
   document.querySelector("#workout-duration").value = draftWorkout.durationMin ?? "";
-  document.querySelector("#workout-notes").value = draftWorkout.notes ?? "";
   document.querySelector("#builder-heading").textContent = draftWorkout.id ? "Edit workout" : "New workout";
   document.querySelector("#delete-workout").classList.toggle("hidden", !draftWorkout.id);
 }
@@ -391,25 +405,24 @@ function levelValueLabel(exercise, result) {
 function setRowsHtml(exercise, entry, entryIndex) {
   const timed = exercise.inputType === "timedSets";
   const bodyweight = exercise.inputType === "bodyweightSets";
+  const showRir = Boolean(state.settings.showRir);
   const loadLabel = bodyweight ? "Added kg" : exercise.loadMode === "perHand" ? "kg / hand" : exercise.loadMode === "perSide" ? "kg / side" : "Weight kg";
   const header = timed
-    ? `<div class="set-head"><span>Set</span><span>Seconds</span><span>RIR</span><span></span></div>`
-    : `<div class="set-head"><span>Set</span><span>${loadLabel}</span><span>Reps</span><span>RIR</span><span></span></div>`;
+    ? `<div class="set-head"><span>Set</span><span>Seconds</span>${showRir ? "<span>RIR</span>" : ""}</div>`
+    : `<div class="set-head"><span>Set</span><span>${loadLabel}</span><span>Reps</span>${showRir ? "<span>RIR</span>" : ""}</div>`;
   const rows = (entry.sets ?? []).map((set, setIndex) => timed
     ? `<div class="set-row">
         <span class="set-number">${setIndex + 1}</span>
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="seconds" type="number" min="0" max="3600" inputmode="numeric" value="${Number(set.seconds) || 0}" aria-label="Seconds">
-        <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="—" aria-label="Repetitions in reserve">
-        <button class="set-complete ${set.completed ? "done" : ""}" data-action="complete-set" data-entry="${entryIndex}" data-set="${setIndex}" type="button">${set.completed ? "✓" : "○"}</button>
+        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`
     : `<div class="set-row">
         <span class="set-number">${setIndex + 1}</span>
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="weightKg" type="number" min="0" max="1000" step="0.5" inputmode="decimal" value="${Number(set.weightKg) || 0}" aria-label="Weight">
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="reps" type="number" min="0" max="500" inputmode="numeric" value="${Number(set.reps) || 0}" aria-label="Repetitions">
-        <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="—" aria-label="Repetitions in reserve">
-        <button class="set-complete ${set.completed ? "done" : ""}" data-action="complete-set" data-entry="${entryIndex}" data-set="${setIndex}" type="button">${set.completed ? "✓" : "○"}</button>
+        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`).join("");
-  return `<div class="set-table ${timed ? "timed-table" : ""}">${header}${rows}</div>`;
+  return `<div class="set-table ${timed ? "timed-table" : ""} ${showRir ? "" : "no-rir"}">${header}${rows}</div>`;
 }
 
 const ACTIVITY_FIELD_META = {
@@ -456,7 +469,7 @@ function renderBuilder() {
       </div>
       ${exercise.inputType === "activity" ? activityFieldsHtml(exercise, entry, entryIndex) : setRowsHtml(exercise, entry, entryIndex)}
       <div class="exercise-footer">
-        ${exercise.inputType === "activity" ? "<span></span>" : `<div><button class="text-button" data-action="add-set" data-entry="${entryIndex}" type="button">＋ Add set</button>${entry.sets.length > 1 ? `<button class="text-button" data-action="remove-set" data-entry="${entryIndex}" type="button">− Remove last</button>` : ""}</div>`}
+        ${exercise.inputType === "activity" ? "<span></span>" : `<div class="set-controls"><button class="set-control" data-action="add-set" data-entry="${entryIndex}" type="button" aria-label="Add set" title="Add set">+</button><button class="set-control" data-action="remove-set" data-entry="${entryIndex}" type="button" aria-label="Remove set" title="Remove set" ${entry.sets.length <= 1 ? "disabled" : ""}>-</button></div>`}
         <span class="exercise-preview" data-preview="${entryIndex}">${Math.round(result.calories)} kcal · Rank ${result.level.rank} ${result.level.label} · ${escapeHtml(levelValueLabel(exercise, result))}</span>
       </div>`;
     elements.builderList.append(block);
@@ -484,9 +497,9 @@ function addExerciseToDraft(exerciseId) {
 async function submitWorkout(event) {
   event.preventDefault();
   draftWorkout.date = document.querySelector("#workout-date").value;
-  draftWorkout.title = document.querySelector("#workout-title").value.trim() || "Training session";
+  draftWorkout.title = draftWorkout.title || "Training session";
   draftWorkout.durationMin = document.querySelector("#workout-duration").value;
-  draftWorkout.notes = document.querySelector("#workout-notes").value.trim();
+  draftWorkout.notes = draftWorkout.notes || "";
   const message = document.querySelector("#workout-message");
   if (!draftWorkout.date || !draftWorkout.exercises.length) {
     setMessage(message, "Choose a date and add at least one exercise.", true);
@@ -495,15 +508,8 @@ async function submitWorkout(event) {
   const saved = deepClone(draftWorkout);
   try {
     await saveWorkout(saved);
-    if (document.querySelector("#save-as-template").checked) {
-      const templateName = document.querySelector("#template-name").value.trim() || saved.title;
-      await saveTemplate({ name: templateName, exercises: saved.exercises });
-    }
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
     draftWorkout = createEmptyDraft();
-    document.querySelector("#save-as-template").checked = false;
-    document.querySelector("#template-name").value = "";
-    document.querySelector("#template-name-field").classList.add("hidden");
     renderBuilder();
     navigateTo("dashboard");
   } catch (error) {
@@ -517,39 +523,6 @@ async function removeDraftExercise(index) {
   if (!accepted) return;
   draftWorkout.exercises.splice(index, 1);
   renderBuilder();
-}
-
-function startRestTimer(seconds) {
-  const duration = Math.max(5, Number(seconds) || state.settings.defaultRestSeconds || 90);
-  restDeadline = Date.now() + duration * 1000;
-  elements.restTimer.hidden = false;
-  clearInterval(restInterval);
-  updateRestTimer();
-  restInterval = window.setInterval(updateRestTimer, 250);
-}
-
-function updateRestTimer() {
-  if (!restDeadline) return;
-  const remaining = Math.max(0, Math.ceil((restDeadline - Date.now()) / 1000));
-  const minutes = Math.floor(remaining / 60).toString().padStart(2, "0");
-  const seconds = (remaining % 60).toString().padStart(2, "0");
-  elements.restTime.textContent = `${minutes}:${seconds}`;
-  if (remaining <= 0) {
-    clearInterval(restInterval);
-    restInterval = null;
-    elements.restTimer.classList.add("finished");
-    showToast("Rest complete", "Begin the next set when ready.");
-    if (navigator.vibrate) navigator.vibrate([120, 80, 120]);
-  } else {
-    elements.restTimer.classList.remove("finished");
-  }
-}
-
-function stopRestTimer() {
-  clearInterval(restInterval);
-  restInterval = null;
-  restDeadline = null;
-  elements.restTimer.hidden = true;
 }
 
 function renderExercisePicker() {
@@ -655,6 +628,18 @@ function renderDashboard() {
 }
 
 function renderCalendar() {
+  const mode = state.settings.historyViewMode === "year" ? "year" : "month";
+  document.querySelector(".calendar-card")?.classList.toggle("history-year-mode", mode === "year");
+  document.querySelector(".calendar-weekdays").hidden = mode === "year";
+  document.querySelector(".calendar-legend").hidden = false;
+  if (mode === "year") {
+    renderHistoryYear();
+    return;
+  }
+  renderHistoryMonth();
+}
+
+function renderHistoryMonth() {
   const monthDate = parseDate(calendarMonth);
   document.querySelector("#calendar-month").textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(monthDate);
   const intensity = calendarIntensity(state.workouts, catalog(), state.settings, calendarMonth);
@@ -680,7 +665,46 @@ function renderCalendar() {
   renderCalendarDay();
 }
 
+function renderHistoryYear() {
+  const year = parseDate(calendarMonth).getFullYear();
+  if (!selectedHistoryMonth.startsWith(String(year))) selectedHistoryMonth = `${year}-01`;
+  document.querySelector("#calendar-month").textContent = String(year);
+  const analyses = buildWorkoutAnalyses(state.workouts, catalog(), state.settings).filter(workout => workout.date.startsWith(`${year}-`));
+  const byMonth = new Map();
+  for (let month = 0; month < 12; month += 1) {
+    const key = `${year}-${String(month + 1).padStart(2, "0")}`;
+    byMonth.set(key, { key, workouts: [], calories: 0, minutes: 0 });
+  }
+  for (const workout of analyses) {
+    const key = workout.date.slice(0, 7);
+    const bucket = byMonth.get(key);
+    if (!bucket) continue;
+    bucket.workouts.push(workout);
+    bucket.calories += workout.calories;
+    bucket.minutes += workout.durationMin;
+  }
+  const maxCalories = Math.max(1, ...[...byMonth.values()].map(month => month.calories));
+  const grid = document.querySelector("#calendar-grid");
+  grid.className = "calendar-grid history-year-grid";
+  grid.replaceChildren();
+  const monthFormatter = new Intl.DateTimeFormat(undefined, { month: "short" });
+  for (const item of byMonth.values()) {
+    const date = parseDate(`${item.key}-01`);
+    const tier = item.calories === 0 ? 0 : item.calories / maxCalories > .75 ? 4 : item.calories / maxCalories > .45 ? 3 : item.calories / maxCalories > .2 ? 2 : 1;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-month-tile";
+    if (tier) button.classList.add(`tier-${tier}`);
+    if (item.key === selectedHistoryMonth) button.classList.add("selected");
+    button.dataset.historyMonth = item.key;
+    button.innerHTML = `<strong>${monthFormatter.format(date)}</strong><small>${item.workouts.length} session${item.workouts.length === 1 ? "" : "s"}</small><span>${item.calories ? `${formatNumber(item.calories)} kcal` : "Rest"}</span>`;
+    grid.append(button);
+  }
+  renderHistoryMonthDetail();
+}
+
 function renderCalendarDay() {
+  document.querySelector("#calendar-grid").className = "calendar-grid";
   const analyses = buildWorkoutAnalyses(state.workouts, catalog(), state.settings)
     .filter(workout => workout.date === selectedCalendarDate)
     .reverse();
@@ -688,6 +712,17 @@ function renderCalendarDay() {
   const calories = analyses.reduce((sum, workout) => sum + workout.calories, 0);
   document.querySelector("#calendar-day-total").textContent = analyses.length ? `${Math.round(calories)} kcal` : "Rest day";
   renderSessionList(document.querySelector("#calendar-day-list"), analyses, 20);
+}
+
+function renderHistoryMonthDetail() {
+  const analyses = buildWorkoutAnalyses(state.workouts, catalog(), state.settings)
+    .filter(workout => workout.date.slice(0, 7) === selectedHistoryMonth)
+    .reverse();
+  const date = parseDate(`${selectedHistoryMonth}-01`);
+  document.querySelector("#calendar-day-title").textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(date);
+  const calories = analyses.reduce((sum, workout) => sum + workout.calories, 0);
+  document.querySelector("#calendar-day-total").textContent = analyses.length ? `${analyses.length} sessions · ${Math.round(calories)} kcal` : "No sessions";
+  renderSessionList(document.querySelector("#calendar-day-list"), analyses, 80);
 }
 
 function usedExerciseIds() {
@@ -781,41 +816,26 @@ function renderMuscles() {
   document.querySelector("#muscle-status-totals").innerHTML = `<div><strong>${counts.balanced}</strong><span>Balanced</span></div><div><strong>${counts.low}</strong><span>Low</span></div><div><strong>${counts.missing}</strong><span>Missing</span></div><div><strong>${counts.high}</strong><span>High volume</span></div>`;
 }
 
-function renderTemplates() {
-  const select = document.querySelector("#template-select");
-  const current = select.value;
-  select.innerHTML = `<option value="">Load routine…</option>${state.templates.map(template => `<option value="${template.id}">${escapeHtml(template.name)}</option>`).join("")}`;
-  if (state.templates.some(template => template.id === current)) select.value = current;
-  document.querySelector("#template-count").textContent = state.templates.length.toString();
-  const list = document.querySelector("#template-list");
-  list.replaceChildren();
-  if (!state.templates.length) list.innerHTML = `<div class="empty-state">Save a workout structure as a routine.</div>`;
-  for (const template of state.templates) {
-    const row = document.createElement("div");
-    row.className = "compact-row";
-    row.innerHTML = `<button data-load-template="${template.id}" type="button"><strong>${escapeHtml(template.name)}</strong><small>${template.exercises?.length ?? 0} exercises</small></button><button class="row-delete" data-delete-template="${template.id}" type="button">×</button>`;
-    list.append(row);
-  }
-}
-
 function renderSettings() {
   const form = document.querySelector("#settings-form");
   if (!form.contains(document.activeElement)) {
     document.querySelector("#setting-weight").value = state.settings.bodyWeightKg;
     document.querySelector("#setting-height").value = state.settings.heightCm;
-    document.querySelector("#setting-age").value = state.settings.age;
+    document.querySelector("#setting-birth-year").value = state.settings.birthYear;
     document.querySelector("#setting-sex").value = state.settings.referenceSex;
     document.querySelector("#setting-session-target").value = state.settings.weeklySessionTarget;
     document.querySelector("#setting-muscle-target").value = state.settings.weeklyMuscleTargetSets;
     document.querySelector("#setting-stats-window").value = state.settings.statsWindowDays;
-    document.querySelector("#setting-rest").value = state.settings.defaultRestSeconds;
-    document.querySelector("#setting-auto-rest").checked = Boolean(state.settings.autoStartRestTimer);
+    document.querySelector("#setting-history-mode").value = state.settings.historyViewMode;
+    document.querySelector("#setting-show-rir").checked = Boolean(state.settings.showRir);
     document.querySelector("#setting-theme").value = state.settings.theme;
     document.querySelector("#setting-accent").value = state.settings.accent;
     document.querySelector("#setting-motion").value = state.settings.motion;
   }
+  const age = Math.max(0, new Date().getFullYear() - Number(state.settings.birthYear || DEFAULT_SETTINGS.birthYear));
+  document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
   document.querySelector("#settings-workouts").textContent = state.workouts.length.toString();
-  document.querySelector("#app-version").textContent = `Training Track ${APP_VERSION}`;
+  document.querySelector("#app-version").textContent = `Ascend ${APP_VERSION}`;
   document.querySelector("#catalog-status").textContent = state.catalogAvailable ? `${BUNDLED_EXERCISES.length + state.remoteExercises.length} bundled/remote` : "Bundled only";
   const customList = document.querySelector("#custom-exercise-list");
   customList.replaceChildren();
@@ -826,7 +846,6 @@ function renderSettings() {
     row.innerHTML = `<div><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.equipment ?? exercise.category)}</small></div><button class="row-delete" data-delete-custom="${exercise.id}" type="button">×</button>`;
     customList.append(row);
   }
-  renderTemplates();
 }
 
 function prepareCustomExerciseForm() {
@@ -857,7 +876,7 @@ async function submitCustomExercise(event) {
     loadMode: "total",
     defaults: type === "activity"
       ? { durationMin: 30, distanceKm: "", intensity: "moderate" }
-      : { sets: Number(document.querySelector("#custom-sets").value) || 3, reps: Number(document.querySelector("#custom-reps").value) || 10, restSeconds: state.settings.defaultRestSeconds },
+      : { sets: Number(document.querySelector("#custom-sets").value) || 3, reps: Number(document.querySelector("#custom-reps").value) || 10, restSeconds: DEFAULT_SETTINGS.defaultRestSeconds },
     calorie: type === "activity"
       ? { baseMet: Number(document.querySelector("#custom-met").value) || 3.5 }
       : { activeMet: Number(document.querySelector("#custom-met").value) || 3.5, restMet: 2, repSeconds: 3.2 },
@@ -894,13 +913,15 @@ function submitSettings(event) {
   const settings = {
     bodyWeightKg: Number(document.querySelector("#setting-weight").value),
     heightCm: Number(document.querySelector("#setting-height").value),
-    age: Number(document.querySelector("#setting-age").value),
+    birthYear: Number(document.querySelector("#setting-birth-year").value),
     referenceSex: document.querySelector("#setting-sex").value,
     weeklySessionTarget: Number(document.querySelector("#setting-session-target").value),
     weeklyMuscleTargetSets: Number(document.querySelector("#setting-muscle-target").value),
     statsWindowDays: Number(document.querySelector("#setting-stats-window").value),
-    defaultRestSeconds: Number(document.querySelector("#setting-rest").value),
-    autoStartRestTimer: document.querySelector("#setting-auto-rest").checked,
+    historyViewMode: document.querySelector("#setting-history-mode").value,
+    showRir: document.querySelector("#setting-show-rir").checked,
+    defaultRestSeconds: DEFAULT_SETTINGS.defaultRestSeconds,
+    autoStartRestTimer: false,
     theme: document.querySelector("#setting-theme").value,
     accent: document.querySelector("#setting-accent").value,
     motion: document.querySelector("#setting-motion").value
@@ -910,8 +931,15 @@ function submitSettings(event) {
     setMessage(message, "Enter a valid body weight and height.", true);
     return;
   }
+  const year = new Date().getFullYear();
+  if (settings.birthYear < 1900 || settings.birthYear > year) {
+    setMessage(message, "Enter a valid birth year.", true);
+    return;
+  }
   queueWrite(saveSettings(settings), "Settings saved");
   setMessage(message, "Settings saved locally and queued for synchronization.");
+  renderCalendar();
+  renderBuilder();
 }
 
 function exportBackup() {
@@ -919,10 +947,10 @@ function exportBackup() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `training-track-backup-${localDateString()}.json`;
+  link.download = `ascend-backup-${localDateString()}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  showToast("Backup exported", "The JSON file contains workouts, routines, custom exercises and settings.");
+  showToast("Backup exported", "The JSON file contains workouts, custom exercises and settings.");
 }
 
 async function importBackup(file) {
@@ -964,12 +992,6 @@ function scheduleRender() {
   });
 }
 
-function loadTemplate(id) {
-  const template = state.templates.find(item => item.id === id);
-  if (!template) return;
-  startNewWorkout({ ...createEmptyDraft(), title: template.name, exercises: deepClone(template.exercises ?? []) });
-}
-
 function setupServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   let pendingWorker = null;
@@ -999,9 +1021,16 @@ function setupServiceWorker() {
   });
 }
 
+function shiftHistoryPeriod(delta) {
+  const date = parseDate(calendarMonth);
+  if (state.settings.historyViewMode === "year") date.setFullYear(date.getFullYear() + delta);
+  else date.setMonth(date.getMonth() + delta);
+  calendarMonth = startOfMonth(localDateString(date));
+  renderCalendar();
+}
+
 function bindEvents() {
   elements.authForm.addEventListener("submit", submitAuth);
-  document.querySelector("#password-reset").addEventListener("click", resetPassword);
   elements.signOut.addEventListener("click", () => signOut(auth));
 
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.view)));
@@ -1011,10 +1040,6 @@ function bindEvents() {
     const last = state.workouts[0];
     if (last) startNewWorkout(last);
     else startNewWorkout();
-  });
-  document.querySelector("#use-template").addEventListener("click", () => {
-    if (state.templates[0]) loadTemplate(state.templates[0].id);
-    else { navigateTo("workout"); showToast("No routines yet", "Save a workout structure as a routine first.", "error"); }
   });
 
   document.querySelectorAll("[data-open-picker]").forEach(button => button.addEventListener("click", () => openModal("picker")));
@@ -1037,16 +1062,14 @@ function bindEvents() {
   });
 
   document.querySelector("#workout-form").addEventListener("submit", submitWorkout);
-  ["workout-date", "workout-title", "workout-duration", "workout-notes"].forEach(id => document.querySelector(`#${id}`).addEventListener("input", event => {
-    const map = { "workout-date": "date", "workout-title": "title", "workout-duration": "durationMin", "workout-notes": "notes" };
+  ["workout-date", "workout-duration"].forEach(id => document.querySelector(`#${id}`).addEventListener("input", event => {
+    const map = { "workout-date": "date", "workout-duration": "durationMin" };
     draftWorkout[map[id]] = event.target.value;
   }));
   document.querySelector("#clear-draft").addEventListener("click", async () => {
     const accepted = await askConfirmation("Clear session?", "All unsaved exercises and values will be removed.", "Clear");
     if (accepted) { draftWorkout = createEmptyDraft(); renderBuilder(); }
   });
-  document.querySelector("#save-as-template").addEventListener("change", event => document.querySelector("#template-name-field").classList.toggle("hidden", !event.target.checked));
-  document.querySelector("#template-select").addEventListener("change", event => { if (event.target.value) loadTemplate(event.target.value); });
   document.querySelector("#delete-workout").addEventListener("click", async () => {
     if (!draftWorkout.id) return;
     const accepted = await askConfirmation("Delete workout?", "This session will be removed from the local cache and Firebase.", "Delete");
@@ -1106,23 +1129,16 @@ function bindEvents() {
       if (entry.sets.length > 1) entry.sets.pop();
       renderBuilder();
     }
-    if (action === "complete-set") {
-      const setIndex = Number(button.dataset.set);
-      const entry = draftWorkout.exercises[index];
-      entry.sets[setIndex].completed = !entry.sets[setIndex].completed;
-      const completed = entry.sets[setIndex].completed;
-      renderBuilder();
-      if (completed && state.settings.autoStartRestTimer) startRestTimer(entry.restSeconds ?? state.settings.defaultRestSeconds);
-    }
   });
 
-  document.querySelector("#calendar-prev").addEventListener("click", () => { const date = parseDate(calendarMonth); date.setMonth(date.getMonth() - 1); calendarMonth = startOfMonth(localDateString(date)); renderCalendar(); });
-  document.querySelector("#calendar-next").addEventListener("click", () => { const date = parseDate(calendarMonth); date.setMonth(date.getMonth() + 1); calendarMonth = startOfMonth(localDateString(date)); renderCalendar(); });
+  document.querySelector("#calendar-prev").addEventListener("click", () => shiftHistoryPeriod(-1));
+  document.querySelector("#calendar-next").addEventListener("click", () => shiftHistoryPeriod(1));
   document.querySelector("#calendar-grid").addEventListener("click", event => {
     const day = event.target.closest("[data-calendar-date]");
-    if (!day) return;
-    selectedCalendarDate = day.dataset.calendarDate;
-    renderCalendar();
+    const month = event.target.closest("[data-history-month]");
+    if (day) selectedCalendarDate = day.dataset.calendarDate;
+    if (month) selectedHistoryMonth = month.dataset.historyMonth;
+    if (day || month) renderCalendar();
   });
 
   document.addEventListener("click", event => {
@@ -1140,13 +1156,15 @@ function bindEvents() {
       closeModal();
       if (workout) startNewWorkout(workout, false);
     }
-    const load = event.target.closest("[data-load-template]");
-    if (load) loadTemplate(load.dataset.loadTemplate);
   });
 
   ["stats-window", "weekly-metric", "progress-exercise", "progress-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { renderStats(); renderActiveCharts(); }));
   document.querySelector("#muscle-window").addEventListener("change", renderMuscles);
   document.querySelector("#settings-form").addEventListener("submit", submitSettings);
+  document.querySelector("#setting-birth-year").addEventListener("input", event => {
+    const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
+    document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
+  });
   ["setting-theme", "setting-accent", "setting-motion"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => {
     applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, accent: document.querySelector("#setting-accent").value, motion: document.querySelector("#setting-motion").value });
     renderActiveCharts();
@@ -1159,21 +1177,35 @@ function bindEvents() {
     const accepted = await askConfirmation("Delete custom exercise?", "Existing workouts keep their raw entry, but the exercise definition will no longer be available.", "Delete");
     if (accepted) queueWrite(deleteCustomExercise(button.dataset.deleteCustom), "Custom exercise deleted");
   });
-  document.querySelector("#template-list").addEventListener("click", async event => {
-    const button = event.target.closest("[data-delete-template]");
-    if (!button) return;
-    const accepted = await askConfirmation("Delete routine?", "The saved template will be removed. Existing workouts are unaffected.", "Delete");
-    if (accepted) queueWrite(deleteTemplate(button.dataset.deleteTemplate), "Routine deleted");
-  });
 
+  document.querySelector("#open-sync-choice").addEventListener("click", async () => {
+    try {
+      renderSyncSummary(await getSyncSummary());
+      openModal("sync");
+    } catch (error) {
+      showToast("Sync check failed", firebaseErrorMessage(error), "error");
+    }
+  });
+  document.querySelectorAll("[data-sync-choice]").forEach(button => button.addEventListener("click", () => handleSyncChoice(button.dataset.syncChoice)));
   document.querySelector("#export-data").addEventListener("click", exportBackup);
   document.querySelector("#import-data").addEventListener("change", event => importBackup(event.target.files?.[0]));
-  document.querySelector("#rest-stop").addEventListener("click", stopRestTimer);
-  document.querySelector("#rest-add").addEventListener("click", () => {
-    restDeadline = Math.max(Date.now(), restDeadline ?? Date.now()) + 30_000;
-    elements.restTimer.hidden = false;
-    if (!restInterval) restInterval = window.setInterval(updateRestTimer, 250);
-    updateRestTimer();
+  const resetInput = document.querySelector("#reset-confirm");
+  const resetButton = document.querySelector("#reset-all-data");
+  resetInput.addEventListener("input", () => {
+    resetButton.disabled = resetInput.value.trim().toUpperCase() !== "RESET";
+  });
+  resetButton.addEventListener("click", async () => {
+    if (resetInput.value.trim().toUpperCase() !== "RESET") return;
+    const accepted = await askConfirmation("Reset all data?", "Every workout, custom exercise, legacy saved structure and saved preference will be deleted from this account.", "Reset");
+    if (!accepted) return;
+    try {
+      await resetAllData();
+      resetInput.value = "";
+      resetButton.disabled = true;
+      showToast("Data reset", "Ascend is back to a clean account state.");
+    } catch (error) {
+      showToast("Reset failed", firebaseErrorMessage(error), "error");
+    }
   });
   window.addEventListener("online", updateSyncStatus);
   window.addEventListener("offline", updateSyncStatus);

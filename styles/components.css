@@ -19,6 +19,7 @@ button:disabled, input:disabled, select:disabled { cursor: wait; opacity: .55; }
   width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: var(--text); background: rgba(3,9,17,.67); outline: none; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 .field textarea { min-height: 74px; }
+.field-hint { color: var(--muted); font-size: .72rem; }
 .field input:focus, .field select:focus, .field textarea:focus, .builder-header select:focus, .panel-heading select:focus, .inline-selects select:focus { border-color: var(--line-strong); box-shadow: 0 0 0 4px rgba(var(--accent-rgb),.09); }
 :root[data-theme="light"] .field input, :root[data-theme="light"] .field select, :root[data-theme="light"] .field textarea, :root[data-theme="light"] .builder-header select, :root[data-theme="light"] .panel-heading select, :root[data-theme="light"] .inline-selects select { background: rgba(255,255,255,.88); }
 .form-message { min-height: 1.2em; margin: 0; color: var(--green); font-size: .8rem; }
@@ -51,7 +52,7 @@ button:disabled, input:disabled, select:disabled { cursor: wait; opacity: .55; }
 
 .metric-card { display: flex; min-height: 148px; flex-direction: column; justify-content: space-between; padding: 18px; border-radius: var(--radius-lg); }
 .metric-card > span { color: var(--muted); font-size: .8rem; font-weight: 700; }
-.metric-card strong { margin: 12px 0 4px; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: -.05em; }
+.metric-card strong { margin: 12px 0 4px; font-size: clamp(2rem, 4vw, 2.8rem); letter-spacing: 0; }
 .metric-card.accent { border-color: rgba(var(--accent-rgb),.25); background: linear-gradient(145deg, rgba(var(--accent-rgb),.15), rgba(8,18,31,.9)); }
 :root[data-theme="light"] .metric-card.accent { background: linear-gradient(145deg, rgba(var(--accent-rgb),.11), rgba(255,255,255,.95)); }
 .panel, .metric-card { transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
@@ -99,12 +100,16 @@ button:disabled, input:disabled, select:disabled { cursor: wait; opacity: .55; }
 .picker-item small { display: block; margin-top: 3px; font-size: .68rem; }
 .confirm-modal { max-width: 420px; text-align: center; }
 .confirm-mark { display: grid; width: 60px; height: 60px; margin: 0 auto 16px; place-items: center; border: 1px solid rgba(255,102,124,.3); border-radius: 18px; color: var(--red); background: rgba(255,102,124,.1); font-size: 1.6rem; font-weight: 900; }
+.sync-modal { max-width: 560px; }
+.sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.sync-grid > div { display: grid; gap: 5px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.025); }
+.sync-grid span { color: var(--muted); font-size: .72rem; }
+.sync-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.danger-zone { display: grid; gap: 10px; margin-top: 14px; padding: 13px; border: 1px solid rgba(255,102,124,.28); border-radius: 12px; background: rgba(255,102,124,.06); }
+.danger-zone > div { display: grid; gap: 4px; }
+.danger-zone strong { color: #ffb3bf; }
+.danger-zone span { color: var(--muted); font-size: .72rem; line-height: 1.45; }
 
-.rest-timer { position: fixed; right: 18px; bottom: 18px; z-index: 80; display: flex; align-items: center; gap: 12px; padding: 11px 12px 11px 15px; border: 1px solid rgba(var(--accent-rgb),.35); border-radius: 16px; background: rgba(5,14,24,.96); box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 35px rgba(var(--accent-rgb),.13); }
-.rest-timer > div { display: grid; min-width: 82px; }
-.rest-timer small { color: var(--accent); font-size: .6rem; font-weight: 850; letter-spacing: .1em; }
-.rest-timer strong { font-size: 1.3rem; }
-.rest-timer button { width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted-strong); background: rgba(255,255,255,.04); cursor: pointer; }
 .toast-container { position: fixed; right: 18px; bottom: 18px; z-index: 120; display: grid; gap: 9px; width: min(360px,calc(100vw - 36px)); }
 .toast { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 13px 14px; border: 1px solid rgba(69,230,163,.3); border-radius: 14px; background: rgba(7,17,29,.97); box-shadow: 0 18px 50px rgba(0,0,0,.42); animation: rise .2s ease both; }
 .toast.error { border-color: rgba(255,102,124,.35); }
