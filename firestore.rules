@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Existing CalStat / Weight Tracker application.
+    match /apps/weight-tracker/users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Existing Korean Reader application.
+    match /koreanReaderUsers/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Training Track private user data.
+    match /apps/training-track/users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Shared exercise updates. Add or edit these documents in the Firebase
+    // console or through a trusted Admin SDK environment, not from the client.
+    match /apps/training-track/exerciseCatalog/{exerciseId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}

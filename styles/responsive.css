@@ -1,0 +1,40 @@
+@media (max-width: 1180px) {
+  .rank-grid { grid-template-columns: repeat(3,1fr); }.rank-hero { grid-column: 1 / -1; }
+  .stats-metrics { grid-template-columns: repeat(2,1fr); }
+  .exercise-rank-grid, .muscle-grid { grid-template-columns: repeat(2,1fr); }
+}
+
+@media (max-width: 900px) {
+  :root { --topbar: 72px; }
+  .auth-shell { grid-template-columns: 1fr; max-width: 650px; }.auth-card { max-width: none; justify-self: stretch; }
+  .sidebar { display: none; }.workspace { margin-left: 0; padding-bottom: calc(77px + env(safe-area-inset-bottom)); }
+  .mobile-nav { position: fixed; right: 9px; bottom: calc(8px + env(safe-area-inset-bottom)); left: 9px; z-index: 40; display: grid; grid-template-columns: repeat(6,1fr); padding: 5px; border: 1px solid var(--line); border-radius: 18px; background: rgba(6,14,24,.95); box-shadow: 0 18px 55px rgba(0,0,0,.46); backdrop-filter: blur(22px); }
+  :root[data-theme="light"] .mobile-nav { background: rgba(255,255,255,.95); }
+  .mobile-nav button { display: grid; min-height: 51px; place-items: center; gap: 1px; border: 0; border-radius: 12px; color: var(--muted); background: transparent; cursor: pointer; }.mobile-nav button.active { color: var(--text); background: linear-gradient(145deg,rgba(var(--accent-rgb),.22),rgba(var(--accent-2-rgb),.09)); }.mobile-nav span { color: var(--accent); font-size: 1.28rem; line-height: 1; }.mobile-nav small { color: inherit; font-size: .56rem; }
+  .dashboard-grid, .stats-grid, .settings-layout { grid-template-columns: 1fr; }.weekly-target { grid-row: auto; }.settings-card:first-child { grid-row: auto; }
+  .muscle-layout { grid-template-columns: 1fr; }.body-system { grid-template-columns: 260px 1fr; align-items: center; }.body-core { height: 280px; transform: scale(.82); transform-origin: center; }
+  .session-meta { grid-template-columns: 1fr 1fr; }.session-meta .wide { grid-column: 1 / -1; }
+}
+
+@media (max-width: 680px) {
+  .auth-shell { width: min(100% - 26px,650px); padding: 26px 0 42px; }.auth-brand h1 { font-size: 3.8rem; }.auth-feature-row { grid-template-columns: 1fr; }
+  .topbar { padding: 11px 13px; }.topbar .eyebrow, .user-chip { display: none; }.topbar h2 { font-size: 1.22rem; }.content-scroll { padding: 13px; }
+  .rank-grid { grid-template-columns: 1fr 1fr; gap: 9px; }.rank-hero { grid-column: 1 / -1; grid-template-columns: auto 1fr; min-height: 175px; padding: 17px; }.rank-orbit { width: 90px; height: 90px; }.rank-orbit span { font-size: 3rem; }.rank-copy h3 { font-size: 1.55rem; }.metric-card { min-height: 130px; padding: 15px; }.metric-card.accent { grid-column: 1 / -1; }
+  .dashboard-grid { gap: 10px; }.weekly-target, .focus-card, .quick-start, .recent-card, .records-card, .calendar-card, .calendar-detail, .stats-controls, .muscle-summary, .chart-card, .rank-table-card, .settings-card, .builder-header, .session-meta, .save-workout-bar { padding: 16px; border-radius: 20px; }
+  .quick-grid { grid-template-columns: 1fr; }.quick-grid button { min-height: 75px; }
+  .builder-header { align-items: stretch; flex-direction: column; }.builder-header-actions { display: grid; grid-template-columns: 1fr auto; }.builder-header select { min-width: 0; }.session-meta { grid-template-columns: 1fr; }.session-meta .wide { grid-column: auto; }
+  .save-workout-bar { grid-template-columns: 1fr; align-items: stretch; }.save-workout-bar .form-message { grid-column: auto; }.save-workout-bar > div { justify-content: flex-end; }
+  .activity-fields { grid-template-columns: 1fr 1fr; }.set-head, .set-row { grid-template-columns: 32px minmax(64px,1fr) minmax(55px,.75fr) minmax(48px,.55fr) 36px; gap: 5px; }.set-table { padding-inline: 10px; }.set-row input { min-height: 40px; padding-inline: 4px; }
+  .calendar-weekdays, .calendar-grid { gap: 4px; }.calendar-day { min-height: 70px; padding: 7px; border-radius: 10px; }.calendar-day small { display: none; }.calendar-legend small { display: none; }
+  .stats-controls, .muscle-summary { align-items: stretch; flex-direction: column; }.compact-field { width: 100%; }.stats-metrics { grid-template-columns: 1fr 1fr; gap: 9px; }.exercise-rank-grid, .muscle-grid { grid-template-columns: 1fr; }.inline-selects { width: 100%; flex-direction: column; }.panel-heading:has(.inline-selects) { flex-direction: column; }.inline-selects select { width: 100%; }
+  .body-system { grid-template-columns: 1fr; }.body-core { margin-bottom: -35px; }.status-totals { margin-top: -20px; }
+  .exercise-picker-list { grid-template-columns: 1fr; }.modal-backdrop { align-items: end; padding: 0; }.modal-card { width: 100%; max-height: calc(94vh - env(safe-area-inset-top)); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 24px 24px 0 0; padding: 19px 17px calc(22px + env(safe-area-inset-bottom)); }
+  .detail-summary { grid-template-columns: repeat(2,1fr); }
+  .rest-timer, .toast-container, .update-banner { right: 11px; bottom: calc(78px + env(safe-area-inset-bottom)); left: 11px; width: auto; }.rest-timer { justify-content: center; }
+}
+
+@media (max-width: 420px) {
+  .rank-grid, .stats-metrics, .two-col { grid-template-columns: 1fr; }.metric-card.accent { grid-column: auto; }.rank-hero { grid-template-columns: 1fr; text-align: center; }.rank-orbit { margin: 0 auto; }.activity-fields { grid-template-columns: 1fr; }.weekly-stats { grid-template-columns: 1fr 1fr; }.calendar-day { min-height: 58px; }.mobile-nav small { display: none; }.mobile-nav button { min-height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

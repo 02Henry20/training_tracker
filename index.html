@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#060a12">
+  <meta name="description" content="Training progress, strength ranking, activity tracking and muscle-balance analytics.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="./styles/base.css">
+  <link rel="stylesheet" href="./styles/components.css">
+  <link rel="stylesheet" href="./styles/layout.css">
+  <link rel="stylesheet" href="./styles/responsive.css">
+  <title>Training Track</title>
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+
+  <main id="auth-shell" class="auth-shell">
+    <section class="auth-brand">
+      <div class="brand-rune" aria-hidden="true"><span></span><b>T</b></div>
+      <p class="eyebrow">PROGRESS · RANK · RECOVER</p>
+      <h1>Training<br><span>Track</span></h1>
+      <p class="auth-copy">Log strength sessions and endurance activities, measure progression, reveal neglected muscle groups and turn consistency into a visible rank.</p>
+      <div class="auth-feature-row">
+        <div><strong>Train</strong><span>Sets, reps, pace and distance</span></div>
+        <div><strong>Analyse</strong><span>PRs, volume and muscle balance</span></div>
+        <div><strong>Advance</strong><span>Levels, streaks and progression</span></div>
+      </div>
+    </section>
+
+    <section class="auth-card panel">
+      <div id="boot-status" class="status-pill"><i></i><span id="boot-text">Connecting to Firebase…</span></div>
+      <div class="auth-tabs" role="tablist">
+        <button class="active" data-auth-mode="signin" type="button">Sign in</button>
+        <button data-auth-mode="create" type="button">Create account</button>
+      </div>
+      <h2 id="auth-title">Enter the system</h2>
+      <p id="auth-subtitle" class="muted">Your training history stays available offline after the first sign-in.</p>
+      <form id="auth-form" class="stack-form">
+        <label class="field"><span>Email</span><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+        <label class="field"><span>Password</span><input id="auth-password" type="password" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required></label>
+        <button id="auth-submit" class="primary-button" type="submit">Sign in</button>
+        <button id="password-reset" class="text-button" type="button">Send password-reset email</button>
+        <p id="auth-message" class="form-message" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <div id="app-shell" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="sidebar-brand"><div class="brand-rune small"><span></span><b>T</b></div><div><strong>Training Track</strong><small>Personal progression system</small></div></div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-button active" data-view="dashboard" type="button"><span>⌂</span><b>Dashboard</b></button>
+        <button class="nav-button" data-view="workout" type="button"><span>＋</span><b>Workout</b></button>
+        <button class="nav-button" data-view="calendar" type="button"><span>▦</span><b>Calendar</b></button>
+        <button class="nav-button" data-view="stats" type="button"><span>↗</span><b>Statistics</b></button>
+        <button class="nav-button" data-view="muscles" type="button"><span>◈</span><b>Muscles</b></button>
+        <button class="nav-button" data-view="settings" type="button"><span>⚙</span><b>Settings</b></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
+        <button id="sign-out" class="ghost-button full-width" type="button">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div><p id="view-kicker" class="eyebrow">STATUS</p><h2 id="view-title">Dashboard</h2></div>
+        <div class="top-actions"><span id="user-chip" class="user-chip"></span><button id="top-start-workout" class="primary-button compact" type="button">＋ Train</button></div>
+      </header>
+
+      <div class="content-scroll">
+        <section class="view active" data-view-section="dashboard">
+          <div class="rank-grid">
+            <article class="rank-hero panel reveal">
+              <div class="rank-orbit"><span id="rank-letter">E</span></div>
+              <div class="rank-copy"><p class="eyebrow">CURRENT RANK</p><h3 id="rank-name">Starter</h3><p><strong id="system-level">Level 1</strong> · <span id="total-xp">0 XP</span></p><div class="xp-rail"><span id="xp-fill"></span></div><small id="xp-next">Advance by completing training.</small></div>
+            </article>
+            <article class="metric-card panel reveal"><span>Training streak</span><strong id="day-streak">0</strong><small>consecutive training days</small></article>
+            <article class="metric-card panel reveal"><span>Weekly consistency</span><strong id="week-streak">0</strong><small>active weeks</small></article>
+            <article class="metric-card accent panel reveal"><span>Personal records</span><strong id="pr-count">0</strong><small>improvements detected</small></article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="weekly-target panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">THIS WEEK</p><h3>Session target</h3></div><span id="week-session-label" class="tag">0 / 3</span></div>
+              <div class="donut-wrap"><canvas id="weekly-target-chart"></canvas></div>
+              <div class="weekly-stats"><div><span>Calories</span><strong id="week-calories">0</strong></div><div><span>Minutes</span><strong id="week-minutes">0</strong></div><div><span>Sets</span><strong id="week-sets">0</strong></div></div>
+            </article>
+
+            <article class="focus-card panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">SYSTEM GUIDANCE</p><h3 id="focus-title">Build your baseline</h3></div><span class="system-glyph">◆</span></div>
+              <p id="focus-copy">Complete your first workout to reveal recent muscle coverage.</p>
+              <div id="focus-muscles" class="chip-row"></div>
+              <button class="secondary-button" data-go-view="muscles" type="button">Open muscle analysis</button>
+            </article>
+
+            <article class="quick-start panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">QUICK START</p><h3>Enter a session</h3></div></div>
+              <div class="quick-grid">
+                <button id="new-workout" type="button"><span>＋</span><strong>New workout</strong><small>Start from an empty session</small></button>
+                <button id="repeat-last" type="button"><span>↻</span><strong>Repeat last</strong><small>Reuse exercises and recent loads</small></button>
+                <button id="use-template" type="button"><span>▤</span><strong>Routine</strong><small>Load a saved training template</small></button>
+              </div>
+            </article>
+
+            <article class="recent-card panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="calendar" type="button">Open calendar →</button></div>
+              <div id="recent-workouts" class="session-list"></div>
+            </article>
+
+            <article class="records-card panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" type="button">All ranks →</button></div>
+              <div id="recent-records" class="record-list"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-view-section="workout">
+          <div class="builder-header panel">
+            <div><p class="eyebrow">SESSION BUILDER</p><h3 id="builder-heading">New workout</h3><p class="muted">Previous values become each exercise’s editable default.</p></div>
+            <div class="builder-header-actions"><select id="template-select" aria-label="Load routine"><option value="">Load routine…</option></select><button id="clear-draft" class="ghost-button" type="button">Clear</button></div>
+          </div>
+          <form id="workout-form" class="workout-form">
+            <article class="session-meta panel">
+              <label class="field"><span>Date</span><input id="workout-date" type="date" required></label>
+              <label class="field"><span>Session name</span><input id="workout-title" type="text" maxlength="80" placeholder="Push day, hike, evening run…"></label>
+              <label class="field"><span>Duration (optional minutes)</span><input id="workout-duration" type="number" min="1" max="1440" inputmode="numeric" placeholder="Auto-estimated"></label>
+              <label class="field wide"><span>Notes</span><textarea id="workout-notes" rows="2" maxlength="800" placeholder="Technique, energy, pain-free range, route conditions…"></textarea></label>
+            </article>
+            <div id="builder-empty" class="builder-empty panel"><span>＋</span><h3>Add your first exercise</h3><p>Strength lifts, bodyweight work and endurance activities can share the same session.</p><button class="primary-button" data-open-picker type="button">Browse exercises</button></div>
+            <div id="exercise-builder-list" class="exercise-builder-list"></div>
+            <button id="add-exercise" class="add-exercise-button" data-open-picker type="button">＋ Add exercise or activity</button>
+            <article class="save-workout-bar panel">
+              <label class="save-template-toggle"><input id="save-as-template" type="checkbox"><span>Save this exercise structure as a routine</span></label>
+              <label id="template-name-field" class="field hidden"><span>Routine name</span><input id="template-name" type="text" maxlength="60" placeholder="Upper body A"></label>
+              <div><button id="delete-workout" class="danger-button hidden" type="button">Delete</button><button class="primary-button" type="submit">Save workout</button></div>
+              <p id="workout-message" class="form-message"></p>
+            </article>
+          </form>
+        </section>
+
+        <section class="view" data-view-section="calendar">
+          <article class="calendar-card panel">
+            <div class="calendar-heading"><button id="calendar-prev" class="icon-button" type="button">←</button><div><p class="eyebrow">TRAINING HISTORY</p><h3 id="calendar-month">Month</h3></div><button id="calendar-next" class="icon-button" type="button">→</button></div>
+            <div class="calendar-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            <div id="calendar-grid" class="calendar-grid"></div>
+            <div class="calendar-legend"><span>Light</span><i class="tier-1"></i><i class="tier-2"></i><i class="tier-3"></i><i class="tier-4"></i><span>Hard</span><small>Color tier uses estimated calories for that day.</small></div>
+          </article>
+          <article class="calendar-detail panel"><div class="panel-heading"><div><p class="eyebrow">SELECTED DAY</p><h3 id="calendar-day-title">Choose a date</h3></div><span id="calendar-day-total" class="tag">—</span></div><div id="calendar-day-list" class="session-list"></div></article>
+        </section>
+
+        <section class="view" data-view-section="stats">
+          <div class="stats-controls panel"><div><p class="eyebrow">ANALYSIS WINDOW</p><h3>Progress statistics</h3></div><label class="field compact-field"><span>Period</span><select id="stats-window"><option value="7">7 days</option><option value="28">28 days</option><option value="90">90 days</option><option value="180">180 days</option><option value="365">1 year</option></select></label></div>
+          <div class="stats-metrics"><article class="metric-card panel"><span>Sessions / week</span><strong id="stat-frequency">0</strong><small id="stat-session-total">0 sessions</small></article><article class="metric-card panel"><span>Training minutes</span><strong id="stat-minutes">0</strong><small>selected period</small></article><article class="metric-card panel"><span>Estimated calories</span><strong id="stat-calories">0</strong><small>training only</small></article><article class="metric-card accent panel"><span>Strength volume</span><strong id="stat-volume">0</strong><small>kg × reps</small></article></div>
+          <div class="stats-grid">
+            <article class="chart-card panel"><div class="panel-heading"><div><p class="eyebrow">CONSISTENCY</p><h3>Weekly frequency</h3></div><select id="weekly-metric"><option value="sessions">Sessions</option><option value="minutes">Minutes</option><option value="calories">Calories</option></select></div><div class="chart-wrap"><canvas id="weekly-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+            <article class="chart-card panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION</p><h3>Exercise trend</h3></div><div class="inline-selects"><select id="progress-exercise"></select><select id="progress-metric"><option value="level">Rank score</option><option value="e1rm">Estimated 1RM</option><option value="volume">Volume</option><option value="reps">Total reps</option><option value="speed">Speed</option></select></div></div><div class="chart-wrap"><canvas id="progress-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+          </div>
+          <article class="rank-table-card panel"><div class="panel-heading"><div><p class="eyebrow">EXERCISE LEVELS</p><h3>Your current standards</h3></div><small class="muted">Reference levels use bodyweight-normalized estimates, reps, duration or speed.</small></div><div id="exercise-rank-grid" class="exercise-rank-grid"></div></article>
+        </section>
+
+        <section class="view" data-view-section="muscles">
+          <div class="muscle-summary panel"><div><p class="eyebrow">MUSCLE COVERAGE</p><h3>What your recent training targets</h3><p class="muted">Primary sets count fully; secondary involvement counts partially. Cardio minutes are converted into a small coverage score.</p></div><label class="field compact-field"><span>Window</span><select id="muscle-window"><option value="7">7 days</option><option value="14">14 days</option><option value="28">28 days</option></select></label></div>
+          <div class="muscle-layout">
+            <article class="body-system panel"><div class="body-core"><span class="head"></span><span class="torso"></span><span class="arm left"></span><span class="arm right"></span><span class="leg left"></span><span class="leg right"></span><b>TRAINING<br>MAP</b></div><div id="muscle-status-totals" class="status-totals"></div></article>
+            <div id="muscle-grid" class="muscle-grid"></div>
+          </div>
+        </section>
+
+        <section class="view" data-view-section="settings">
+          <div class="settings-layout">
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">PROFILE &amp; MODEL</p><h3>Training reference</h3></div></div><form id="settings-form" class="stack-form">
+              <div class="two-col"><label class="field"><span>Current body weight (kg)</span><input id="setting-weight" type="number" min="20" max="400" step="0.1"></label><label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label></div>
+              <div class="two-col"><label class="field"><span>Age</span><input id="setting-age" type="number" min="13" max="100"></label><label class="field"><span>Strength reference</span><select id="setting-sex"><option value="male">Male reference</option><option value="female">Female reference</option><option value="neutral">Neutral reference</option></select></label></div>
+              <div class="two-col"><label class="field"><span>Weekly session target</span><input id="setting-session-target" type="number" min="1" max="14"></label><label class="field"><span>Weekly target sets / muscle</span><input id="setting-muscle-target" type="number" min="1" max="40"></label></div>
+              <div class="two-col"><label class="field"><span>Default statistics window</span><input id="setting-stats-window" type="number" min="7" max="730"></label><label class="field"><span>Default rest timer (seconds)</span><input id="setting-rest" type="number" min="15" max="600" step="15"></label></div>
+              <label class="toggle-row"><input id="setting-auto-rest" type="checkbox"><span><strong>Automatic rest timer</strong><small>Start the timer when a set is marked complete.</small></span></label>
+              <div class="two-col"><label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label><label class="field"><span>Accent</span><select id="setting-accent"><option value="cyan">System cyan</option><option value="violet">Void violet</option><option value="ember">Ember</option><option value="green">Emerald</option></select></label></div>
+              <label class="field"><span>Motion</span><select id="setting-motion"><option value="on">Animations on</option><option value="off">Reduced motion</option></select></label>
+              <button class="primary-button" type="submit">Save settings</button><p id="settings-message" class="form-message"></p>
+            </form></article>
+
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">EXERCISE LIBRARY</p><h3>Catalog and custom movements</h3></div><span id="catalog-status" class="tag">Bundled</span></div><p class="muted">The bundled catalog is defined in <code>js/exercises.js</code>. Authenticated updates can also be read from Firestore, while personal movements remain private.</p><button id="open-custom-exercise" class="secondary-button full-width" type="button">＋ Create custom exercise</button><div id="custom-exercise-list" class="compact-list"></div></article>
+
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">ROUTINES</p><h3>Saved templates</h3></div><span id="template-count" class="tag">0</span></div><div id="template-list" class="compact-list"></div></article>
+
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">DATA</p><h3>Account and backup</h3></div></div><div class="info-list"><div><span>Signed in as</span><strong id="settings-email">—</strong></div><div><span>Workouts</span><strong id="settings-workouts">0</strong></div><div><span>Offline cache</span><strong>Enabled</strong></div><div><span>Cloud database</span><strong>Firestore</strong></div><div><span>App version</span><strong id="app-version">—</strong></div></div><button id="export-data" class="secondary-button full-width" type="button">Export JSON backup</button><label class="secondary-button full-width file-button">Import JSON backup<input id="import-data" type="file" accept="application/json" hidden></label><p class="disclaimer">Strength levels and calorie estimates are training references. Equipment calibration, technique, terrain and individual efficiency can shift the result.</p></article>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <button class="active" data-view="dashboard" type="button"><span>⌂</span><small>Home</small></button><button data-view="workout" type="button"><span>＋</span><small>Train</small></button><button data-view="calendar" type="button"><span>▦</span><small>Calendar</small></button><button data-view="stats" type="button"><span>↗</span><small>Stats</small></button><button data-view="muscles" type="button"><span>◈</span><small>Muscles</small></button><button data-view="settings" type="button"><span>⚙</span><small>More</small></button>
+    </nav>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <section class="modal-card picker-modal" data-modal="picker" hidden><div class="modal-heading"><div><p class="eyebrow">EXERCISE LIBRARY</p><h3>Add to session</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><label class="search-field"><span>⌕</span><input id="exercise-search" type="search" placeholder="Search exercise, muscle or equipment"></label><div id="picker-filters" class="filter-row"><button class="active" data-filter="all" type="button">All</button><button data-filter="strength" type="button">Strength</button><button data-filter="activity" type="button">Activities</button><button data-filter="favorites" type="button">Used</button></div><div id="exercise-picker-list" class="exercise-picker-list"></div></section>
+    <section class="modal-card" data-modal="detail" hidden><div class="modal-heading"><div><p class="eyebrow">SESSION DETAIL</p><h3 id="detail-title">Workout</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div id="detail-content"></div></section>
+    <section class="modal-card" data-modal="custom" hidden><div class="modal-heading"><div><p class="eyebrow">CUSTOM MOVEMENT</p><h3>Create exercise</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><form id="custom-exercise-form" class="stack-form"><label class="field"><span>Name</span><input id="custom-name" required maxlength="80"></label><div class="two-col"><label class="field"><span>Equipment</span><input id="custom-equipment" placeholder="Dumbbells, machine…"></label><label class="field"><span>Type</span><select id="custom-type"><option value="strength">Strength</option><option value="activity">Activity</option></select></label></div><div class="two-col"><label class="field"><span>Primary muscle</span><select id="custom-primary"></select></label><label class="field"><span>Secondary muscle</span><select id="custom-secondary"><option value="">None</option></select></label></div><div class="two-col"><label class="field"><span>Default sets</span><input id="custom-sets" type="number" min="1" max="20" value="3"></label><label class="field"><span>Default reps</span><input id="custom-reps" type="number" min="1" max="100" value="10"></label></div><label class="field"><span>Active MET estimate</span><input id="custom-met" type="number" min="1" max="20" step="0.1" value="3.5"></label><button class="primary-button" type="submit">Save custom exercise</button><p id="custom-message" class="form-message"></p></form></section>
+    <section class="modal-card confirm-modal" data-modal="confirm" hidden><div class="confirm-mark">!</div><h3 id="confirm-title">Confirm</h3><p id="confirm-copy" class="muted"></p><div class="two-col"><button id="confirm-cancel" class="ghost-button" type="button">Cancel</button><button id="confirm-accept" class="danger-button" type="button">Delete</button></div></section>
+  </div>
+
+  <div id="rest-timer" class="rest-timer" hidden><div><small>REST TIMER</small><strong id="rest-time">01:30</strong></div><button id="rest-add" type="button">+30</button><button id="rest-stop" type="button">×</button></div>
+  <div id="toast-container" class="toast-container"></div>
+  <div id="update-banner" class="update-banner" hidden><div><strong>Update ready</strong><span>Reload to use the newest version.</span></div><button id="update-button" class="primary-button compact" type="button">Update</button></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
