@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.2.5";
+const CACHE_NAME = "ascend-v0.2.6";
 const APP_SHELL = [
   "./",
   "./index.html",

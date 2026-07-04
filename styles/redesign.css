@@ -1589,3 +1589,271 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
   .body-controls { justify-content: flex-start; }
   .weekly-target .donut-wrap { height: 135px; }
 }
+
+/* 0.2.6 polish and bug fixes */
+.command-actions .sync-pill {
+  align-items: center;
+  min-height: 46px;
+  padding: 9px 12px;
+}
+.command-actions .sync-pill small { display: none !important; }
+.command-actions .sync-pill strong {
+  font-size: .8rem;
+  line-height: 1;
+}
+.header-plus-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  text-align: center;
+}
+.header-plus-button::before { transform: translateY(-1px); }
+
+.sync-resolve-button {
+  border-color: rgba(var(--accent-2-rgb), .55) !important;
+  color: var(--accent-2) !important;
+  background: rgba(var(--accent-2-rgb), .11) !important;
+  box-shadow: inset 0 0 22px rgba(var(--accent-2-rgb), .08);
+}
+.sync-resolve-button:hover {
+  background: rgba(var(--accent-2-rgb), .18) !important;
+}
+
+.rank-grid .rank-hero { grid-column: span 6; }
+.rank-grid #last-training-card,
+.rank-grid .metric-card { grid-column: span 3; }
+#last-training-card.recency-fresh strong { color: var(--green); }
+#last-training-card.recency-ready strong { color: var(--accent); }
+#last-training-card.recency-warning strong { color: var(--yellow); }
+#last-training-card.recency-stale strong { color: var(--red); }
+
+.weekly-target {
+  max-width: 430px;
+  justify-self: stretch;
+}
+.weekly-target .weekly-stats { display: none !important; }
+.weekly-target .donut-wrap,
+.weekly-target .session-target-donut {
+  position: relative;
+  height: 188px;
+  min-height: 188px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  contain: layout paint;
+}
+.weekly-target canvas {
+  width: 188px !important;
+  height: 188px !important;
+  max-width: 188px;
+  max-height: 188px;
+}
+.weekly-target .donut-wrap::before {
+  position: absolute;
+  width: 174px;
+  height: 174px;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, transparent 0 22%, rgba(var(--accent-rgb), .42) 30%, transparent 38% 64%, rgba(var(--accent-2-rgb), .32) 72%, transparent 84% 100%);
+  content: "";
+  filter: blur(.2px) drop-shadow(0 0 12px rgba(var(--accent-rgb), .24));
+  opacity: .72;
+  animation: target-ring-spin 5.2s linear infinite;
+  pointer-events: none;
+}
+.weekly-target .donut-wrap::after {
+  right: calc(50% - 8px) !important;
+  bottom: 9px !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 1px !important;
+  background: var(--accent-2) !important;
+  box-shadow: 0 0 9px rgba(var(--accent-2-rgb), .55) !important;
+  opacity: .9;
+  transform: rotate(45deg);
+  animation: target-node-pulse 1.5s ease-in-out infinite alternate !important;
+}
+@keyframes target-ring-spin { to { transform: rotate(360deg); } }
+
+.session-live-timer {
+  display: grid;
+  min-width: 148px;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--accent-rgb), .34);
+  border-radius: 5px;
+  background: rgba(var(--accent-rgb), .08);
+  text-align: right;
+}
+.session-live-timer span {
+  color: var(--muted);
+  font: 700 .62rem ui-monospace, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.session-live-timer strong {
+  color: var(--accent);
+  font: 900 1.28rem/1 ui-monospace, monospace;
+  text-shadow: 0 0 12px rgba(var(--accent-rgb), .35);
+}
+
+.rank-table-card .panel-heading { align-items: flex-start; }
+.rank-table-explainer {
+  max-width: 980px;
+  margin: 7px 0 0;
+  line-height: 1.55;
+}
+.exercise-rank-grid:empty::before {
+  display: block;
+  padding: 28px 10px;
+  color: var(--muted);
+  text-align: center;
+  content: "No exercise standards to show yet.";
+}
+
+.rank-badge.rank-World,
+.rank-guide-row .rank-badge.rank-World {
+  position: relative;
+  color: #f7fcff;
+  background: radial-gradient(circle, rgba(245,251,255,.28), rgba(86,234,255,.1) 58%, rgba(86,234,255,.04));
+  text-shadow: 0 0 12px rgba(86,234,255,.72);
+  font-size: 1.05rem;
+}
+.rank-badge.rank-World::after,
+.rank-guide-row .rank-badge.rank-World::after {
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(86,234,255,.48);
+  transform: rotate(45deg);
+  content: "";
+}
+.rank-badge.rank-Monarch,
+.rank-guide-row .rank-badge.rank-Monarch {
+  position: relative;
+  color: #eadcff;
+  background: radial-gradient(circle at 50% 35%, rgba(187,108,255,.34), rgba(33,9,54,.92) 65%);
+  text-shadow: 0 0 12px rgba(187,108,255,.9), 0 0 22px rgba(255,47,120,.42);
+  font-size: 1.1rem;
+}
+.rank-badge.rank-Monarch::before,
+.rank-guide-row .rank-badge.rank-Monarch::before {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(255,47,120,.24);
+  clip-path: polygon(50% 0, 63% 34%, 100% 50%, 63% 66%, 50% 100%, 37% 66%, 0 50%, 37% 34%);
+  content: "";
+}
+
+.body-core.muscle-map {
+  width: min(100%, 292px);
+  min-height: 460px;
+  filter: drop-shadow(0 0 22px rgba(255, 99, 127, .2));
+}
+.body-core.muscle-map .aura-ring {
+  inset: 0 2px 20px;
+  border-color: rgba(255, 99, 127, .28);
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 99, 127, .18), transparent 48%),
+    radial-gradient(ellipse at 50% 74%, rgba(var(--accent-2-rgb), .12), transparent 52%);
+}
+.muscle-figure {
+  width: min(100%, 270px);
+  max-height: 444px;
+}
+.body-view { display: none; }
+.body-core.muscle-map[data-body-view="front"] .body-view-front,
+.body-core.muscle-map[data-body-view="back"] .body-view-back { display: block; }
+.body-core.muscle-map[data-body-view="back"] .muscle-figure { transform: none !important; }
+.figure-aura { fill: url(#muscleGlow); }
+.muscle-outline {
+  fill: rgba(60, 10, 22, .72);
+  stroke: rgba(255, 99, 127, .84);
+  stroke-width: 2.1;
+  vector-effect: non-scaling-stroke;
+}
+.muscle-zone {
+  vector-effect: non-scaling-stroke;
+  fill: rgba(255, 99, 127, .16);
+  stroke: rgba(255, 170, 95, .58);
+  stroke-width: 1.4;
+  cursor: pointer;
+}
+.muscle-zone[data-status="missing"] {
+  fill: rgba(255,99,127,.13);
+  stroke: rgba(255,99,127,.45);
+  stroke-width: 1.25;
+  opacity: .76;
+}
+.muscle-zone[data-status="low"] {
+  fill: rgba(249,201,92,.3);
+  stroke: rgba(249,201,92,.92);
+  stroke-width: 2.2;
+}
+.muscle-zone[data-status="balanced"] {
+  fill: rgba(73,230,166,.34);
+  stroke: rgba(73,230,166,.98);
+  stroke-width: 2.7;
+}
+.muscle-zone[data-status="high"] {
+  fill: rgba(var(--accent-rgb), .38);
+  stroke: rgb(var(--accent-rgb));
+  stroke-width: 3.2;
+  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), .45));
+}
+.muscle-zone:hover,
+.muscle-zone.selected {
+  fill: rgba(var(--accent-rgb), .5) !important;
+  stroke: #fff !important;
+  stroke-width: 3.7 !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 15px rgba(var(--accent-rgb), .6));
+}
+.selected-muscle-panel { border-radius: 5px; }
+.muscle-card { cursor: pointer; }
+.muscle-card:hover { border-color: rgba(var(--accent-rgb), .38); background: rgba(var(--accent-rgb), .045); }
+.muscle-exercise-preview {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.picker-modal {
+  align-self: center;
+  min-height: min(730px, calc(100vh - 36px));
+  display: grid;
+  grid-template-rows: auto auto auto minmax(330px, 1fr);
+}
+.exercise-picker-list {
+  min-height: 330px;
+  align-content: start;
+}
+.exercise-picker-list .empty-state {
+  align-self: start;
+}
+
+@media (max-width: 1000px) {
+  .rank-grid .rank-hero,
+  .rank-grid #last-training-card,
+  .rank-grid .metric-card { grid-column: span 4; }
+}
+@media (max-width: 760px) {
+  .rank-grid .rank-hero,
+  .rank-grid #last-training-card,
+  .rank-grid .metric-card { grid-column: 1 / -1; }
+  .session-live-timer { text-align: left; }
+  .weekly-target { max-width: none; }
+  .weekly-target .donut-wrap,
+  .weekly-target .session-target-donut { height: 172px; min-height: 172px; }
+  .weekly-target canvas { width: 172px !important; height: 172px !important; }
+  .picker-modal { min-height: min(680px, calc(94vh - env(safe-area-inset-top))); }
+}
+
+.desktop-nav .nav-button span { font-size: 1.02rem !important; letter-spacing: .13em; }
+.desktop-nav .nav-button b { font-size: .96rem !important; letter-spacing: .06em; }
+/* The session target status marker is drawn by canvas at the actual progress angle. */
+.weekly-target .donut-wrap::after { display: none !important; }

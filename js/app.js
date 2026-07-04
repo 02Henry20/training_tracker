@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.5";
+const APP_VERSION = "0.2.6";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -110,6 +110,7 @@ let progressSearchQuery = "";
 let bodyViewMode = "front";
 let selectedMuscleKey = null;
 let muscleSortAscending = true;
+let workoutTimerId = null;
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -240,28 +241,26 @@ function updateSyncStatus() {
   const pending = hasPendingWrites();
   const cacheOnly = isUsingCacheOnly();
   let label = "Synced";
-  let detail = "Ready";
   elements.syncPill.className = "sync-pill";
   if (state.user?.offlineOnly) {
     elements.syncPill.classList.add("offline");
-    label = "Offline";
-    detail = pending ? "Pending" : "Cache";
+    label = pending ? "Pending" : "Offline";
   } else if (!navigator.onLine) {
     elements.syncPill.classList.add("offline");
-    label = "Offline";
-    detail = pending ? "Pending" : "Local";
+    label = pending ? "Pending" : "Offline";
   } else if (pending) {
     label = "Syncing";
-    detail = "Pending";
   } else if (cacheOnly) {
-    label = "Cloud";
-    detail = "Checking";
+    label = "Checking";
   } else {
     elements.syncPill.classList.add("synced");
   }
   elements.syncLabel.textContent = label;
-  elements.syncDetail.textContent = detail;
-  elements.syncPill.title = `${label}: ${detail}`;
+  if (elements.syncDetail) {
+    elements.syncDetail.textContent = "";
+    elements.syncDetail.hidden = true;
+  }
+  elements.syncPill.title = label;
 }
 
 function showAppForUser(user) {
@@ -507,6 +506,8 @@ function startNewWorkout(source = null, keepId = false) {
   }
   syncDraftMetaToForm();
   renderBuilder();
+  if (draftWorkout.startedAtMs) startWorkoutTimer();
+  else stopWorkoutTimer();
   navigateTo("workout");
 }
 
@@ -514,21 +515,61 @@ function syncDraftMetaToForm() {
   document.querySelector("#workout-date").value = draftWorkout.date || localDateString();
   document.querySelector("#builder-heading").textContent = draftWorkout.id ? "Edit workout" : "New workout";
   document.querySelector("#delete-workout").classList.toggle("hidden", !draftWorkout.id);
+  updateDraftTimer();
+}
+
+function formatElapsedTime(ms) {
+  const totalSeconds = Math.max(0, Math.floor(Number(ms) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = value => String(value).padStart(2, "0");
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+}
+
+function updateDraftTimer() {
+  const timer = document.querySelector("#session-live-timer");
+  if (!timer) return;
+  const running = Boolean(!draftWorkout.id && draftWorkout.startedAtMs);
+  timer.hidden = !running;
+  const value = timer.querySelector("strong");
+  if (value && running) value.textContent = formatElapsedTime(Date.now() - Number(draftWorkout.startedAtMs));
+}
+
+function startWorkoutTimer() {
+  stopWorkoutTimer();
+  updateDraftTimer();
+  if (!draftWorkout.id && draftWorkout.startedAtMs) {
+    workoutTimerId = window.setInterval(updateDraftTimer, 1000);
+  }
+}
+
+function stopWorkoutTimer() {
+  if (workoutTimerId != null) window.clearInterval(workoutTimerId);
+  workoutTimerId = null;
+  updateDraftTimer();
 }
 
 function markDraftStarted() {
-  if (!draftWorkout.id && !draftWorkout.startedAtMs) draftWorkout.startedAtMs = Date.now();
+  if (!draftWorkout.id && !draftWorkout.startedAtMs) {
+    draftWorkout.startedAtMs = Date.now();
+    startWorkoutTimer();
+  } else {
+    updateDraftTimer();
+  }
 }
 
 function estimateDraftDurationMin() {
-  if (draftWorkout.id && Number(draftWorkout.durationMin) > 0) return Math.round(Number(draftWorkout.durationMin));
-  const elapsed = draftWorkout.startedAtMs ? Math.ceil((Date.now() - Number(draftWorkout.startedAtMs)) / 60_000) : 0;
+  if (draftWorkout.id && Number(draftWorkout.durationMin) > 0) return Math.min(1440, Math.max(0.1, Number(draftWorkout.durationMin)));
+  if (draftWorkout.startedAtMs) {
+    const elapsedMinutes = (Date.now() - Number(draftWorkout.startedAtMs)) / 60_000;
+    return Math.min(1440, Math.max(0.1, Math.round(elapsedMinutes * 10) / 10));
+  }
   const structural = draftWorkout.exercises.reduce((sum, entry) => {
     const exercise = getExerciseById(entry.exerciseId, catalog());
     return sum + (analyseExerciseEntry(entry, exercise, state.settings)?.durationMinutes ?? 0);
   }, 0);
-  const estimate = elapsed >= 2 ? elapsed : Math.ceil(structural || 1);
-  return Math.min(1440, Math.max(1, estimate));
+  return Math.min(1440, Math.max(0.1, Math.round((structural || 1) * 10) / 10));
 }
 
 function askDurationEstimate(estimate) {
@@ -688,6 +729,7 @@ async function submitWorkout(event) {
     await saveWorkout(saved);
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
     draftWorkout = createEmptyDraft();
+    stopWorkoutTimer();
     renderBuilder();
     navigateTo("dashboard");
   } catch (error) {
@@ -801,11 +843,15 @@ function renderDashboard() {
   document.querySelector("#xp-fill").style.width = `${xp.progress * 100}%`;
   document.querySelector("#xp-next").textContent = `${Math.max(0, xp.nextXp - xp.xp).toLocaleString()} XP to the next level.`;
   applyRankStage(xp);
+  const recency = lastTrainingInfo();
+  const recencyCard = document.querySelector("#last-training-card");
+  if (recencyCard) {
+    recencyCard.className = `metric-card panel reveal ${recency.className}`;
+    document.querySelector("#last-training-days").textContent = recency.label;
+    document.querySelector("#last-training-copy").textContent = recency.detail;
+  }
   document.querySelector("#week-streak").textContent = consistencyStreak(state.workouts, sessionTarget).toString();
   document.querySelector("#week-session-label").textContent = `${weekSessions} / ${sessionTarget}`;
-  document.querySelector("#week-calories").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.calories, 0));
-  document.querySelector("#week-minutes").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.durationMin, 0));
-  document.querySelector("#week-sets").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.sets, 0));
 
   const focus = suggestedFocus(state.workouts, allExercises, state.settings);
   document.querySelector("#focus-title").textContent = focus.title;
@@ -995,7 +1041,7 @@ function progressionMetricOptions(exercise) {
   const options = [];
   if (exercise?.standard) options.push("level");
   if (exercise?.inputType === "sets") options.push("e1rm", "volume", "reps");
-  if (exercise?.inputType === "bodyweightSets") options.push("reps");
+  if (exercise?.inputType === "bodyweightSets") options.push("e1rm", "volume", "reps");
   if (exercise?.inputType === "timedSets") options.push("seconds");
   if (exercise?.inputType === "activity") {
     options.push("duration");
@@ -1074,7 +1120,7 @@ function renderStats() {
   const grid = document.querySelector("#exercise-rank-grid");
   grid.replaceChildren();
   if (!best.size) {
-    grid.innerHTML = `<div class="empty-state">No standard cards yet. Log a strength, bodyweight, timed, or speed-based exercise to fill this section.</div>`;
+    grid.innerHTML = `<div class="empty-state">No exercise standard cards yet. Log a bundled exercise such as bench press, dips, pull-ups, squats, plank, running or hiking. Imported workouts must use bundled exercise IDs to appear here.</div>`;
     return;
   }
   for (const { item, date } of [...best.values()].sort((a, b) => b.score - a.score)) {
@@ -1107,8 +1153,7 @@ function renderActiveCharts() {
 }
 
 function zoneMuscleKeys(zone) {
-  const source = bodyViewMode === "back" ? (zone.dataset.backMuscles || zone.dataset.zoneMuscles) : zone.dataset.zoneMuscles;
-  return source.split(",").map(item => item.trim()).filter(Boolean);
+  return String(zone.dataset.zoneMuscles || "").split(",").map(item => item.trim()).filter(Boolean);
 }
 
 function updateBodyMap(balance) {
@@ -1170,10 +1215,12 @@ function renderMuscles() {
     counts[item.status] += 1;
     const card = document.createElement("article");
     card.className = `muscle-card panel status-${item.status}`;
+    card.dataset.muscleCard = item.key;
     const statusLabel = item.status === "high" ? "High volume" : item.status[0].toUpperCase() + item.status.slice(1);
     const recoveryLabel = item.lastTrained ? `${item.daysSince}d since trained` : "No recent data";
     const muscleRank = item.level.hasData ? `Rank ${item.level.rank}` : "Unranked";
-    card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer>`;
+    const exercisePreview = exercisesForMuscle(item.key).slice(0, 3).map(exercise => exercise.name).join(" · ") || "No catalog matches";
+    card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer><small class="muscle-exercise-preview">${escapeHtml(exercisePreview)}</small>`;
     grid.append(card);
   }
   document.querySelector("#muscle-status-totals").innerHTML = `<div><strong>${counts.balanced}</strong><span>Balanced</span></div><div><strong>${counts.low}</strong><span>Low</span></div><div><strong>${counts.missing}</strong><span>Missing</span></div><div><strong>${counts.high}</strong><span>High volume</span></div>`;
@@ -1384,7 +1431,7 @@ function bindEvents() {
   document.querySelector("#confirm-accept").addEventListener("click", () => resolveConfirmation(true));
   document.querySelector("#duration-cancel").addEventListener("click", () => resolveDurationEstimate(null));
   document.querySelector("#duration-save").addEventListener("click", () => {
-    const value = Math.min(1440, Math.max(1, Number(document.querySelector("#duration-estimate-input").value) || estimateDraftDurationMin()));
+    const value = Math.min(1440, Math.max(0.1, Number(document.querySelector("#duration-estimate-input").value) || estimateDraftDurationMin()));
     resolveDurationEstimate(value);
   });
 
@@ -1407,7 +1454,7 @@ function bindEvents() {
   });
   document.querySelector("#clear-draft").addEventListener("click", async () => {
     const accepted = await askConfirmation("Clear session?", "All unsaved exercises and values will be removed.", "Clear");
-    if (accepted) { draftWorkout = createEmptyDraft(); renderBuilder(); }
+    if (accepted) { draftWorkout = createEmptyDraft(); stopWorkoutTimer(); renderBuilder(); }
   });
   document.querySelector("#delete-workout").addEventListener("click", async () => {
     if (!draftWorkout.id) return;
@@ -1415,6 +1462,7 @@ function bindEvents() {
     if (!accepted) return;
     await deleteWorkout(draftWorkout.id);
     draftWorkout = createEmptyDraft();
+    stopWorkoutTimer();
     renderBuilder();
     navigateTo("dashboard");
     showToast("Workout deleted");
@@ -1487,6 +1535,12 @@ function bindEvents() {
     const zone = event.target.closest("[data-zone-muscles]");
     if (zone) {
       selectedMuscleKey = zoneMuscleKeys(zone)[0] ?? null;
+      renderMuscles();
+      return;
+    }
+    const muscleCard = event.target.closest("[data-muscle-card]");
+    if (muscleCard) {
+      selectedMuscleKey = muscleCard.dataset.muscleCard;
       renderMuscles();
       return;
     }

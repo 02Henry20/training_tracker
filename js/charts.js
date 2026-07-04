@@ -18,11 +18,13 @@ function refreshColors() {
 function prepare(canvas) {
   refreshColors();
   const rect = canvas.getBoundingClientRect();
-  const width = Math.max(260, rect.width || 500);
-  const height = Math.max(180, rect.height || 260);
+  const width = Math.max(1, Math.round(rect.width || canvas.clientWidth || 500));
+  const height = Math.max(1, Math.round(rect.height || canvas.clientHeight || 260));
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
   const context = canvas.getContext("2d");
   context.setTransform(dpr, 0, 0, dpr, 0, 0);
   context.clearRect(0, 0, width, height);
@@ -186,8 +188,9 @@ export function drawDonut(canvas, value, target, label) {
   const centerY = height / 2;
   const radius = Math.min(width, height) * 0.32;
   const ratio = Math.min(1, Math.max(0, Number(value) / Math.max(1, Number(target))));
-  context.lineWidth = Math.max(12, radius * 0.22);
+  context.lineWidth = Math.max(10, radius * 0.18);
   context.strokeStyle = colors.grid;
+  context.shadowColor = "transparent";
   context.beginPath();
   context.arc(centerX, centerY, radius, -Math.PI / 2, Math.PI * 1.5);
   context.stroke();
@@ -195,9 +198,28 @@ export function drawDonut(canvas, value, target, label) {
   gradient.addColorStop(0, colors.accent);
   gradient.addColorStop(1, colors.green);
   context.strokeStyle = gradient;
+  context.shadowColor = colors.accent;
+  context.shadowBlur = 10;
   context.beginPath();
   context.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
   context.stroke();
+  context.shadowBlur = 0;
+  if (ratio > 0) {
+    const angle = -Math.PI / 2 + ratio * Math.PI * 2;
+    const markerX = centerX + Math.cos(angle) * radius;
+    const markerY = centerY + Math.sin(angle) * radius;
+    context.save();
+    context.translate(markerX, markerY);
+    context.rotate(angle + Math.PI / 4);
+    context.fillStyle = colors.accent2;
+    context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#050810";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.rect(-4, -4, 8, 8);
+    context.fill();
+    context.stroke();
+    context.restore();
+  }
   context.textAlign = "center";
   context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#fff";
   context.font = "800 30px system-ui";
