@@ -9,7 +9,6 @@ import {
   DEFAULT_SETTINGS,
   connectOfflineUserData,
   connectUserData,
-  deleteCustomExercise,
   deleteWorkout,
   disconnectUserData,
   exportState,
@@ -20,7 +19,6 @@ import {
   isUsingCacheOnly,
   resetAllData,
   resolveSyncChoice,
-  saveCustomExercise,
   saveSettings,
   saveWorkout,
   setStoreErrorHandler,
@@ -59,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.4";
+const APP_VERSION = "0.2.5";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -96,7 +94,8 @@ const elements = {
 let activeView = "dashboard";
 let activeModal = null;
 let confirmationResolver = null;
-let pickerFilter = "all";
+let durationResolver = null;
+let pickerFilter = "recommended";
 let calendarMonth = startOfMonth(localDateString());
 let selectedCalendarDate = localDateString();
 let selectedHistoryMonth = localDateString().slice(0, 7);
@@ -105,9 +104,17 @@ let renderQueued = false;
 let lastCatalogSignature = "";
 let statsWindowInitialized = false;
 let offlineAuthActive = false;
+let selectedProgressExerciseId = "";
+let selectedProgressMetric = "level";
+let progressSearchQuery = "";
+let bodyViewMode = "front";
+let selectedMuscleKey = null;
+let muscleSortAscending = true;
 
 function catalog() {
-  return mergeExerciseCatalog(state.remoteExercises, state.customExercises);
+  // Custom exercise creation is intentionally no longer exposed. Keep the public
+  // catalog deterministic so recommendations and muscle standards remain stable.
+  return mergeExerciseCatalog(state.remoteExercises, []);
 }
 
 function escapeHtml(value) {
@@ -217,6 +224,7 @@ function createEmptyDraft() {
     date: localDateString(),
     title: "Training session",
     durationMin: "",
+    startedAtMs: null,
     notes: "",
     exercises: []
   };
@@ -232,7 +240,7 @@ function updateSyncStatus() {
   const pending = hasPendingWrites();
   const cacheOnly = isUsingCacheOnly();
   let label = "Synced";
-  let detail = "Firebase";
+  let detail = "Ready";
   elements.syncPill.className = "sync-pill";
   if (state.user?.offlineOnly) {
     elements.syncPill.classList.add("offline");
@@ -352,8 +360,8 @@ async function maybeOfferSyncChoice() {
 }
 
 function renderSyncSummary(summary) {
-  document.querySelector("#sync-local-summary").textContent = `${summary.local.workouts} workouts, ${summary.local.customExercises} custom movements`;
-  document.querySelector("#sync-cloud-summary").textContent = `${summary.cloud.workouts} workouts, ${summary.cloud.customExercises} custom movements`;
+  document.querySelector("#sync-local-summary").textContent = `${summary.local.workouts} workouts`;
+  document.querySelector("#sync-cloud-summary").textContent = `${summary.cloud.workouts} workouts`;
 }
 
 async function handleSyncChoice(mode) {
@@ -394,11 +402,10 @@ function openModal(type) {
     renderExercisePicker();
     window.setTimeout(() => document.querySelector("#exercise-search").focus(), 50);
   }
-  if (type === "custom") prepareCustomExerciseForm();
 }
 
 function closeModal() {
-  if (confirmationResolver) return;
+  if (confirmationResolver || durationResolver) return;
   activeModal = null;
   elements.modalBackdrop.hidden = true;
   document.querySelectorAll("[data-modal]").forEach(modal => { modal.hidden = true; });
@@ -489,6 +496,7 @@ function startNewWorkout(source = null, keepId = false) {
       date: keepId ? source.date : localDateString(),
       title: source.title ? `${source.title}` : "Training session",
       durationMin: keepId ? (source.durationMin ?? "") : "",
+      startedAtMs: null,
       notes: keepId ? (source.notes ?? "") : "",
       exercises: deepClone(source.exercises ?? [])
     };
@@ -504,9 +512,44 @@ function startNewWorkout(source = null, keepId = false) {
 
 function syncDraftMetaToForm() {
   document.querySelector("#workout-date").value = draftWorkout.date || localDateString();
-  document.querySelector("#workout-duration").value = draftWorkout.durationMin ?? "";
   document.querySelector("#builder-heading").textContent = draftWorkout.id ? "Edit workout" : "New workout";
   document.querySelector("#delete-workout").classList.toggle("hidden", !draftWorkout.id);
+}
+
+function markDraftStarted() {
+  if (!draftWorkout.id && !draftWorkout.startedAtMs) draftWorkout.startedAtMs = Date.now();
+}
+
+function estimateDraftDurationMin() {
+  if (draftWorkout.id && Number(draftWorkout.durationMin) > 0) return Math.round(Number(draftWorkout.durationMin));
+  const elapsed = draftWorkout.startedAtMs ? Math.ceil((Date.now() - Number(draftWorkout.startedAtMs)) / 60_000) : 0;
+  const structural = draftWorkout.exercises.reduce((sum, entry) => {
+    const exercise = getExerciseById(entry.exerciseId, catalog());
+    return sum + (analyseExerciseEntry(entry, exercise, state.settings)?.durationMinutes ?? 0);
+  }, 0);
+  const estimate = elapsed >= 2 ? elapsed : Math.ceil(structural || 1);
+  return Math.min(1440, Math.max(1, estimate));
+}
+
+function askDurationEstimate(estimate) {
+  return new Promise(resolve => {
+    durationResolver = resolve;
+    activeModal = "duration";
+    elements.modalBackdrop.hidden = false;
+    document.querySelectorAll("[data-modal]").forEach(modal => { modal.hidden = modal.dataset.modal !== "duration"; });
+    const input = document.querySelector("#duration-estimate-input");
+    input.value = String(estimate);
+    document.body.style.overflow = "hidden";
+    window.setTimeout(() => input.focus(), 50);
+  });
+}
+
+function resolveDurationEstimate(value) {
+  if (!durationResolver) return;
+  const resolve = durationResolver;
+  durationResolver = null;
+  closeModal();
+  resolve(value);
 }
 
 function exerciseSymbol(exercise) {
@@ -587,7 +630,7 @@ function renderBuilder() {
       <div class="exercise-block-head">
         <span>${exerciseSymbol(exercise)}</span>
         <div><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.equipment)} · ${escapeHtml(exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", "))}</small></div>
-        <div class="exercise-actions"><button data-action="move-up" data-entry="${entryIndex}" type="button" aria-label="Move up">↑</button><button data-action="move-down" data-entry="${entryIndex}" type="button" aria-label="Move down">↓</button><button data-action="remove-exercise" data-entry="${entryIndex}" type="button" aria-label="Remove">×</button></div>
+        <div class="exercise-actions"><button data-action="remove-exercise" data-entry="${entryIndex}" type="button" aria-label="Remove">×</button></div>
       </div>
       ${exercise.inputType === "activity" ? activityFieldsHtml(exercise, entry, entryIndex) : setRowsHtml(exercise, entry, entryIndex)}
       <div class="exercise-footer">
@@ -611,6 +654,7 @@ function addExerciseToDraft(exerciseId) {
   const exercise = getExerciseById(exerciseId, catalog());
   if (!exercise) return;
   draftWorkout.exercises.push(createDraftEntry(exercise));
+  markDraftStarted();
   closeModal();
   renderBuilder();
   document.querySelector(`[data-entry-block="${draftWorkout.exercises.length - 1}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -620,14 +664,26 @@ async function submitWorkout(event) {
   event.preventDefault();
   draftWorkout.date = document.querySelector("#workout-date").value;
   draftWorkout.title = draftWorkout.title || "Training session";
-  draftWorkout.durationMin = document.querySelector("#workout-duration").value;
   draftWorkout.notes = draftWorkout.notes || "";
   const message = document.querySelector("#workout-message");
   if (!draftWorkout.date || !draftWorkout.exercises.length) {
     setMessage(message, "Choose a date and add at least one exercise.", true);
     return;
   }
+
   const saved = deepClone(draftWorkout);
+  delete saved.startedAtMs;
+  if (!draftWorkout.id) {
+    const estimate = estimateDraftDurationMin();
+    if (state.settings.showDurationPrompt !== false) {
+      const adjusted = await askDurationEstimate(estimate);
+      if (adjusted == null) return;
+      saved.durationMin = adjusted;
+    } else {
+      saved.durationMin = estimate;
+    }
+  }
+
   try {
     await saveWorkout(saved);
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
@@ -647,17 +703,41 @@ async function removeDraftExercise(index) {
   renderBuilder();
 }
 
+function pickerRecommendedScore(exercise, usedIds, balanceByMuscle) {
+  if (exercise.category !== "strength") return -Infinity;
+  const usedBonus = usedIds.has(exercise.id) ? 60 : 0;
+  const muscleNeed = [...(exercise.muscles.primary ?? []), ...(exercise.muscles.secondary ?? [])]
+    .map(key => balanceByMuscle.get(key))
+    .filter(Boolean)
+    .reduce((score, item) => {
+      if (item.status === "missing") return score + 38;
+      if (item.status === "low") return score + 24;
+      if (item.status === "balanced") return score + 5;
+      return score - 14;
+    }, 0);
+  return usedBonus + muscleNeed;
+}
+
 function renderExercisePicker() {
   const query = document.querySelector("#exercise-search").value.trim().toLowerCase();
   const used = new Set(state.workouts.flatMap(workout => (workout.exercises ?? []).map(entry => entry.exerciseId)));
   const prData = detectPersonalRecords(state.workouts, catalog(), state.settings);
-  const list = catalog().filter(exercise => {
+  const balanceByMuscle = new Map(muscleBalance(state.workouts, catalog(), state.settings, state.settings.bodyWindowDays || 14).map(item => [item.key, item]));
+  let list = catalog().filter(exercise => {
     if (query && !searchableExerciseText(exercise).includes(query)) return false;
+    if (pickerFilter === "recommended" && exercise.category !== "strength") return false;
     if (pickerFilter === "strength" && exercise.category !== "strength") return false;
     if (pickerFilter === "activity" && exercise.category !== "activity") return false;
     if (pickerFilter === "favorites" && !used.has(exercise.id)) return false;
     return true;
   });
+  if (pickerFilter === "recommended") {
+    list = list
+      .map(exercise => ({ exercise, score: pickerRecommendedScore(exercise, used, balanceByMuscle) }))
+      .sort((a, b) => b.score - a.score || a.exercise.name.localeCompare(b.exercise.name))
+      .map(item => item.exercise)
+      .slice(0, 24);
+  }
   const container = document.querySelector("#exercise-picker-list");
   container.replaceChildren();
   if (!list.length) {
@@ -721,11 +801,6 @@ function renderDashboard() {
   document.querySelector("#xp-fill").style.width = `${xp.progress * 100}%`;
   document.querySelector("#xp-next").textContent = `${Math.max(0, xp.nextXp - xp.xp).toLocaleString()} XP to the next level.`;
   applyRankStage(xp);
-  const recency = lastTrainingInfo();
-  const recencyCard = document.querySelector("#last-training-card");
-  recencyCard.className = `metric-card panel reveal ${recency.className}`;
-  document.querySelector("#last-training-days").textContent = recency.label;
-  document.querySelector("#last-training-copy").textContent = recency.detail;
   document.querySelector("#week-streak").textContent = consistencyStreak(state.workouts, sessionTarget).toString();
   document.querySelector("#week-session-label").textContent = `${weekSessions} / ${sessionTarget}`;
   document.querySelector("#week-calories").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.calories, 0));
@@ -906,6 +981,77 @@ function bestResultsByExercise() {
   return result;
 }
 
+const PROGRESSION_METRICS = {
+  level: { label: "Rank score", unit: "", rankMode: true, short: "Rank" },
+  e1rm: { label: "Estimated 1RM", unit: " kg", short: "1RM" },
+  volume: { label: "Volume", unit: " kg", short: "Volume" },
+  reps: { label: "Total reps", unit: "", short: "Reps" },
+  seconds: { label: "Best hold", unit: " sec", short: "Hold" },
+  duration: { label: "Active minutes", unit: " min", short: "Minutes" },
+  speed: { label: "Speed", unit: " km/h", short: "Speed" }
+};
+
+function progressionMetricOptions(exercise) {
+  const options = [];
+  if (exercise?.standard) options.push("level");
+  if (exercise?.inputType === "sets") options.push("e1rm", "volume", "reps");
+  if (exercise?.inputType === "bodyweightSets") options.push("reps");
+  if (exercise?.inputType === "timedSets") options.push("seconds");
+  if (exercise?.inputType === "activity") {
+    options.push("duration");
+    if (exercise.standard?.type === "speedKmh") options.push("speed");
+  }
+  return [...new Set(options.length ? options : ["level"])]
+    .filter(key => PROGRESSION_METRICS[key]);
+}
+
+function loggedExercisesForProgress() {
+  return usedExerciseIds()
+    .map(id => getExerciseById(id, catalog()))
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderProgressPicker() {
+  const exercises = loggedExercisesForProgress();
+  const list = document.querySelector("#progress-exercise-list");
+  const metricButtons = document.querySelector("#progress-metric-buttons");
+  const help = document.querySelector("#progress-help");
+  if (!list || !metricButtons) return;
+
+  if (!exercises.length) {
+    selectedProgressExerciseId = "";
+    selectedProgressMetric = "level";
+    list.innerHTML = `<div class="empty-state">Log an exercise at least twice to build a trend.</div>`;
+    metricButtons.innerHTML = "";
+    if (help) help.textContent = "No progression data yet.";
+    return;
+  }
+
+  if (!selectedProgressExerciseId || !exercises.some(exercise => exercise.id === selectedProgressExerciseId)) {
+    selectedProgressExerciseId = exercises[0].id;
+  }
+  const selectedExercise = getExerciseById(selectedProgressExerciseId, catalog()) ?? exercises[0];
+  const validMetrics = progressionMetricOptions(selectedExercise);
+  if (!validMetrics.includes(selectedProgressMetric)) selectedProgressMetric = validMetrics[0];
+
+  const query = progressSearchQuery.trim().toLowerCase();
+  const filtered = exercises.filter(exercise => !query || searchableExerciseText(exercise).includes(query));
+  list.innerHTML = filtered.length
+    ? filtered.map(exercise => {
+        const active = exercise.id === selectedProgressExerciseId;
+        const primary = exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", ");
+        return `<button class="progress-exercise-chip ${active ? "active" : ""}" data-progress-exercise="${exercise.id}" type="button"><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(primary)}</small></button>`;
+      }).join("")
+    : `<div class="empty-state">No logged exercise matches the search.</div>`;
+
+  metricButtons.innerHTML = validMetrics.map(key => {
+    const meta = PROGRESSION_METRICS[key];
+    return `<button class="${selectedProgressMetric === key ? "active" : ""}" data-progress-metric="${key}" type="button">${escapeHtml(meta.short)}</button>`;
+  }).join("");
+  if (help) help.textContent = `${selectedExercise.name}: ${PROGRESSION_METRICS[selectedProgressMetric].label}`;
+}
+
 function renderStats() {
   const statsWindowSelect = document.querySelector("#stats-window");
   if (!statsWindowInitialized) {
@@ -920,26 +1066,22 @@ function renderStats() {
   const stats = statistics(state.workouts, catalog(), state.settings, days);
   document.querySelector("#stat-frequency").textContent = stats.sessionsPerWeek.toFixed(1);
   document.querySelector("#stat-session-total").textContent = `${stats.sessions} active day${stats.sessions === 1 ? "" : "s"}`;
-  document.querySelector("#stat-minutes").textContent = formatNumber(stats.totalMinutes);
   document.querySelector("#stat-calories").textContent = formatNumber(stats.totalCalories);
-  document.querySelector("#stat-volume").textContent = formatNumber(stats.totalVolume);
 
-  const exerciseSelect = document.querySelector("#progress-exercise");
-  const current = exerciseSelect.value;
-  const ids = usedExerciseIds();
-  exerciseSelect.innerHTML = ids.length
-    ? ids.map(id => `<option value="${id}">${escapeHtml(getExerciseById(id, catalog())?.name ?? id)}</option>`).join("")
-    : `<option value="">No exercise data</option>`;
-  if (ids.includes(current)) exerciseSelect.value = current;
+  renderProgressPicker();
 
   const best = bestResultsByExercise();
   const grid = document.querySelector("#exercise-rank-grid");
   grid.replaceChildren();
-  if (!best.size) grid.innerHTML = `<div class="empty-state">Log exercises to generate individual ranks.</div>`;
+  if (!best.size) {
+    grid.innerHTML = `<div class="empty-state">No standard cards yet. Log a strength, bodyweight, timed, or speed-based exercise to fill this section.</div>`;
+    return;
+  }
   for (const { item, date } of [...best.values()].sort((a, b) => b.score - a.score)) {
     const card = document.createElement("div");
     card.className = "exercise-rank-card";
-    card.innerHTML = `<span class="rank-badge rank-${item.level.rank}">${item.level.rank}</span><div><strong>${escapeHtml(item.exercise.name)}</strong><small>${item.level.label} · ${escapeHtml(levelValueLabel(item.exercise, item))} · ${formatDate(date, { year: false })}</small><div class="mini-rail"><span style="width:${Math.max(4, item.level.progress * 100)}%"></span></div></div>`;
+    const label = item.level.value == null ? "No standard value" : levelValueLabel(item.exercise, item);
+    card.innerHTML = `<span class="rank-badge rank-${item.level.rank}">${item.level.rank}</span><div><strong>${escapeHtml(item.exercise.name)}</strong><small>${item.level.label} · ${escapeHtml(label)} · ${formatDate(date, { year: false })}</small><div class="mini-rail"><span style="width:${Math.max(4, item.level.progress * 100)}%"></span></div></div>`;
     grid.append(card);
   }
 }
@@ -955,34 +1097,74 @@ function renderActiveCharts() {
     const days = Number(document.querySelector("#stats-window").value || state.settings.statsWindowDays || 28);
     const stats = statistics(state.workouts, catalog(), state.settings, days);
     drawWeeklyBars(document.querySelector("#weekly-chart"), stats.weekly, document.querySelector("#weekly-metric").value);
-    const exerciseId = document.querySelector("#progress-exercise").value;
-    const metric = document.querySelector("#progress-metric").value;
-    const points = calculateProgression(state.workouts, catalog(), state.settings, exerciseId, metric);
-    const unit = metric === "e1rm" ? " kg" : metric === "volume" ? " kg" : metric === "speed" ? " km/h" : "";
-    drawLineChart(document.querySelector("#progress-chart"), points, { unit, label: metric === "level" ? "Rank score" : metric.toUpperCase(), rankMode: metric === "level" });
+    const metric = selectedProgressMetric;
+    const points = selectedProgressExerciseId
+      ? calculateProgression(state.workouts, catalog(), state.settings, selectedProgressExerciseId, metric)
+      : [];
+    const meta = PROGRESSION_METRICS[metric] ?? PROGRESSION_METRICS.level;
+    drawLineChart(document.querySelector("#progress-chart"), points, { unit: meta.unit, label: meta.label, rankMode: Boolean(meta.rankMode) });
   }
+}
+
+function zoneMuscleKeys(zone) {
+  const source = bodyViewMode === "back" ? (zone.dataset.backMuscles || zone.dataset.zoneMuscles) : zone.dataset.zoneMuscles;
+  return source.split(",").map(item => item.trim()).filter(Boolean);
 }
 
 function updateBodyMap(balance) {
   const byKey = new Map(balance.map(item => [item.key, item]));
   const statusScore = { missing: 0, low: 1, balanced: 2, high: 3 };
+  document.querySelector(".muscle-map")?.setAttribute("data-body-view", bodyViewMode);
+  document.querySelector("#body-view-toggle").textContent = bodyViewMode === "front" ? "Back view" : "Front view";
+  document.querySelector("#muscle-map-label").textContent = selectedMuscleKey
+    ? (MUSCLE_GROUPS[selectedMuscleKey]?.name ?? "Training map")
+    : `${bodyViewMode.toUpperCase()} TRAINING MAP`;
   document.querySelectorAll("[data-zone-muscles]").forEach(zone => {
-    const keys = zone.dataset.zoneMuscles.split(",");
+    const keys = zoneMuscleKeys(zone);
     const strongest = keys
       .map(key => byKey.get(key))
       .filter(Boolean)
       .sort((a, b) => (statusScore[b.status] ?? 0) - (statusScore[a.status] ?? 0))[0];
     zone.dataset.status = strongest?.status ?? "missing";
+    zone.classList.toggle("selected", Boolean(selectedMuscleKey && keys.includes(selectedMuscleKey)));
     zone.title = strongest ? `${strongest.name}: ${strongest.status}` : "No recent data";
   });
 }
 
+function exercisesForMuscle(muscleKey) {
+  return catalog()
+    .filter(exercise => exercise.muscles?.primary?.includes(muscleKey) || exercise.muscles?.secondary?.includes(muscleKey))
+    .sort((a, b) => {
+      const aPrimary = a.muscles.primary.includes(muscleKey) ? 0 : 1;
+      const bPrimary = b.muscles.primary.includes(muscleKey) ? 0 : 1;
+      return aPrimary - bPrimary || a.name.localeCompare(b.name);
+    });
+}
+
+function renderSelectedMusclePanel(balanceByKey) {
+  const panel = document.querySelector("#selected-muscle-panel");
+  if (!panel) return;
+  if (!selectedMuscleKey) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+  const muscle = balanceByKey.get(selectedMuscleKey) ?? { key: selectedMuscleKey, ...MUSCLE_GROUPS[selectedMuscleKey], score: 0, target: 0, status: "missing" };
+  const exercises = exercisesForMuscle(selectedMuscleKey).slice(0, 16);
+  panel.hidden = false;
+  panel.innerHTML = `<div class="selected-muscle-head"><strong>${escapeHtml(muscle.name)}</strong><span class="tag">${escapeHtml(muscle.status ?? "missing")}</span></div><small>${muscle.score ?? 0} / ${muscle.target ?? 0} effective sets in the selected window</small><div class="selected-muscle-exercises">${exercises.map(exercise => `<button data-add-exercise="${exercise.id}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${exercise.muscles.primary.includes(selectedMuscleKey) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}</div>`;
+}
+
 function renderMuscles() {
-  const days = Number(document.querySelector("#muscle-window").value || 7);
-  const balance = muscleBalance(state.workouts, catalog(), state.settings, days).filter(item => item.key !== "cardio");
+  const days = Number(state.settings.bodyWindowDays || 14);
+  let balance = muscleBalance(state.workouts, catalog(), state.settings, days).filter(item => item.key !== "cardio");
+  balance = balance.sort((a, b) => muscleSortAscending ? a.score - b.score : b.score - a.score);
+  const balanceByKey = new Map(balance.map(item => [item.key, item]));
   const grid = document.querySelector("#muscle-grid");
   grid.replaceChildren();
   updateBodyMap(balance);
+  renderSelectedMusclePanel(balanceByKey);
+  document.querySelector("#muscle-sort-toggle").textContent = muscleSortAscending ? "Least used first" : "Most used first";
   const counts = { missing: 0, low: 0, balanced: 0, high: 0 };
   for (const item of balance) {
     counts[item.status] += 1;
@@ -1038,8 +1220,10 @@ function renderSettings() {
     document.querySelector("#setting-session-target").value = state.settings.weeklySessionTarget;
     document.querySelector("#setting-muscle-target").value = state.settings.weeklyMuscleTargetSets;
     document.querySelector("#setting-stats-window").value = state.settings.statsWindowDays;
+    document.querySelector("#setting-body-window").value = state.settings.bodyWindowDays;
     document.querySelector("#setting-history-mode").value = state.settings.historyViewMode;
     document.querySelector("#setting-show-rir").checked = Boolean(state.settings.showRir);
+    document.querySelector("#setting-duration-prompt").checked = state.settings.showDurationPrompt !== false;
     document.querySelector("#setting-theme").value = state.settings.theme;
     document.querySelector("#setting-motion").value = state.settings.motion;
   }
@@ -1048,63 +1232,6 @@ function renderSettings() {
   document.querySelector("#settings-workouts").textContent = state.workouts.length.toString();
   document.querySelector("#app-version").textContent = `Ascend ${APP_VERSION}`;
   document.querySelector("#catalog-status").textContent = state.catalogAvailable ? `${BUNDLED_EXERCISES.length + state.remoteExercises.length} bundled/remote` : "Bundled only";
-  const customList = document.querySelector("#custom-exercise-list");
-  customList.replaceChildren();
-  if (!state.customExercises.length) customList.innerHTML = `<div class="empty-state">No personal exercises.</div>`;
-  for (const exercise of state.customExercises) {
-    const row = document.createElement("div");
-    row.className = "compact-row";
-    row.innerHTML = `<div><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.equipment ?? exercise.category)}</small></div><button class="row-delete" data-delete-custom="${exercise.id}" type="button">×</button>`;
-    customList.append(row);
-  }
-}
-
-function prepareCustomExerciseForm() {
-  const primary = document.querySelector("#custom-primary");
-  const secondary = document.querySelector("#custom-secondary");
-  primary.innerHTML = Object.entries(MUSCLE_GROUPS).map(([key, item]) => `<option value="${key}">${escapeHtml(item.name)}</option>`).join("");
-  secondary.innerHTML = `<option value="">None</option>${Object.entries(MUSCLE_GROUPS).map(([key, item]) => `<option value="${key}">${escapeHtml(item.name)}</option>`).join("")}`;
-  document.querySelector("#custom-exercise-form").reset();
-  document.querySelector("#custom-sets").value = "3";
-  document.querySelector("#custom-reps").value = "10";
-  document.querySelector("#custom-met").value = "3.5";
-  setMessage(document.querySelector("#custom-message"), "");
-}
-
-async function submitCustomExercise(event) {
-  event.preventDefault();
-  const type = document.querySelector("#custom-type").value;
-  const primary = document.querySelector("#custom-primary").value;
-  const secondary = document.querySelector("#custom-secondary").value;
-  const exercise = {
-    name: document.querySelector("#custom-name").value.trim(),
-    aliases: [],
-    category: type,
-    inputType: type === "activity" ? "activity" : "sets",
-    equipment: document.querySelector("#custom-equipment").value.trim() || (type === "activity" ? "Activity" : "Custom"),
-    pattern: "Custom",
-    muscles: { primary: [primary], secondary: secondary ? [secondary] : [] },
-    loadMode: "total",
-    defaults: type === "activity"
-      ? { durationMin: 30, distanceKm: "", intensity: "moderate" }
-      : { sets: Number(document.querySelector("#custom-sets").value) || 3, reps: Number(document.querySelector("#custom-reps").value) || 10, restSeconds: DEFAULT_SETTINGS.defaultRestSeconds },
-    calorie: type === "activity"
-      ? { baseMet: Number(document.querySelector("#custom-met").value) || 3.5 }
-      : { activeMet: Number(document.querySelector("#custom-met").value) || 3.5, restMet: 2, repSeconds: 3.2 },
-    fields: type === "activity" ? ["durationMin", "distanceKm", "intensity"] : [],
-    standard: null
-  };
-  if (!exercise.name) {
-    setMessage(document.querySelector("#custom-message"), "Enter a name.", true);
-    return;
-  }
-  try {
-    await saveCustomExercise(exercise);
-    closeModal();
-    showToast("Exercise created", "It is now available in your private exercise library.");
-  } catch (error) {
-    setMessage(document.querySelector("#custom-message"), firebaseErrorMessage(error), true);
-  }
 }
 
 function openWorkoutDetail(id) {
@@ -1129,8 +1256,10 @@ function submitSettings(event) {
     weeklySessionTarget: Number(document.querySelector("#setting-session-target").value),
     weeklyMuscleTargetSets: Number(document.querySelector("#setting-muscle-target").value),
     statsWindowDays: Number(document.querySelector("#setting-stats-window").value),
+    bodyWindowDays: Number(document.querySelector("#setting-body-window").value),
     historyViewMode: document.querySelector("#setting-history-mode").value,
     showRir: document.querySelector("#setting-show-rir").checked,
+    showDurationPrompt: document.querySelector("#setting-duration-prompt").checked,
     defaultRestSeconds: DEFAULT_SETTINGS.defaultRestSeconds,
     autoStartRestTimer: false,
     theme: document.querySelector("#setting-theme").value,
@@ -1160,7 +1289,7 @@ function exportBackup() {
   link.download = `ascend-backup-${localDateString()}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  showToast("Backup exported", "The JSON file contains workouts, custom exercises and settings.");
+  showToast("Backup exported", "The JSON file contains workouts and settings.");
 }
 
 async function importBackup(file) {
@@ -1250,9 +1379,14 @@ function bindEvents() {
 
   document.querySelectorAll("[data-open-picker]").forEach(button => button.addEventListener("click", () => openModal("picker")));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
-  elements.modalBackdrop.addEventListener("click", event => { if (event.target === elements.modalBackdrop && !confirmationResolver) closeModal(); });
+  elements.modalBackdrop.addEventListener("click", event => { if (event.target === elements.modalBackdrop && !confirmationResolver && !durationResolver) closeModal(); });
   document.querySelector("#confirm-cancel").addEventListener("click", () => resolveConfirmation(false));
   document.querySelector("#confirm-accept").addEventListener("click", () => resolveConfirmation(true));
+  document.querySelector("#duration-cancel").addEventListener("click", () => resolveDurationEstimate(null));
+  document.querySelector("#duration-save").addEventListener("click", () => {
+    const value = Math.min(1440, Math.max(1, Number(document.querySelector("#duration-estimate-input").value) || estimateDraftDurationMin()));
+    resolveDurationEstimate(value);
+  });
 
   document.querySelector("#exercise-search").addEventListener("input", renderExercisePicker);
   document.querySelector("#picker-filters").addEventListener("click", event => {
@@ -1268,10 +1402,9 @@ function bindEvents() {
   });
 
   document.querySelector("#workout-form").addEventListener("submit", submitWorkout);
-  ["workout-date", "workout-duration"].forEach(id => document.querySelector(`#${id}`).addEventListener("input", event => {
-    const map = { "workout-date": "date", "workout-duration": "durationMin" };
-    draftWorkout[map[id]] = event.target.value;
-  }));
+  document.querySelector("#workout-date").addEventListener("input", event => {
+    draftWorkout.date = event.target.value;
+  });
   document.querySelector("#clear-draft").addEventListener("click", async () => {
     const accepted = await askConfirmation("Clear session?", "All unsaved exercises and values will be removed.", "Clear");
     if (accepted) { draftWorkout = createEmptyDraft(); renderBuilder(); }
@@ -1291,6 +1424,7 @@ function bindEvents() {
     const input = event.target;
     const entryIndex = Number(input.dataset.entry);
     if (!Number.isInteger(entryIndex)) return;
+    markDraftStarted();
     if (input.dataset.setField != null) {
       const setIndex = Number(input.dataset.set);
       const field = input.dataset.setField;
@@ -1306,6 +1440,7 @@ function bindEvents() {
     const input = event.target;
     const entryIndex = Number(input.dataset.entry);
     if (Number.isInteger(entryIndex) && input.dataset.activityField != null) {
+      markDraftStarted();
       draftWorkout.exercises[entryIndex].activity[input.dataset.activityField] = input.value;
       updateEntryPreview(entryIndex);
     }
@@ -1316,23 +1451,17 @@ function bindEvents() {
     const index = Number(button.dataset.entry);
     const action = button.dataset.action;
     if (action === "remove-exercise") { removeDraftExercise(index); return; }
-    if (action === "move-up" && index > 0) {
-      [draftWorkout.exercises[index - 1], draftWorkout.exercises[index]] = [draftWorkout.exercises[index], draftWorkout.exercises[index - 1]];
-      renderBuilder();
-    }
-    if (action === "move-down" && index < draftWorkout.exercises.length - 1) {
-      [draftWorkout.exercises[index + 1], draftWorkout.exercises[index]] = [draftWorkout.exercises[index], draftWorkout.exercises[index + 1]];
-      renderBuilder();
-    }
     if (action === "add-set") {
       const entry = draftWorkout.exercises[index];
       const previous = entry.sets.at(-1) ?? { weightKg: 0, reps: 10, seconds: 30, rir: "" };
       entry.sets.push({ ...deepClone(previous), completed: false });
+      markDraftStarted();
       renderBuilder();
     }
     if (action === "remove-set") {
       const entry = draftWorkout.exercises[index];
       if (entry.sets.length > 1) entry.sets.pop();
+      markDraftStarted();
       renderBuilder();
     }
   });
@@ -1354,6 +1483,25 @@ function bindEvents() {
       return;
     }
     if (!event.target.closest(".info-popover")) closeInfoPopovers();
+
+    const zone = event.target.closest("[data-zone-muscles]");
+    if (zone) {
+      selectedMuscleKey = zoneMuscleKeys(zone)[0] ?? null;
+      renderMuscles();
+      return;
+    }
+    if (selectedMuscleKey && !event.target.closest("#selected-muscle-panel") && !event.target.closest(".body-controls")) {
+      selectedMuscleKey = null;
+      renderMuscles();
+    }
+
+    const addFromMuscle = event.target.closest("#selected-muscle-panel [data-add-exercise]");
+    if (addFromMuscle) {
+      startNewWorkout();
+      addExerciseToDraft(addFromMuscle.dataset.addExercise);
+      return;
+    }
+
     const open = event.target.closest("[data-open-workout]");
     if (open) openWorkoutDetail(open.dataset.openWorkout);
     const edit = event.target.closest("[data-edit-workout]");
@@ -1370,8 +1518,34 @@ function bindEvents() {
     }
   });
 
-  ["stats-window", "weekly-metric", "progress-exercise", "progress-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { renderStats(); renderActiveCharts(); }));
-  document.querySelector("#muscle-window").addEventListener("change", renderMuscles);
+  ["stats-window", "weekly-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { renderStats(); renderActiveCharts(); }));
+  document.querySelector("#progress-search").addEventListener("input", event => {
+    progressSearchQuery = event.target.value;
+    renderStats();
+  });
+  document.querySelector("#progress-exercise-list").addEventListener("click", event => {
+    const button = event.target.closest("[data-progress-exercise]");
+    if (!button) return;
+    selectedProgressExerciseId = button.dataset.progressExercise;
+    renderStats();
+    renderActiveCharts();
+  });
+  document.querySelector("#progress-metric-buttons").addEventListener("click", event => {
+    const button = event.target.closest("[data-progress-metric]");
+    if (!button) return;
+    selectedProgressMetric = button.dataset.progressMetric;
+    renderStats();
+    renderActiveCharts();
+  });
+  document.querySelector("#body-view-toggle").addEventListener("click", () => {
+    bodyViewMode = bodyViewMode === "front" ? "back" : "front";
+    selectedMuscleKey = null;
+    renderMuscles();
+  });
+  document.querySelector("#muscle-sort-toggle").addEventListener("click", () => {
+    muscleSortAscending = !muscleSortAscending;
+    renderMuscles();
+  });
   document.querySelector("#settings-form").addEventListener("submit", submitSettings);
   document.querySelector("#setting-birth-year").addEventListener("input", event => {
     const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
@@ -1381,17 +1555,9 @@ function bindEvents() {
     applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, motion: document.querySelector("#setting-motion").value });
     renderActiveCharts();
   }));
-  document.querySelector("#open-custom-exercise").addEventListener("click", () => openModal("custom"));
   document.querySelector("#open-rank-guide").addEventListener("click", () => {
     renderRankGuide();
     openModal("ranks");
-  });
-  document.querySelector("#custom-exercise-form").addEventListener("submit", submitCustomExercise);
-  document.querySelector("#custom-exercise-list").addEventListener("click", async event => {
-    const button = event.target.closest("[data-delete-custom]");
-    if (!button) return;
-    const accepted = await askConfirmation("Delete custom exercise?", "Existing workouts keep their raw entry, but the exercise definition will no longer be available.", "Delete");
-    if (accepted) queueWrite(deleteCustomExercise(button.dataset.deleteCustom), "Custom exercise deleted");
   });
 
   document.querySelector("#open-sync-choice").addEventListener("click", async () => {
@@ -1412,7 +1578,7 @@ function bindEvents() {
   });
   resetButton.addEventListener("click", async () => {
     if (resetInput.value.trim().toUpperCase() !== "RESET") return;
-    const accepted = await askConfirmation("Reset all data?", "Every workout, custom exercise, legacy saved structure and saved preference will be deleted from this account.", "Reset");
+    const accepted = await askConfirmation("Reset all data?", "Every workout, legacy saved structure and saved preference will be deleted from this account.", "Reset");
     if (!accepted) return;
     try {
       await resetAllData();

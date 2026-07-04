@@ -22,8 +22,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   birthYear: new Date().getFullYear() - 24,
   referenceSex: "male",
   statsWindowDays: 28,
+  bodyWindowDays: 14,
   historyViewMode: "month",
   showRir: false,
+  showDurationPrompt: true,
   weeklySessionTarget: 3,
   weeklyMuscleTargetSets: 10,
   defaultRestSeconds: 90,
@@ -247,8 +249,11 @@ function normalizeSettings(settings = {}) {
     ...settings,
     birthYear,
     age: Math.max(0, currentYear() - birthYear),
+    statsWindowDays: Number(settings.statsWindowDays) || DEFAULT_SETTINGS.statsWindowDays,
+    bodyWindowDays: Number(settings.bodyWindowDays) || DEFAULT_SETTINGS.bodyWindowDays,
     historyViewMode: settings.historyViewMode === "year" ? "year" : "month",
     showRir: Boolean(settings.showRir),
+    showDurationPrompt: settings.showDurationPrompt !== false,
     autoStartRestTimer: false
   };
 }
@@ -263,8 +268,10 @@ function settingsPayload(settings = {}) {
     birthYear: normalizeBirthYear(normalized),
     referenceSex: ["male", "female", "neutral"].includes(normalized.referenceSex) ? normalized.referenceSex : "neutral",
     statsWindowDays: Number(normalized.statsWindowDays),
+    bodyWindowDays: Number(normalized.bodyWindowDays),
     historyViewMode: normalized.historyViewMode === "year" ? "year" : "month",
     showRir: Boolean(normalized.showRir),
+    showDurationPrompt: normalized.showDurationPrompt !== false,
     weeklySessionTarget: Number(normalized.weeklySessionTarget),
     weeklyMuscleTargetSets: Number(normalized.weeklyMuscleTargetSets),
     defaultRestSeconds: Number(normalized.defaultRestSeconds) || DEFAULT_SETTINGS.defaultRestSeconds,
@@ -523,7 +530,7 @@ function collectionSignature(items = []) {
 function settingsSignature(settings) {
   if (!settings) return "";
   const normalized = normalizeSettings(settings);
-  return `${normalized.updatedAtMs || 0}:${normalized.bodyWeightKg}:${normalized.heightCm}:${normalized.birthYear}:${normalized.historyViewMode}:${normalized.showRir}`;
+  return `${normalized.updatedAtMs || 0}:${normalized.bodyWeightKg}:${normalized.heightCm}:${normalized.birthYear}:${normalized.historyViewMode}:${normalized.showRir}:${normalized.bodyWindowDays}:${normalized.showDurationPrompt}`;
 }
 
 async function readCollection(user, name, source) {

@@ -1364,3 +1364,228 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     white-space: nowrap;
   }
 }
+
+/* 0.2.5 requested UI refinements */
+.command-header .nav-button span {
+  font-size: .82rem;
+  letter-spacing: .12em;
+}
+.command-header .nav-button b {
+  font-size: .86rem;
+  letter-spacing: .055em;
+}
+
+.rank-grid .rank-hero { grid-column: span 9; }
+.rank-grid .metric-card { grid-column: span 3; }
+.rank-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 2px 0 11px;
+}
+.rank-title-row h3 { margin: 0; }
+.rank-xp-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  background: rgba(var(--accent-rgb), .07);
+  color: var(--muted-strong);
+  font: 800 .72rem/1 ui-monospace, monospace;
+  text-transform: uppercase;
+}
+.rank-xp-meta strong { color: var(--accent); font-size: .78rem; }
+.rank-copy > p:not(.eyebrow) { display: none; }
+
+.weekly-target {
+  grid-row: auto !important;
+  align-self: start;
+  min-height: 0;
+}
+.weekly-target .donut-wrap {
+  height: 150px;
+  margin: -4px 0 4px;
+}
+.weekly-target .panel-heading { margin-bottom: 8px; }
+.weekly-target .weekly-stats { gap: 6px; }
+.weekly-target .weekly-stats > div { padding: 8px; }
+.weekly-target .donut-wrap::after {
+  right: 18px;
+  bottom: 18px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(var(--accent-2-rgb), .9);
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: 0 0 10px rgba(var(--accent-2-rgb), .45);
+  filter: none;
+  transform: rotate(45deg);
+  animation: target-node-pulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes target-node-pulse {
+  from { opacity: .55; transform: rotate(45deg) scale(.85); }
+  to { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+
+.session-meta.single-field {
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  align-items: end;
+}
+.duration-auto-note { margin: 0 0 6px; line-height: 1.45; }
+.duration-modal { width: min(100%, 440px); }
+
+.compact-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.progress-panel .panel-heading { margin-bottom: 10px; }
+.progress-help { margin: 6px 0 0; font-size: .78rem; }
+.progress-picker {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.progress-search { margin-bottom: 0; }
+.progress-exercise-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 7px;
+  scrollbar-width: thin;
+}
+.progress-exercise-chip {
+  min-width: 170px;
+  max-width: 240px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: rgba(255,255,255,.025);
+  text-align: left;
+  cursor: pointer;
+}
+.progress-exercise-chip strong,
+.progress-exercise-chip small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.progress-exercise-chip small { margin-top: 4px; color: var(--muted); font-size: .67rem; }
+.progress-exercise-chip.active {
+  border-color: rgba(var(--accent-rgb), .58);
+  background: rgba(var(--accent-rgb), .1);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.metric-tabs { justify-content: flex-start; }
+.metric-tabs button { min-width: 74px; }
+
+.body-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.secondary-button.compact,
+.ghost-button.compact {
+  min-height: 38px;
+  padding: 8px 11px;
+  font-size: .72rem;
+}
+.body-core.muscle-map {
+  filter: drop-shadow(0 0 20px rgba(255, 99, 127, .18));
+}
+.body-core.muscle-map .aura-ring {
+  border-color: rgba(255, 99, 127, .34);
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 99, 127, .22), transparent 43%),
+    radial-gradient(ellipse at 50% 82%, rgba(var(--accent-2-rgb), .15), transparent 50%);
+  animation: none;
+}
+.figure-aura {
+  fill: rgba(255, 99, 127, .18);
+  animation: none;
+}
+.muscle-outline {
+  fill: rgba(60, 10, 22, .78);
+  stroke: rgba(255, 99, 127, .78);
+  stroke-width: 2.3;
+  filter: drop-shadow(0 0 12px rgba(255, 99, 127, .22));
+}
+.muscle-zone {
+  fill: rgba(255, 99, 127, .14);
+  stroke: rgba(255, 170, 95, .52);
+  stroke-width: 1.55;
+  cursor: pointer;
+}
+.muscle-zone:hover,
+.muscle-zone.selected {
+  opacity: 1 !important;
+  stroke: var(--accent);
+  stroke-width: 2.25;
+  filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), .36));
+}
+.muscle-zone[data-status="missing"] { fill: rgba(255,99,127,.14); opacity: .74; stroke: rgba(255,99,127,.42); }
+.muscle-zone[data-status="low"] { fill: rgba(249,201,92,.28); stroke: rgba(249,201,92,.88); }
+.muscle-zone[data-status="balanced"] { fill: rgba(73,230,166,.3); stroke: rgba(73,230,166,.9); }
+.muscle-zone[data-status="high"] { fill: rgba(var(--accent-rgb), .34); animation: none; }
+.body-core.muscle-map[data-body-view="back"] .muscle-figure {
+  transform: scaleX(-1);
+}
+.selected-muscle-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  background: rgba(var(--accent-rgb), .06);
+}
+.selected-muscle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.selected-muscle-exercises {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+.selected-muscle-exercises button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  color: var(--text);
+  background: rgba(255,255,255,.025);
+  text-align: left;
+  cursor: pointer;
+}
+.selected-muscle-exercises button span { color: var(--accent); }
+.selected-muscle-exercises strong,
+.selected-muscle-exercises small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reduce scroll jank from repeated paint/animation layers. */
+.content-scroll { contain: layout paint; }
+.panel, .metric-card, .nav-button, .quick-grid button { transition-property: border-color, background, box-shadow, color, opacity; }
+.panel:hover { transform: none; }
+.reveal { animation-duration: .18s; }
+@media (max-width: 1000px) {
+  .rank-grid .rank-hero { grid-column: 1 / -1; }
+  .rank-grid .metric-card { grid-column: span 4; }
+}
+@media (max-width: 760px) {
+  .rank-grid .rank-hero,
+  .rank-grid .metric-card { grid-column: 1 / -1; }
+  .session-meta.single-field { grid-template-columns: 1fr; }
+  .compact-stats { grid-template-columns: 1fr; }
+  .body-controls { justify-content: flex-start; }
+  .weekly-target .donut-wrap { height: 135px; }
+}

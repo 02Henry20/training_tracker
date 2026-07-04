@@ -209,7 +209,45 @@ export const BUNDLED_EXERCISES = Object.freeze([
   activity({ id: "rowing-machine", name: "Rowing Machine", activityType: "rowing", primary: ["cardio", "upperBack", "lats", "quads"], secondary: ["biceps", "glutes", "hamstrings"], baseMet: 7.3, speedBands: [8, 10, 12, 14, 16], fields: ["durationMin", "distanceKm", "watts"] }),
   activity({ id: "elliptical", name: "Elliptical Trainer", activityType: "elliptical", primary: ["cardio", "quads", "glutes"], secondary: ["hamstrings", "calves"], baseMet: 5.0, fields: ["durationMin", "intensity"] }),
   activity({ id: "stair-climber", name: "Stair Climber", activityType: "stairs", primary: ["cardio", "quads", "glutes", "calves"], secondary: ["hamstrings"], baseMet: 9.3, fields: ["durationMin", "floors", "intensity"] }),
-  activity({ id: "jump-rope", name: "Jump Rope", activityType: "jumpRope", primary: ["cardio", "calves"], secondary: ["shoulders", "forearms", "abs"].filter(Boolean), baseMet: 11.0, fields: ["durationMin", "intensity"] })
+  activity({ id: "jump-rope", name: "Jump Rope", activityType: "jumpRope", primary: ["cardio", "calves"], secondary: ["shoulders", "forearms", "abs"].filter(Boolean), baseMet: 11.0, fields: ["durationMin", "intensity"] }),
+
+  // Expanded calisthenics
+  bodyweight({ id: "wide-grip-pull-up", name: "Wide-Grip Pull-up", pattern: "Vertical pull", primary: ["lats", "upperBack"], secondary: ["biceps", "forearms", "abs"], thresholds: [1, 4, 8, 13, 20], defaultReps: 5, activeMet: 5.0, aliases: ["wide pull up"] }),
+  bodyweight({ id: "neutral-grip-pull-up", name: "Neutral-Grip Pull-up", pattern: "Vertical pull", primary: ["lats", "biceps"], secondary: ["upperBack", "forearms"], thresholds: [1, 5, 10, 16, 24], defaultReps: 6, activeMet: 5.0 }),
+  bodyweight({ id: "assisted-pull-up", name: "Assisted Pull-up", pattern: "Vertical pull", primary: ["lats", "biceps"], secondary: ["upperBack", "forearms"], thresholds: [4, 8, 14, 22, 32], defaultReps: 8, activeMet: 4.0 }),
+  bodyweight({ id: "muscle-up", name: "Muscle-up", pattern: "Explosive pull/push", primary: ["lats", "chest", "triceps"], secondary: ["biceps", "upperBack", "abs"], thresholds: [1, 2, 5, 9, 15], defaultReps: 3, restSeconds: 120, activeMet: 6.0 }),
+  bodyweight({ id: "inverted-row", name: "Inverted Row", pattern: "Horizontal pull", primary: ["upperBack", "lats"], secondary: ["biceps", "rearDelts", "abs"], thresholds: [5, 12, 22, 35, 50], defaultReps: 10, activeMet: 4.0, aliases: ["australian pull up"] }),
+  bodyweight({ id: "pike-push-up", name: "Pike Push-up", pattern: "Vertical push", primary: ["frontDelts", "sideDelts"], secondary: ["triceps", "chest", "abs"], thresholds: [3, 8, 16, 28, 42], defaultReps: 8, activeMet: 4.6 }),
+  bodyweight({ id: "handstand-push-up", name: "Handstand Push-up", pattern: "Vertical push", primary: ["frontDelts", "sideDelts", "triceps"], secondary: ["chest", "abs"], thresholds: [1, 3, 7, 12, 20], defaultReps: 4, restSeconds: 120, activeMet: 6.0 }),
+  bodyweight({ id: "diamond-push-up", name: "Diamond Push-up", pattern: "Triceps push", primary: ["triceps", "chest"], secondary: ["frontDelts", "abs"], thresholds: [3, 10, 22, 36, 55], defaultReps: 10, activeMet: 4.3 }),
+  bodyweight({ id: "decline-push-up", name: "Decline Push-up", pattern: "Incline bodyweight push", primary: ["chest", "frontDelts"], secondary: ["triceps", "abs"], thresholds: [5, 14, 28, 44, 62], defaultReps: 12, activeMet: 4.3 }),
+  bodyweight({ id: "archer-push-up", name: "Archer Push-up", pattern: "Unilateral push", primary: ["chest", "triceps"], secondary: ["frontDelts", "abs"], thresholds: [2, 6, 12, 20, 32], defaultReps: 6, activeMet: 5.2 }),
+  bodyweight({ id: "l-sit", name: "L-Sit Hold", pattern: "Compression hold", primary: ["abs", "hipFlexors"], secondary: ["triceps", "frontDelts"], thresholds: [5, 12, 25, 45, 75], defaultSets: 3, restSeconds: 60, activeMet: 3.2, timed: true }),
+  bodyweight({ id: "hollow-body-hold", name: "Hollow Body Hold", pattern: "Anti-extension", primary: ["abs"], secondary: ["hipFlexors"], thresholds: [15, 30, 60, 90, 150], defaultSets: 3, restSeconds: 45, activeMet: 2.8, timed: true }),
+  bodyweight({ id: "burpee", name: "Burpee", pattern: "Full-body conditioning", primary: ["cardio", "quads", "chest"], secondary: ["glutes", "calves", "triceps", "abs"], thresholds: [8, 15, 25, 40, 60], defaultReps: 10, activeMet: 8.0 }),
+  bodyweight({ id: "mountain-climber", name: "Mountain Climbers", pattern: "Core conditioning", primary: ["abs", "hipFlexors", "cardio"], secondary: ["frontDelts", "quads"], thresholds: [20, 40, 70, 110, 160], defaultReps: 40, activeMet: 7.0 }),
+
+  // Expanded gym library
+  strength({ id: "machine-shoulder-press", name: "Machine Shoulder Press", equipment: "Machine", pattern: "Vertical push", primary: ["frontDelts", "sideDelts"], secondary: ["triceps"], activeMet: 4.0, standard: ratioStandard([0.22, 0.38, 0.58, 0.78, 1.0], 0.75), aliases: ["shoulder press"] }),
+  strength({ id: "smith-machine-bench", name: "Smith Machine Bench Press", equipment: "Smith machine", pattern: "Horizontal push", primary: ["chest"], secondary: ["triceps", "frontDelts"], activeMet: 4.5, standard: ratioStandard([0.35, 0.58, 0.82, 1.08, 1.32]) }),
+  strength({ id: "hack-squat", name: "Hack Squat", equipment: "Machine", pattern: "Squat", primary: ["quads", "glutes"], secondary: ["hamstrings"], defaultReps: 10, restSeconds: 120, activeMet: 5.0, standard: ratioStandard([0.6, 1.0, 1.55, 2.2, 3.0], 0.78) }),
+  strength({ id: "smith-machine-squat", name: "Smith Machine Squat", equipment: "Smith machine", pattern: "Squat", primary: ["quads", "glutes"], secondary: ["hamstrings", "lowerBack"], defaultReps: 10, restSeconds: 120, activeMet: 5.0, standard: ratioStandard([0.5, 0.85, 1.25, 1.65, 2.1]) }),
+  strength({ id: "glute-bridge", name: "Glute Bridge", equipment: "Barbell or bodyweight", pattern: "Hip extension", primary: ["glutes"], secondary: ["hamstrings", "abs"], defaultReps: 12, activeMet: 4.2, standard: ratioStandard([0.2, 0.45, 0.8, 1.15, 1.55], 0.78) }),
+  strength({ id: "cable-curl", name: "Cable Curl", equipment: "Cable", pattern: "Elbow flexion", primary: ["biceps"], secondary: ["forearms"], activeMet: 3.5, standard: ratioStandard([0.1, 0.19, 0.3, 0.44, 0.6], 0.75) }),
+  strength({ id: "rope-hammer-curl", name: "Rope Hammer Curl", equipment: "Cable", pattern: "Elbow flexion", primary: ["biceps", "forearms"], activeMet: 3.5, standard: ratioStandard([0.1, 0.2, 0.32, 0.46, 0.62], 0.75) }),
+  strength({ id: "rear-delt-machine", name: "Rear Delt Machine", equipment: "Machine", pattern: "Rear-delt isolation", primary: ["rearDelts", "upperBack"], secondary: ["traps"], activeMet: 3.5, standard: ratioStandard([0.12, 0.22, 0.34, 0.5, 0.68], 0.75) }),
+  strength({ id: "assisted-dip-machine", name: "Assisted Dip Machine", equipment: "Machine", pattern: "Vertical push", primary: ["triceps", "chest"], secondary: ["frontDelts"], activeMet: 4.0, standard: ratioStandard([0.2, 0.38, 0.58, 0.8, 1.05], 0.75) }),
+  strength({ id: "cable-woodchop", name: "Cable Woodchop", equipment: "Cable", pattern: "Rotational core", primary: ["obliques", "abs"], secondary: ["lats", "frontDelts"], activeMet: 3.8, standard: ratioStandard([0.08, 0.16, 0.26, 0.4, 0.58], 0.75) }),
+
+  // Expanded outdoor and sport activities
+  activity({ id: "trail-running", name: "Trail Running", activityType: "running", primary: ["cardio", "quads", "glutes", "calves"], secondary: ["hamstrings", "abs"], baseMet: 10.5, speedBands: [5, 7, 9, 11, 13], fields: ["durationMin", "distanceKm", "elevationM"] }),
+  activity({ id: "bouldering", name: "Bouldering", activityType: "climbing", primary: ["lats", "forearms", "upperBack"], secondary: ["biceps", "abs", "glutes"], baseMet: 8.0, fields: ["durationMin", "intensity"], aliases: ["climbing"] }),
+  activity({ id: "soccer", name: "Soccer", activityType: "fieldSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "basketball", name: "Basketball", activityType: "courtSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "sideDelts"], baseMet: 6.5, fields: ["durationMin", "intensity"] }),
+  activity({ id: "tennis", name: "Tennis", activityType: "courtSport", primary: ["cardio", "quads", "sideDelts"], secondary: ["calves", "glutes", "forearms", "obliques"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "kayaking", name: "Kayaking", activityType: "paddling", primary: ["lats", "upperBack", "cardio"], secondary: ["biceps", "forearms", "abs", "obliques"], baseMet: 5.0, fields: ["durationMin", "distanceKm", "intensity"] }),
+  activity({ id: "skiing", name: "Skiing", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "snowboarding", name: "Snowboarding", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs", "obliques"], baseMet: 5.3, fields: ["durationMin", "intensity"] })
 ]);
 
 // Normalize unsupported umbrella names used by a few endurance activities.
