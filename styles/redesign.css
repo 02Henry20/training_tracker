@@ -1857,3 +1857,112 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
 .desktop-nav .nav-button b { font-size: .96rem !important; letter-spacing: .06em; }
 /* The session target status marker is drawn by canvas at the actual progress angle. */
 .weekly-target .donut-wrap::after { display: none !important; }
+
+
+/* 0.2.7 visual corrections */
+.header-plus-button {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.88) 0 10%, rgba(255,255,255,.18) 11%, transparent 24%),
+    linear-gradient(145deg, var(--accent), var(--accent-2)) !important;
+}
+.header-plus-button::before { transform: none !important; }
+
+.weekly-target .donut-wrap,
+.weekly-target .session-target-donut {
+  isolation: isolate;
+  height: 196px !important;
+  min-height: 196px !important;
+}
+.weekly-target canvas {
+  width: 188px !important;
+  height: 188px !important;
+  aspect-ratio: 1 / 1;
+  image-rendering: auto;
+}
+.weekly-target .donut-wrap::before,
+.weekly-target .donut-wrap::after {
+  display: none !important;
+}
+
+/* Keep only the clickable muscle-map pieces; remove the old person/aura shapes that caused overlap. */
+.body-core.muscle-map .aura-ring,
+.figure-aura,
+.muscle-outline {
+  display: none !important;
+}
+.body-core.muscle-map {
+  min-height: 445px;
+  filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), .14));
+}
+.muscle-figure {
+  overflow: visible;
+}
+.body-core.muscle-map[data-body-view="front"]::after,
+.body-core.muscle-map[data-body-view="back"]::after {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+  padding: 5px 8px;
+  border: 1px solid rgba(var(--accent-rgb), .32);
+  border-radius: 4px;
+  color: var(--accent);
+  background: rgba(4, 10, 22, .72);
+  font: 800 .64rem ui-monospace, monospace;
+  text-transform: uppercase;
+}
+.body-core.muscle-map[data-body-view="front"]::after { content: "FRONT"; }
+.body-core.muscle-map[data-body-view="back"]::after { content: "BACK"; }
+.muscle-zone {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Larger symbols on Body/Balance exercise cards. */
+.muscle-card-head i {
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 1.55rem !important;
+  border-radius: 6px !important;
+  flex: 0 0 48px;
+}
+.muscle-card-head > div { gap: 12px !important; }
+
+@media (max-width: 760px) {
+  .command-brand strong::after { display: none !important; }
+  .view[data-view-section="stats"] *,
+  .view[data-view-section="stats"] *::before,
+  .view[data-view-section="stats"] *::after,
+  .view[data-view-section="muscles"] *,
+  .view[data-view-section="muscles"] *::before,
+  .view[data-view-section="muscles"] *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+  .weekly-target .donut-wrap,
+  .weekly-target .session-target-donut {
+    height: 178px !important;
+    min-height: 178px !important;
+  }
+  .weekly-target canvas {
+    width: 172px !important;
+    height: 172px !important;
+  }
+  .body-core.muscle-map[data-body-view="front"]::after,
+  .body-core.muscle-map[data-body-view="back"]::after {
+    top: 8px;
+    right: 8px;
+  }
+}
+.selected-muscle-exercises button > span {
+  display: grid;
+  width: 46px !important;
+  height: 46px !important;
+  place-items: center;
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  border-radius: 6px;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), .08);
+  font-size: 1.55rem !important;
+  flex: 0 0 46px;
+}

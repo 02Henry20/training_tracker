@@ -183,51 +183,127 @@ export function drawWeeklyBars(canvas, points, metric = "sessions") {
 }
 
 export function drawDonut(canvas, value, target, label) {
-  const { context, width, height } = prepare(canvas);
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const radius = Math.min(width, height) * 0.32;
-  const ratio = Math.min(1, Math.max(0, Number(value) / Math.max(1, Number(target))));
-  context.lineWidth = Math.max(10, radius * 0.18);
-  context.strokeStyle = colors.grid;
-  context.shadowColor = "transparent";
-  context.beginPath();
-  context.arc(centerX, centerY, radius, -Math.PI / 2, Math.PI * 1.5);
-  context.stroke();
-  const gradient = context.createLinearGradient(centerX - radius, 0, centerX + radius, 0);
-  gradient.addColorStop(0, colors.accent);
-  gradient.addColorStop(1, colors.green);
-  context.strokeStyle = gradient;
-  context.shadowColor = colors.accent;
-  context.shadowBlur = 10;
-  context.beginPath();
-  context.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + ratio * Math.PI * 2);
-  context.stroke();
-  context.shadowBlur = 0;
-  if (ratio > 0) {
-    const angle = -Math.PI / 2 + ratio * Math.PI * 2;
-    const markerX = centerX + Math.cos(angle) * radius;
-    const markerY = centerY + Math.sin(angle) * radius;
+  const safeValue = Math.max(0, Number(value) || 0);
+  const safeTarget = Math.max(1, Number(target) || 1);
+  const ratio = Math.min(1, safeValue / safeTarget);
+  const motionEnabled = document.documentElement.dataset.motion !== "off";
+
+  if (!canvas.__donutAnimation) canvas.__donutAnimation = { frame: null };
+  if (canvas.__donutAnimation.frame) cancelAnimationFrame(canvas.__donutAnimation.frame);
+
+  const drawFrame = timestamp => {
+    refreshColors();
+    const rect = canvas.getBoundingClientRect();
+    const cssSize = Math.max(128, Math.min(rect.width || 188, rect.height || 188));
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(cssSize * dpr);
+    canvas.height = Math.round(cssSize * dpr);
+    canvas.style.width = `${cssSize}px`;
+    canvas.style.height = `${cssSize}px`;
+
+    const context = canvas.getContext("2d");
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+    context.clearRect(0, 0, cssSize, cssSize);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+
+    const center = cssSize / 2;
+    const radius = cssSize * 0.34;
+    const trackWidth = Math.max(11, cssSize * 0.075);
+    const start = -Math.PI / 2;
+    const end = start + ratio * Math.PI * 2;
+    const pulse = motionEnabled ? (Math.sin(timestamp / 520) + 1) / 2 : 0.45;
+    const spin = motionEnabled ? timestamp / 1400 : 0;
+
+    // Outer tactical guide ticks.
     context.save();
-    context.translate(markerX, markerY);
-    context.rotate(angle + Math.PI / 4);
-    context.fillStyle = colors.accent2;
-    context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#050810";
-    context.lineWidth = 2;
-    context.beginPath();
-    context.rect(-4, -4, 8, 8);
-    context.fill();
-    context.stroke();
+    context.translate(center, center);
+    context.strokeStyle = colors.grid;
+    context.lineWidth = 1.2;
+    for (let i = 0; i < 40; i += 1) {
+      const angle = i / 40 * Math.PI * 2 + spin * 0.08;
+      const inner = radius + trackWidth * 0.92;
+      const outer = radius + trackWidth * (i % 5 === 0 ? 1.55 : 1.32);
+      context.beginPath();
+      context.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      context.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
+      context.stroke();
+    }
     context.restore();
-  }
-  context.textAlign = "center";
-  context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#fff";
-  context.font = "800 30px system-ui";
-  context.fillText(`${Math.round(value)}/${Math.round(target)}`, centerX, centerY + 3);
-  context.fillStyle = colors.text;
-  context.font = "12px system-ui";
-  context.fillText(label, centerX, centerY + 25);
-  context.textAlign = "left";
+
+    // Base track.
+    context.strokeStyle = colors.grid;
+    context.lineWidth = trackWidth;
+    context.shadowColor = "transparent";
+    context.beginPath();
+    context.arc(center, center, radius, start, start + Math.PI * 2);
+    context.stroke();
+
+    // Progress track with a small animated highlight, but no fake off-angle marker.
+    if (ratio > 0) {
+      const gradient = context.createLinearGradient(center - radius, center - radius, center + radius, center + radius);
+      gradient.addColorStop(0, colors.accent);
+      gradient.addColorStop(0.62, colors.green);
+      gradient.addColorStop(1, colors.accent2);
+      context.strokeStyle = gradient;
+      context.lineWidth = trackWidth;
+      context.shadowColor = colors.accent;
+      context.shadowBlur = 8 + pulse * 7;
+      context.beginPath();
+      context.arc(center, center, radius, start, end);
+      context.stroke();
+
+      const sweepLength = Math.min(Math.PI * 0.42, ratio * Math.PI * 2);
+      const sweepHead = start + ((spin % (Math.PI * 2)) * ratio);
+      const sweepStart = Math.max(start, sweepHead - sweepLength);
+      const sweepEnd = Math.min(end, sweepHead);
+      if (sweepEnd > sweepStart) {
+        context.strokeStyle = "rgba(255,255,255,.62)";
+        context.lineWidth = Math.max(4, trackWidth * 0.35);
+        context.shadowBlur = 6;
+        context.beginPath();
+        context.arc(center, center, radius, sweepStart, sweepEnd);
+        context.stroke();
+      }
+      context.shadowBlur = 0;
+
+      // Actual progress marker: small diamond locked to the progress endpoint.
+      const markerSize = Math.max(7, cssSize * 0.044);
+      const markerX = center + Math.cos(end) * radius;
+      const markerY = center + Math.sin(end) * radius;
+      context.save();
+      context.translate(markerX, markerY);
+      context.rotate(end + Math.PI / 4);
+      context.fillStyle = colors.accent2;
+      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#050810";
+      context.lineWidth = 2.2;
+      context.beginPath();
+      context.moveTo(0, -markerSize);
+      context.lineTo(markerSize, 0);
+      context.lineTo(0, markerSize);
+      context.lineTo(-markerSize, 0);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+
+    // Inner readout.
+    context.textAlign = "center";
+    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#fff";
+    context.font = `900 ${Math.max(26, cssSize * 0.18)}px system-ui`;
+    context.fillText(`${Math.round(safeValue)}/${Math.round(safeTarget)}`, center, center + cssSize * 0.015);
+    context.fillStyle = colors.text;
+    context.font = `700 ${Math.max(10, cssSize * 0.065)}px system-ui`;
+    context.fillText(label, center, center + cssSize * 0.18);
+    context.textAlign = "left";
+
+    if (motionEnabled && document.body.contains(canvas)) {
+      canvas.__donutAnimation.frame = requestAnimationFrame(drawFrame);
+    }
+  };
+
+  drawFrame(performance.now());
 }
 
 export function redrawOnResize(callback) {
