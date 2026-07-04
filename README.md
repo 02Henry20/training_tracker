@@ -9,12 +9,13 @@ Ascend is a mobile-first progressive web app for logging gym sessions and endura
 - Running, walking, hiking, swimming, cycling, rowing, elliptical, stairs and jump-rope inputs
 - Previous performance used as the next editable exercise default
 - Estimated 1RM, training volume, PR detection and per-exercise ranks
-- Rank/XP system, daily streak and weekly consistency streak
+- Player rank/XP system with E/E+ through Monarch stages
+- Last-training recency and weekly consistency streak
 - Progress view with history by month or compact year view
 - Statistics by configurable period, weekly frequency and exercise progression charts
 - Muscle-group coverage, weak/missing groups and recovery recency
-- Repeat-last-workout and custom private exercises
-- Firestore synchronization, device/cloud sync resolver, persistent offline cache and JSON backup/import
+- Custom private exercises
+- Firestore synchronization, device/cloud sync resolver, offline unlock after a cached login and JSON backup/import
 - Total reset with typed confirmation
 - PWA manifest, service worker and Android maskable icons
 

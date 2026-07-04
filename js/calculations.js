@@ -2,6 +2,27 @@ import { LEVELS, MUSCLE_GROUPS, getExerciseById } from "./exercises.js";
 
 const DAY_MS = 86_400_000;
 
+export const PLAYER_RANKS = Object.freeze([
+  { rank: "E", stageKey: "E", label: "Awakened", minLevel: 1, description: "The gate has opened. The focus is showing up, learning the movements and building the first streak of evidence." },
+  { rank: "E+", stageKey: "E-plus", label: "Spark", minLevel: 4, description: "The first upgrade pulse. Training is no longer random; the system starts recognizing repeatable effort." },
+  { rank: "D", stageKey: "D", label: "Hunter", minLevel: 7, description: "Baseline strength and conditioning are forming. Sessions begin to feel like quests instead of isolated workouts." },
+  { rank: "D+", stageKey: "D-plus", label: "Breaker", minLevel: 10, description: "Capacity rises. The body can take more volume, recover cleaner and return with intent." },
+  { rank: "C", stageKey: "C", label: "Raider", minLevel: 13, description: "The middle ranks. Weak links become visible, progress becomes measurable and the map starts lighting up." },
+  { rank: "C+", stageKey: "C-plus", label: "Vanguard", minLevel: 16, description: "Momentum is now a weapon. You are stacking sessions with enough consistency to change the trend line." },
+  { rank: "B", stageKey: "B", label: "Executor", minLevel: 19, description: "A serious training identity. Volume, intensity and standards are high enough that recovery becomes strategy." },
+  { rank: "B+", stageKey: "B-plus", label: "Gatebreaker", minLevel: 22, description: "The ceiling moves. Your best sets are no longer accidents; they are summoned by preparation." },
+  { rank: "A", stageKey: "A", label: "Elite", minLevel: 25, description: "High-rank output. Progress slows, but every improvement carries more weight." },
+  { rank: "A+", stageKey: "A-plus", label: "Apex", minLevel: 28, description: "A refined stage where balance, precision and patience matter as much as force." },
+  { rank: "S", stageKey: "S", label: "Sovereign", minLevel: 31, description: "Rare territory. The system expects excellence across repeated cycles, not a single peak." },
+  { rank: "S+", stageKey: "S-plus", label: "Mythic", minLevel: 36, description: "Beyond ordinary classification. Training has become a long campaign with visible power curves." },
+  { rank: "World", stageKey: "World", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
+  { rank: "Monarch", stageKey: "Monarch", label: "Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
+]);
+
+export function xpForLevel(level) {
+  return Math.max(0, (Math.max(1, Number(level) || 1) - 1) ** 2 * 260);
+}
+
 export function localDateString(date = new Date()) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 10);
@@ -483,11 +504,11 @@ export function xpSummary(workouts, catalog, settings) {
   }
   xp = Math.round(xp);
   const level = Math.max(1, Math.floor(Math.sqrt(xp / 260)) + 1);
-  const currentFloor = (level - 1) ** 2 * 260;
-  const nextFloor = level ** 2 * 260;
+  const currentFloor = xpForLevel(level);
+  const nextFloor = xpForLevel(level + 1);
   const progress = clamp((xp - currentFloor) / Math.max(1, nextFloor - currentFloor), 0, 1);
-  const rankIndex = clamp(Math.floor((level - 1) / 5), 0, LEVELS.length - 1);
-  return { xp, level, progress, rank: LEVELS[rankIndex], nextXp: nextFloor };
+  const rank = [...PLAYER_RANKS].reverse().find(item => level >= item.minLevel) ?? PLAYER_RANKS[0];
+  return { xp, level, progress, rank, nextXp: nextFloor };
 }
 
 export function statistics(workouts, catalog, settings, days = 28) {

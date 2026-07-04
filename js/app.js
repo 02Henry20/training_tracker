@@ -7,11 +7,13 @@ import {
 } from "./firebase.js";
 import {
   DEFAULT_SETTINGS,
+  connectOfflineUserData,
   connectUserData,
   deleteCustomExercise,
   deleteWorkout,
   disconnectUserData,
   exportState,
+  getCachedUserProfile,
   getSyncSummary,
   hasPendingWrites,
   importState,
@@ -40,22 +42,24 @@ import {
   calculateProgression,
   calendarIntensity,
   consistencyStreak,
+  daysBetween,
   detectPersonalRecords,
   evaluateExerciseLevel,
   formatDate,
   localDateString,
   muscleBalance,
   parseDate,
+  PLAYER_RANKS,
   startOfMonth,
   startOfWeek,
   statistics,
   suggestedFocus,
-  trainingStreak,
+  xpForLevel,
   xpSummary
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.2";
+const APP_VERSION = "0.2.3";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -100,6 +104,7 @@ let draftWorkout = createEmptyDraft();
 let renderQueued = false;
 let lastCatalogSignature = "";
 let statsWindowInitialized = false;
+let offlineAuthActive = false;
 
 function catalog() {
   return mergeExerciseCatalog(state.remoteExercises, state.customExercises);
@@ -116,6 +121,54 @@ function escapeHtml(value) {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function currentPlayerSummary() {
+  return xpSummary(state.workouts, catalog(), state.settings);
+}
+
+function applyRankStage(summary = currentPlayerSummary()) {
+  document.documentElement.dataset.rankStage = summary.rank.stageKey ?? "E";
+}
+
+function firstWorkoutDate() {
+  return state.workouts.map(workout => workout.date).filter(Boolean).sort()[0] ?? null;
+}
+
+function lastWorkoutDate() {
+  return state.workouts.map(workout => workout.date).filter(Boolean).sort().at(-1) ?? null;
+}
+
+function periodKey(dateString, mode = state.settings.historyViewMode) {
+  return mode === "year" ? String(parseDate(dateString).getFullYear()) : dateString.slice(0, 7);
+}
+
+function currentPeriodKey(mode = state.settings.historyViewMode) {
+  return periodKey(localDateString(), mode);
+}
+
+function periodCanShift(delta) {
+  const mode = state.settings.historyViewMode === "year" ? "year" : "month";
+  const first = firstWorkoutDate();
+  if (!first) return false;
+  const cursor = parseDate(calendarMonth);
+  if (mode === "year") cursor.setFullYear(cursor.getFullYear() + delta);
+  else cursor.setMonth(cursor.getMonth() + delta);
+  const target = localDateString(cursor);
+  if (periodKey(target, mode) < periodKey(first, mode)) return false;
+  if (periodKey(target, mode) > currentPeriodKey(mode)) return false;
+  return true;
+}
+
+function lastTrainingInfo() {
+  const last = lastWorkoutDate();
+  if (!last) return { label: "No data", detail: "Log your first session", className: "recency-empty" };
+  const days = Math.max(0, daysBetween(last, localDateString()));
+  if (days === 0) return { label: "Today", detail: "last training", className: "recency-fresh" };
+  if (days === 1) return { label: "1 day", detail: "since last training", className: "recency-ready" };
+  if (days <= 3) return { label: `${days} days`, detail: "since last training", className: "recency-ready" };
+  if (days <= 7) return { label: `${days} days`, detail: "since last training", className: "recency-warning" };
+  return { label: `${days} days`, detail: "since last training", className: "recency-stale" };
 }
 
 function setMessage(element, text, isError = false) {
@@ -163,15 +216,19 @@ function createEmptyDraft() {
 
 function applyAppearance(settings = state.settings) {
   document.documentElement.dataset.theme = settings.theme === "light" ? "light" : "dark";
-  document.documentElement.dataset.accent = settings.accent ?? "cyan";
   document.documentElement.dataset.motion = settings.motion === "off" ? "off" : "on";
+  applyRankStage();
 }
 
 function updateSyncStatus() {
   const pending = hasPendingWrites();
   const cacheOnly = isUsingCacheOnly();
   elements.syncPill.className = "sync-pill";
-  if (!navigator.onLine) {
+  if (state.user?.offlineOnly) {
+    elements.syncPill.classList.add("offline");
+    elements.syncLabel.textContent = pending ? "Offline device" : "Offline cache";
+    elements.syncDetail.textContent = pending ? "Device changes pending" : "Cached data loaded";
+  } else if (!navigator.onLine) {
     elements.syncPill.classList.add("offline");
     elements.syncLabel.textContent = pending ? "Offline · pending" : "Offline cache";
     elements.syncDetail.textContent = pending ? "Will synchronize later" : "Local data available";
@@ -188,6 +245,36 @@ function updateSyncStatus() {
   }
 }
 
+function showAppForUser(user) {
+  elements.authShell.hidden = true;
+  elements.appShell.hidden = false;
+  elements.userChip.textContent = user.email ?? user.uid;
+  document.querySelector("#settings-email").textContent = user.email ?? user.uid;
+  navigateTo("dashboard");
+}
+
+function tryOfflineUnlock(email) {
+  const profile = getCachedUserProfile(email);
+  if (!profile) return false;
+  offlineAuthActive = true;
+  connectOfflineUserData(profile);
+  showAppForUser({ ...profile, offlineOnly: true });
+  showToast("Offline mode", "Loaded cached device data. New logs will stay on this device until you reconnect.");
+  return true;
+}
+
+async function handleSignOut() {
+  offlineAuthActive = false;
+  if (state.user?.offlineOnly) {
+    disconnectUserData();
+    elements.authShell.hidden = false;
+    elements.appShell.hidden = true;
+    elements.authPassword.value = "";
+    return;
+  }
+  await signOut(auth);
+}
+
 async function initializeAuthentication() {
   try {
     await initializeAuthPersistence();
@@ -200,14 +287,12 @@ async function initializeAuthentication() {
 
   onAuthStateChanged(auth, user => {
     if (user) {
-      elements.authShell.hidden = true;
-      elements.appShell.hidden = false;
-      elements.userChip.textContent = user.email ?? user.uid;
-      document.querySelector("#settings-email").textContent = user.email ?? user.uid;
+      offlineAuthActive = false;
       connectUserData(user);
-      navigateTo("dashboard");
+      showAppForUser(user);
       window.setTimeout(() => { void maybeOfferSyncChoice(); }, 600);
     } else {
+      if (offlineAuthActive) return;
       disconnectUserData();
       elements.authShell.hidden = false;
       elements.appShell.hidden = true;
@@ -230,8 +315,11 @@ async function submitAuth(event) {
   try {
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
+    if (!navigator.onLine && tryOfflineUnlock(email)) return;
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
+    const email = elements.authEmail.value.trim();
+    if ((error?.code === "auth/network-request-failed" || !navigator.onLine) && tryOfflineUnlock(email)) return;
     setMessage(elements.authMessage, firebaseErrorMessage(error), true);
   } finally {
     window.clearTimeout(slowNotice);
@@ -304,6 +392,20 @@ function closeModal() {
   elements.modalBackdrop.hidden = true;
   document.querySelectorAll("[data-modal]").forEach(modal => { modal.hidden = true; });
   document.body.style.overflow = "";
+}
+
+function closeInfoPopovers() {
+  document.querySelectorAll(".info-popover").forEach(popover => popover.remove());
+}
+
+function toggleInfoPopover(button) {
+  const existing = button.parentElement.querySelector(".info-popover");
+  closeInfoPopovers();
+  if (existing) return;
+  const popover = document.createElement("span");
+  popover.className = "info-popover";
+  popover.textContent = button.dataset.info;
+  button.parentElement.append(popover);
 }
 
 function askConfirmation(title, copy, acceptLabel = "Delete") {
@@ -593,7 +695,7 @@ function recentRecordList(prData) {
 function renderDashboard() {
   const allExercises = catalog();
   const analyses = buildWorkoutAnalyses(state.workouts, allExercises, state.settings).reverse();
-  const xp = xpSummary(state.workouts, allExercises, state.settings);
+  const xp = currentPlayerSummary();
   const prs = detectPersonalRecords(state.workouts, allExercises, state.settings);
   const weekStart = startOfWeek(localDateString());
   const weekWorkouts = analyses.filter(workout => workout.date >= weekStart);
@@ -602,11 +704,17 @@ function renderDashboard() {
 
   document.querySelector("#rank-letter").textContent = xp.rank.rank;
   document.querySelector("#rank-name").textContent = xp.rank.label;
+  document.querySelector("#brand-stage").textContent = `RANK ${xp.rank.rank}`;
   document.querySelector("#system-level").textContent = `Level ${xp.level}`;
   document.querySelector("#total-xp").textContent = `${xp.xp.toLocaleString()} XP`;
   document.querySelector("#xp-fill").style.width = `${xp.progress * 100}%`;
   document.querySelector("#xp-next").textContent = `${Math.max(0, xp.nextXp - xp.xp).toLocaleString()} XP to the next level.`;
-  document.querySelector("#day-streak").textContent = trainingStreak(state.workouts).toString();
+  applyRankStage(xp);
+  const recency = lastTrainingInfo();
+  const recencyCard = document.querySelector("#last-training-card");
+  recencyCard.className = `metric-card panel reveal ${recency.className}`;
+  document.querySelector("#last-training-days").textContent = recency.label;
+  document.querySelector("#last-training-copy").textContent = recency.detail;
   document.querySelector("#week-streak").textContent = consistencyStreak(state.workouts, sessionTarget).toString();
   document.querySelector("#pr-count").textContent = prs.best.size.toString();
   document.querySelector("#week-session-label").textContent = `${weekSessions} / ${sessionTarget}`;
@@ -637,10 +745,15 @@ function renderDashboard() {
 }
 
 function renderCalendar() {
+  if (!state.workouts.some(workout => workout.date)) {
+    renderHistoryEmpty();
+    return;
+  }
   const mode = state.settings.historyViewMode === "year" ? "year" : "month";
   document.querySelector(".calendar-card")?.classList.toggle("history-year-mode", mode === "year");
   document.querySelector(".calendar-weekdays").hidden = mode === "year";
   document.querySelector(".calendar-legend").hidden = false;
+  updateHistoryNav();
   if (mode === "year") {
     renderHistoryYear();
     return;
@@ -648,8 +761,31 @@ function renderCalendar() {
   renderHistoryMonth();
 }
 
+function updateHistoryNav() {
+  document.querySelector("#calendar-prev").hidden = !periodCanShift(-1);
+  document.querySelector("#calendar-next").hidden = !periodCanShift(1);
+}
+
+function renderHistoryEmpty() {
+  document.querySelector(".calendar-card")?.classList.remove("history-year-mode");
+  document.querySelector("#calendar-prev").hidden = true;
+  document.querySelector("#calendar-next").hidden = true;
+  document.querySelector("#calendar-month").textContent = "No history yet";
+  document.querySelector(".calendar-weekdays").hidden = true;
+  document.querySelector(".calendar-legend").hidden = true;
+  const grid = document.querySelector("#calendar-grid");
+  grid.className = "history-empty";
+  grid.innerHTML = `<div class="empty-state">No training history yet. Save your first workout to unlock the calendar.</div>`;
+  document.querySelector("#calendar-day-title").textContent = "No sessions";
+  document.querySelector("#calendar-day-total").textContent = "0";
+  document.querySelector("#calendar-day-list").innerHTML = `<div class="empty-state">Logged sessions will appear here.</div>`;
+}
+
 function renderHistoryMonth() {
   const monthDate = parseDate(calendarMonth);
+  const firstDate = firstWorkoutDate();
+  const today = localDateString();
+  if (selectedCalendarDate < firstDate || selectedCalendarDate > today) selectedCalendarDate = firstDate;
   document.querySelector("#calendar-month").textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(monthDate);
   const intensity = calendarIntensity(state.workouts, catalog(), state.settings, calendarMonth);
   const first = parseDate(startOfMonth(calendarMonth));
@@ -664,10 +800,13 @@ function renderHistoryMonth() {
     button.type = "button";
     button.className = "calendar-day";
     if (date.slice(0, 7) !== calendarMonth.slice(0, 7)) button.classList.add("outside");
+    if (date < firstDate) button.classList.add("before-first");
+    if (date > today) button.classList.add("future-day");
     if (date === localDateString()) button.classList.add("today");
     if (date === selectedCalendarDate) button.classList.add("selected");
     if (info) button.classList.add("has-training", `tier-${info.tier}`);
-    button.dataset.calendarDate = date;
+    if (date < firstDate || date > today) button.disabled = true;
+    else button.dataset.calendarDate = date;
     button.innerHTML = `<strong>${Number(date.slice(-2))}</strong><small>${info ? `${Math.round(info.calories)} kcal` : ""}</small>`;
     grid.append(button);
   }
@@ -676,7 +815,12 @@ function renderHistoryMonth() {
 
 function renderHistoryYear() {
   const year = parseDate(calendarMonth).getFullYear();
-  if (!selectedHistoryMonth.startsWith(String(year))) selectedHistoryMonth = `${year}-01`;
+  const first = firstWorkoutDate();
+  const firstMonth = first.slice(0, 7);
+  const currentMonth = localDateString().slice(0, 7);
+  if (!selectedHistoryMonth.startsWith(String(year)) || selectedHistoryMonth < firstMonth || selectedHistoryMonth > currentMonth) {
+    selectedHistoryMonth = String(year) === first.slice(0, 4) ? firstMonth : `${year}-01`;
+  }
   document.querySelector("#calendar-month").textContent = String(year);
   const analyses = buildWorkoutAnalyses(state.workouts, catalog(), state.settings).filter(workout => workout.date.startsWith(`${year}-`));
   const byMonth = new Map();
@@ -703,9 +847,12 @@ function renderHistoryYear() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "calendar-month-tile";
+    if (item.key < firstMonth) button.classList.add("before-first");
+    if (item.key > currentMonth) button.classList.add("future-day");
     if (tier) button.classList.add(`tier-${tier}`);
     if (item.key === selectedHistoryMonth) button.classList.add("selected");
-    button.dataset.historyMonth = item.key;
+    if (item.key < firstMonth || item.key > currentMonth) button.disabled = true;
+    else button.dataset.historyMonth = item.key;
     button.innerHTML = `<strong>${monthFormatter.format(date)}</strong><small>${item.workouts.length} session${item.workouts.length === 1 ? "" : "s"}</small><span>${item.calories ? `${formatNumber(item.calories)} kcal` : "Rest"}</span>`;
     grid.append(button);
   }
@@ -806,11 +953,26 @@ function renderActiveCharts() {
   }
 }
 
+function updateBodyMap(balance) {
+  const byKey = new Map(balance.map(item => [item.key, item]));
+  const statusScore = { missing: 0, low: 1, balanced: 2, high: 3 };
+  document.querySelectorAll("[data-zone-muscles]").forEach(zone => {
+    const keys = zone.dataset.zoneMuscles.split(",");
+    const strongest = keys
+      .map(key => byKey.get(key))
+      .filter(Boolean)
+      .sort((a, b) => (statusScore[b.status] ?? 0) - (statusScore[a.status] ?? 0))[0];
+    zone.dataset.status = strongest?.status ?? "missing";
+    zone.title = strongest ? `${strongest.name}: ${strongest.status}` : "No recent data";
+  });
+}
+
 function renderMuscles() {
   const days = Number(document.querySelector("#muscle-window").value || 7);
   const balance = muscleBalance(state.workouts, catalog(), state.settings, days).filter(item => item.key !== "cardio");
   const grid = document.querySelector("#muscle-grid");
   grid.replaceChildren();
+  updateBodyMap(balance);
   const counts = { missing: 0, low: 0, balanced: 0, high: 0 };
   for (const item of balance) {
     counts[item.status] += 1;
@@ -823,6 +985,41 @@ function renderMuscles() {
     grid.append(card);
   }
   document.querySelector("#muscle-status-totals").innerHTML = `<div><strong>${counts.balanced}</strong><span>Balanced</span></div><div><strong>${counts.low}</strong><span>Low</span></div><div><strong>${counts.missing}</strong><span>Missing</span></div><div><strong>${counts.high}</strong><span>High volume</span></div>`;
+}
+
+function rankEstimateText(targetXp, summary) {
+  if (summary.xp >= targetXp) return "Reached";
+  const first = firstWorkoutDate();
+  if (!first || summary.xp <= 0) return "No estimate yet";
+  const observedDays = Math.max(1, daysBetween(first, localDateString()) + 1);
+  const averageDailyXp = summary.xp / observedDays;
+  if (averageDailyXp <= 0) return "No estimate yet";
+  const days = Math.ceil((targetXp - summary.xp) / averageDailyXp);
+  if (days <= 1) return "About 1 day";
+  if (days < 60) return `About ${days} days`;
+  return `About ${Math.ceil(days / 30)} months`;
+}
+
+function renderRankGuide() {
+  const summary = currentPlayerSummary();
+  const content = document.querySelector("#rank-guide-content");
+  content.innerHTML = `
+    <div class="rank-guide-current">
+      <span class="rank-badge rank-${escapeHtml(summary.rank.stageKey)}">${escapeHtml(summary.rank.rank)}</span>
+      <div><strong>${escapeHtml(summary.rank.label)}</strong><small>Level ${summary.level} / ${summary.xp.toLocaleString()} XP</small></div>
+    </div>
+    <div class="rank-guide-list">
+      ${PLAYER_RANKS.map(rank => {
+        const targetXp = xpForLevel(rank.minLevel);
+        const reached = summary.xp >= targetXp;
+        const active = rank.rank === summary.rank.rank;
+        return `<article class="rank-guide-row ${reached ? "reached" : ""} ${active ? "active" : ""}">
+          <span class="rank-badge rank-${escapeHtml(rank.stageKey)}">${escapeHtml(rank.rank)}</span>
+          <div><strong>${escapeHtml(rank.label)}</strong><small>Level ${rank.minLevel} / ${targetXp.toLocaleString()} XP</small><p>${escapeHtml(rank.description)}</p></div>
+          <em>${escapeHtml(rankEstimateText(targetXp, summary))}</em>
+        </article>`;
+      }).join("")}
+    </div>`;
 }
 
 function renderSettings() {
@@ -838,7 +1035,6 @@ function renderSettings() {
     document.querySelector("#setting-history-mode").value = state.settings.historyViewMode;
     document.querySelector("#setting-show-rir").checked = Boolean(state.settings.showRir);
     document.querySelector("#setting-theme").value = state.settings.theme;
-    document.querySelector("#setting-accent").value = state.settings.accent;
     document.querySelector("#setting-motion").value = state.settings.motion;
   }
   const age = Math.max(0, new Date().getFullYear() - Number(state.settings.birthYear || DEFAULT_SETTINGS.birthYear));
@@ -932,7 +1128,6 @@ function submitSettings(event) {
     defaultRestSeconds: DEFAULT_SETTINGS.defaultRestSeconds,
     autoStartRestTimer: false,
     theme: document.querySelector("#setting-theme").value,
-    accent: document.querySelector("#setting-accent").value,
     motion: document.querySelector("#setting-motion").value
   };
   const message = document.querySelector("#settings-message");
@@ -1031,6 +1226,7 @@ function setupServiceWorker() {
 }
 
 function shiftHistoryPeriod(delta) {
+  if (!periodCanShift(delta)) return;
   const date = parseDate(calendarMonth);
   if (state.settings.historyViewMode === "year") date.setFullYear(date.getFullYear() + delta);
   else date.setMonth(date.getMonth() + delta);
@@ -1040,16 +1236,11 @@ function shiftHistoryPeriod(delta) {
 
 function bindEvents() {
   elements.authForm.addEventListener("submit", submitAuth);
-  elements.signOut.addEventListener("click", () => signOut(auth));
+  elements.signOut.addEventListener("click", () => { void handleSignOut(); });
 
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.view)));
   document.querySelectorAll("[data-go-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.goView)));
-  document.querySelectorAll("#top-start-workout,#new-workout").forEach(button => button.addEventListener("click", () => startNewWorkout()));
-  document.querySelector("#repeat-last").addEventListener("click", () => {
-    const last = state.workouts[0];
-    if (last) startNewWorkout(last);
-    else startNewWorkout();
-  });
+  document.querySelector("#top-start-workout").addEventListener("click", () => startNewWorkout());
 
   document.querySelectorAll("[data-open-picker]").forEach(button => button.addEventListener("click", () => openModal("picker")));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));
@@ -1151,6 +1342,12 @@ function bindEvents() {
   });
 
   document.addEventListener("click", event => {
+    const info = event.target.closest("[data-info]");
+    if (info) {
+      toggleInfoPopover(info);
+      return;
+    }
+    if (!event.target.closest(".info-popover")) closeInfoPopovers();
     const open = event.target.closest("[data-open-workout]");
     if (open) openWorkoutDetail(open.dataset.openWorkout);
     const edit = event.target.closest("[data-edit-workout]");
@@ -1174,11 +1371,15 @@ function bindEvents() {
     const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
     document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
   });
-  ["setting-theme", "setting-accent", "setting-motion"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => {
-    applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, accent: document.querySelector("#setting-accent").value, motion: document.querySelector("#setting-motion").value });
+  ["setting-theme", "setting-motion"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => {
+    applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, motion: document.querySelector("#setting-motion").value });
     renderActiveCharts();
   }));
   document.querySelector("#open-custom-exercise").addEventListener("click", () => openModal("custom"));
+  document.querySelector("#open-rank-guide").addEventListener("click", () => {
+    renderRankGuide();
+    openModal("ranks");
+  });
   document.querySelector("#custom-exercise-form").addEventListener("submit", submitCustomExercise);
   document.querySelector("#custom-exercise-list").addEventListener("click", async event => {
     const button = event.target.closest("[data-delete-custom]");

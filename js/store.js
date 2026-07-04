@@ -16,7 +16,6 @@ import {
 
 export const DEFAULT_SETTINGS = Object.freeze({
   theme: "dark",
-  accent: "cyan",
   motion: "on",
   bodyWeightKg: 72,
   heightCm: 171,
@@ -47,6 +46,8 @@ let unsubscribers = [];
 let errorHandler = null;
 
 const USER_COLLECTIONS = ["workouts", "templates", "customExercises"];
+const LOCAL_USER_KEY = "ascend:last-user";
+const LOCAL_DATA_PREFIX = "ascend:user-data:";
 
 function initialMetadata() {
   return {
@@ -58,6 +59,120 @@ function initialMetadata() {
 
 function resetMetadata() {
   state.metadata = initialMetadata();
+}
+
+function canUseLocalStorage() {
+  try {
+    return typeof localStorage !== "undefined";
+  } catch {
+    return false;
+  }
+}
+
+function readJson(key, fallback = null) {
+  if (!canUseLocalStorage()) return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  if (!canUseLocalStorage()) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn("Local cache write failed", error);
+  }
+}
+
+function removeJson(key) {
+  if (!canUseLocalStorage()) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore local cleanup failures.
+  }
+}
+
+function localDataKey(userId) {
+  return `${LOCAL_DATA_PREFIX}${userId}`;
+}
+
+function sortWorkouts(workouts = []) {
+  return [...workouts].sort((a, b) => `${b.date}${b.createdAtMs ?? 0}`.localeCompare(`${a.date}${a.createdAtMs ?? 0}`));
+}
+
+function sortCustomExercises(exercises = []) {
+  return [...exercises].sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")));
+}
+
+function bundleFromState() {
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    workouts: state.workouts.map(stripDocumentMeta),
+    customExercises: state.customExercises.map(stripDocumentMeta),
+    settings: stripDocumentMeta(state.settings)
+  };
+}
+
+function normalizeBundle(bundle = {}) {
+  return {
+    workouts: sortWorkouts((bundle.workouts ?? []).map(stripDocumentMeta)),
+    templates: [],
+    customExercises: sortCustomExercises((bundle.customExercises ?? []).map(stripDocumentMeta)),
+    settings: bundle.settings ? normalizeSettings(bundle.settings) : null
+  };
+}
+
+function cacheUserProfile(user) {
+  if (!user?.uid) return;
+  writeJson(LOCAL_USER_KEY, {
+    uid: user.uid,
+    email: user.email ?? "",
+    displayName: user.displayName ?? "",
+    cachedAt: new Date().toISOString()
+  });
+}
+
+export function getCachedUserProfile(email = "") {
+  const profile = readJson(LOCAL_USER_KEY, null);
+  if (!profile?.uid) return null;
+  if (email && profile.email && profile.email.toLowerCase() !== email.toLowerCase()) return null;
+  return profile;
+}
+
+function readLocalBundle(userId) {
+  return normalizeBundle(readJson(localDataKey(userId), {}));
+}
+
+function writeLocalBundle(userId, bundle) {
+  if (!userId) return;
+  writeJson(localDataKey(userId), normalizeBundle(bundle));
+}
+
+function mirrorStateToLocal() {
+  if (!state.user?.uid) return;
+  writeLocalBundle(state.user.uid, bundleFromState());
+}
+
+function hydrateFromBundle(bundle) {
+  const normalized = normalizeBundle(bundle);
+  state.workouts = normalized.workouts;
+  state.customExercises = normalized.customExercises;
+  if (normalized.settings) state.settings = normalizeSettings(normalized.settings);
+}
+
+function markLocalPending(key = null) {
+  const targets = key ? [key] : Object.keys(state.metadata);
+  for (const target of targets) state.metadata[target] = { fromCache: true, pending: true };
+}
+
+function isOfflineUser(user = state.user) {
+  return Boolean(user?.offlineOnly);
 }
 
 function notify() {
@@ -142,7 +257,6 @@ function settingsPayload(settings = {}) {
   const normalized = normalizeSettings(settings);
   return {
     theme: normalized.theme === "light" ? "light" : "dark",
-    accent: ["cyan", "violet", "ember", "green"].includes(normalized.accent) ? normalized.accent : "cyan",
     motion: normalized.motion === "off" ? "off" : "on",
     bodyWeightKg: Number(normalized.bodyWeightKg),
     heightCm: Number(normalized.heightCm),
@@ -164,13 +278,17 @@ export function connectUserData(user) {
   disconnectUserData();
   state.user = user;
   resetMetadata();
+  cacheUserProfile(user);
+  hydrateFromBundle(readLocalBundle(user.uid));
+  notify();
 
   unsubscribers.push(onSnapshot(
     userCollection(user.uid, "workouts"),
     { includeMetadataChanges: true },
     snapshot => {
-      state.workouts = snapshot.docs.map(cleanDocument).sort((a, b) => `${b.date}${b.createdAtMs}`.localeCompare(`${a.date}${a.createdAtMs}`));
+      state.workouts = sortWorkouts(snapshot.docs.map(cleanDocument));
       setMetadata("workouts", snapshot);
+      mirrorStateToLocal();
       notify();
     },
     reportError
@@ -180,8 +298,9 @@ export function connectUserData(user) {
     userCollection(user.uid, "customExercises"),
     { includeMetadataChanges: true },
     snapshot => {
-      state.customExercises = snapshot.docs.map(cleanDocument).sort((a, b) => a.name.localeCompare(b.name));
+      state.customExercises = sortCustomExercises(snapshot.docs.map(cleanDocument));
       setMetadata("customExercises", snapshot);
+      mirrorStateToLocal();
       notify();
     },
     reportError
@@ -196,6 +315,7 @@ export function connectUserData(user) {
         fromCache: snapshot.metadata.fromCache,
         pending: snapshot.metadata.hasPendingWrites
       };
+      mirrorStateToLocal();
       notify();
     },
     reportError
@@ -216,6 +336,15 @@ export function connectUserData(user) {
     }
   ));
 
+  notify();
+}
+
+export function connectOfflineUserData(profile) {
+  disconnectUserData();
+  if (!profile?.uid) throw new Error("No cached offline user is available.");
+  state.user = { uid: profile.uid, email: profile.email ?? "", displayName: profile.displayName ?? "", offlineOnly: true };
+  resetMetadata();
+  hydrateFromBundle(readLocalBundle(profile.uid));
   notify();
 }
 
@@ -272,8 +401,34 @@ function workoutPayload(workout) {
   };
 }
 
+function localWorkoutDocument(id, workout) {
+  const data = workoutPayload(workout);
+  const createdAtMs = Number(workout.createdAtMs) || Date.now();
+  const { createdAt, updatedAt, ...local } = data;
+  return {
+    ...local,
+    id,
+    createdAtMs: workout.id ? (Number(workout.createdAtMs) || createdAtMs) : createdAtMs,
+    updatedAtMs: data.updatedAtMs
+  };
+}
+
+function saveLocalWorkout(user, workout) {
+  const id = workout.id || crypto.randomUUID();
+  const document = localWorkoutDocument(id, workout);
+  const existing = state.workouts.filter(item => item.id !== id);
+  state.workouts = sortWorkouts([...existing, document]);
+  markLocalPending("workouts");
+  mirrorStateToLocal();
+  notify();
+}
+
 export function saveWorkout(workout) {
   const user = requireUser();
+  if (isOfflineUser(user)) {
+    saveLocalWorkout(user, workout);
+    return Promise.resolve();
+  }
   const id = workout.id || crypto.randomUUID();
   const data = workoutPayload(workout);
   if (!workout.id) {
@@ -285,12 +440,27 @@ export function saveWorkout(workout) {
 
 export function deleteWorkout(id) {
   const user = requireUser();
+  if (isOfflineUser(user)) {
+    state.workouts = state.workouts.filter(workout => workout.id !== id);
+    markLocalPending("workouts");
+    mirrorStateToLocal();
+    notify();
+    return Promise.resolve();
+  }
   return deleteDoc(userDoc(user.uid, "workouts", id));
 }
 
 export function saveCustomExercise(exercise) {
   const user = requireUser();
   const id = exercise.id || `custom-${crypto.randomUUID()}`;
+  if (isOfflineUser(user)) {
+    const document = { ...stripDocumentMeta(exercise), id, source: "custom", updatedAtMs: Date.now() };
+    state.customExercises = sortCustomExercises([...state.customExercises.filter(item => item.id !== id), document]);
+    markLocalPending("customExercises");
+    mirrorStateToLocal();
+    notify();
+    return Promise.resolve();
+  }
   return setDoc(userDoc(user.uid, "customExercises", id), {
     ...exercise,
     id,
@@ -302,11 +472,26 @@ export function saveCustomExercise(exercise) {
 
 export function deleteCustomExercise(id) {
   const user = requireUser();
+  if (isOfflineUser(user)) {
+    state.customExercises = state.customExercises.filter(exercise => exercise.id !== id);
+    markLocalPending("customExercises");
+    mirrorStateToLocal();
+    notify();
+    return Promise.resolve();
+  }
   return deleteDoc(userDoc(user.uid, "customExercises", id));
 }
 
 export function saveSettings(settings) {
   const user = requireUser();
+  if (isOfflineUser(user)) {
+    const { updatedAt, ...localSettings } = settingsPayload(settings);
+    state.settings = normalizeSettings(localSettings);
+    markLocalPending("settings");
+    mirrorStateToLocal();
+    notify();
+    return Promise.resolve();
+  }
   return setDoc(userDoc(user.uid, "settings", "preferences"), settingsPayload(settings), { merge: true });
 }
 
@@ -372,6 +557,19 @@ async function readUserBundle(user, source) {
   return { workouts, templates: [], customExercises, settings };
 }
 
+async function readDeviceBundle(user) {
+  const [cacheBundle, localBundle] = await Promise.all([
+    readUserBundle(user, "cache"),
+    Promise.resolve(readLocalBundle(user.uid))
+  ]);
+  return {
+    workouts: mergeByNewest(localBundle.workouts, cacheBundle.workouts),
+    templates: [],
+    customExercises: mergeByNewest(localBundle.customExercises, cacheBundle.customExercises),
+    settings: mergeSettings(localBundle.settings, cacheBundle.settings)
+  };
+}
+
 function mergeByNewest(localItems = [], cloudItems = []) {
   const merged = new Map();
   for (const item of cloudItems) merged.set(item.id, item);
@@ -403,6 +601,13 @@ function bundleDiffers(local, cloud) {
 }
 
 async function writeUserBundle(user, bundle) {
+  if (isOfflineUser(user)) {
+    hydrateFromBundle(bundle);
+    markLocalPending();
+    mirrorStateToLocal();
+    notify();
+    return;
+  }
   const operations = [];
   for (const workout of bundle.workouts ?? []) {
     const id = workout.id || crypto.randomUUID();
@@ -435,13 +640,14 @@ async function writeUserBundle(user, bundle) {
     }
     await batch.commit();
   }
+  writeLocalBundle(user.uid, bundle);
 }
 
 export async function getSyncSummary() {
   const user = requireUser();
   const [local, cloud] = await Promise.all([
-    readUserBundle(user, "cache"),
-    readUserBundle(user, "server")
+    readDeviceBundle(user),
+    isOfflineUser(user) ? Promise.resolve({ workouts: [], templates: [], customExercises: [], settings: null }) : readUserBundle(user, "server")
   ]);
   return {
     local: bundleCounts(local),
@@ -453,19 +659,21 @@ export async function getSyncSummary() {
 
 export async function resolveSyncChoice(mode) {
   const user = requireUser();
+  if (isOfflineUser(user) && mode !== "device") throw new Error("Reconnect and sign in online before fetching cloud data.");
   if (mode === "cloud") {
     const cloud = await readUserBundle(user, "server");
-    state.workouts = cloud.workouts.sort((a, b) => `${b.date}${b.createdAtMs}`.localeCompare(`${a.date}${a.createdAtMs}`));
-    state.customExercises = cloud.customExercises.sort((a, b) => a.name.localeCompare(b.name));
+    state.workouts = sortWorkouts(cloud.workouts);
+    state.customExercises = sortCustomExercises(cloud.customExercises);
     if (cloud.settings) state.settings = normalizeSettings(cloud.settings);
     state.metadata.workouts = { fromCache: false, pending: false };
     state.metadata.customExercises = { fromCache: false, pending: false };
     state.metadata.settings = { fromCache: false, pending: false };
+    mirrorStateToLocal();
     notify();
     return;
   }
 
-  const local = await readUserBundle(user, "cache");
+  const local = await readDeviceBundle(user);
   const bundle = mode === "device"
     ? local
     : (() => {
@@ -481,6 +689,16 @@ export async function resolveSyncChoice(mode) {
 
 export async function resetAllData() {
   const user = requireUser();
+  if (isOfflineUser(user)) {
+    state.workouts = [];
+    state.templates = [];
+    state.customExercises = [];
+    state.settings = normalizeSettings();
+    resetMetadata();
+    removeJson(localDataKey(user.uid));
+    notify();
+    return;
+  }
   const operations = [{ ref: userDoc(user.uid, "settings", "preferences") }];
   for (const name of USER_COLLECTIONS) {
     const snapshot = await getDocs(userCollection(user.uid, name));
@@ -491,6 +709,7 @@ export async function resetAllData() {
     for (const operation of operations.slice(index, index + 400)) batch.delete(operation.ref);
     await batch.commit();
   }
+  removeJson(localDataKey(user.uid));
 }
 
 export function exportState() {
@@ -507,6 +726,17 @@ export function exportState() {
 export async function importState(backup) {
   const user = requireUser();
   if (!backup || backup.format !== "training-track-backup") throw new Error("This is not an Ascend backup.");
+  if (isOfflineUser(user)) {
+    hydrateFromBundle({
+      workouts: mergeByNewest(backup.workouts ?? [], state.workouts),
+      customExercises: mergeByNewest(backup.customExercises ?? [], state.customExercises),
+      settings: backup.settings ? normalizeSettings({ ...DEFAULT_SETTINGS, ...backup.settings }) : state.settings
+    });
+    markLocalPending();
+    mirrorStateToLocal();
+    notify();
+    return;
+  }
   const operations = [];
   for (const workout of backup.workouts ?? []) {
     const id = workout.id || crypto.randomUUID();
@@ -522,4 +752,5 @@ export async function importState(backup) {
     await batch.commit();
   }
   if (backup.settings) await saveSettings({ ...DEFAULT_SETTINGS, ...backup.settings });
+  mirrorStateToLocal();
 }

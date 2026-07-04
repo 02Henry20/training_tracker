@@ -22,7 +22,7 @@
     <section class="auth-stage" aria-label="Ascend introduction">
       <div class="auth-stage-top">
         <div class="track-mark" aria-hidden="true"><span>A</span><i></i></div>
-        <span class="auth-build">RANKED TRAINING OS</span>
+        <span class="auth-build">OFFLINE READY</span>
       </div>
 
       <div class="auth-stage-copy">
@@ -66,7 +66,7 @@
     <header class="command-header">
       <div class="command-brand">
         <div class="track-mark small" aria-hidden="true"><span>A</span><i></i></div>
-        <div><strong>ASCEND</strong><small>RANKED TRAINING LOG</small></div>
+        <div><strong>ASCEND</strong><small id="brand-stage">RANK E</small></div>
       </div>
 
       <nav class="main-nav desktop-nav" aria-label="Main navigation">
@@ -80,7 +80,6 @@
       <div class="command-actions">
         <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
         <span id="user-chip" class="user-chip"></span>
-        <button id="sign-out" class="command-exit" type="button" aria-label="Sign out" title="Sign out">↗</button>
       </div>
     </header>
 
@@ -97,7 +96,7 @@
               <div class="rank-orbit"><span id="rank-letter">E</span></div>
               <div class="rank-copy"><p class="eyebrow">CURRENT RANK</p><h3 id="rank-name">Starter</h3><p><strong id="system-level">Level 1</strong> · <span id="total-xp">0 XP</span></p><div class="xp-rail"><span id="xp-fill"></span></div><small id="xp-next">Advance by completing training.</small></div>
             </article>
-            <article class="metric-card panel reveal"><span>Training streak</span><strong id="day-streak">0</strong><small>consecutive training days</small></article>
+            <article id="last-training-card" class="metric-card panel reveal recency-empty"><span>Last training</span><strong id="last-training-days">No data</strong><small id="last-training-copy">Log your first session</small></article>
             <article class="metric-card panel reveal"><span>Weekly consistency</span><strong id="week-streak">0</strong><small>active weeks</small></article>
             <article class="metric-card accent panel reveal"><span>Personal records</span><strong id="pr-count">0</strong><small>improvements detected</small></article>
           </div>
@@ -116,14 +115,6 @@
               <button class="secondary-button" data-go-view="muscles" type="button">Open muscle analysis</button>
             </article>
 
-            <article class="quick-start panel reveal">
-              <div class="panel-heading"><div><p class="eyebrow">QUICK START</p><h3>Enter a session</h3></div></div>
-              <div class="quick-grid">
-                <button id="new-workout" type="button"><span>＋</span><strong>New workout</strong><small>Start from an empty session</small></button>
-                <button id="repeat-last" type="button"><span>↻</span><strong>Repeat last</strong><small>Reuse exercises and recent loads</small></button>
-              </div>
-            </article>
-
             <article class="recent-card panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="stats" type="button">Open history →</button></div>
               <div id="recent-workouts" class="session-list"></div>
@@ -139,7 +130,6 @@
         <section class="view" data-view-section="workout">
           <div class="builder-header panel">
             <div><p class="eyebrow">SESSION BUILDER</p><h3 id="builder-heading">New workout</h3><p class="muted">Previous values become each exercise’s editable default.</p></div>
-            <div class="builder-header-actions"><button id="clear-draft" class="ghost-button" type="button">Clear</button></div>
           </div>
           <form id="workout-form" class="workout-form">
             <article class="session-meta panel">
@@ -150,7 +140,7 @@
             <div id="exercise-builder-list" class="exercise-builder-list"></div>
             <button id="add-exercise" class="add-exercise-button" data-open-picker type="button">＋ Add exercise or activity</button>
             <article class="save-workout-bar panel">
-              <div><button id="delete-workout" class="danger-button hidden" type="button">Delete</button><button class="primary-button" type="submit">Save workout</button></div>
+              <div><button id="delete-workout" class="danger-button hidden" type="button">Delete</button><button id="clear-draft" class="ghost-button" type="button">Clear</button><button class="primary-button" type="submit">Save workout</button></div>
               <p id="workout-message" class="form-message"></p>
             </article>
           </form>
@@ -178,27 +168,40 @@
         <section class="view" data-view-section="muscles">
           <div class="muscle-summary panel"><div><p class="eyebrow">MUSCLE COVERAGE</p><h3>What your recent training targets</h3><p class="muted">Primary sets count fully; secondary involvement counts partially. Cardio minutes are converted into a small coverage score.</p></div><label class="field compact-field"><span>Window</span><select id="muscle-window"><option value="7">7 days</option><option value="14">14 days</option><option value="28">28 days</option></select></label></div>
           <div class="muscle-layout">
-            <article class="body-system panel"><div class="body-core"><span class="head"></span><span class="torso"></span><span class="arm left"></span><span class="arm right"></span><span class="leg left"></span><span class="leg right"></span><b>TRAINING<br>MAP</b></div><div id="muscle-status-totals" class="status-totals"></div></article>
+            <article class="body-system panel"><div class="body-core advanced-map" aria-label="Training map">
+              <span class="aura-ring"></span><span class="map-label">TRAINING MAP</span>
+              <span class="zone head" data-zone-muscles="traps"></span><span class="zone neck" data-zone-muscles="traps"></span>
+              <span class="zone shoulder left" data-zone-muscles="frontDelts,sideDelts,rearDelts"></span><span class="zone shoulder right" data-zone-muscles="frontDelts,sideDelts,rearDelts"></span>
+              <span class="zone chest" data-zone-muscles="chest"></span><span class="zone lats left" data-zone-muscles="lats,upperBack"></span><span class="zone lats right" data-zone-muscles="lats,upperBack"></span>
+              <span class="zone core" data-zone-muscles="abs,lowerBack"></span><span class="zone oblique left" data-zone-muscles="obliques"></span><span class="zone oblique right" data-zone-muscles="obliques"></span>
+              <span class="zone arm upper-left" data-zone-muscles="biceps,triceps"></span><span class="zone arm upper-right" data-zone-muscles="biceps,triceps"></span>
+              <span class="zone arm fore-left" data-zone-muscles="forearms"></span><span class="zone arm fore-right" data-zone-muscles="forearms"></span>
+              <span class="zone hips" data-zone-muscles="glutes,hipFlexors"></span>
+              <span class="zone leg thigh-left" data-zone-muscles="quads,hamstrings"></span><span class="zone leg thigh-right" data-zone-muscles="quads,hamstrings"></span>
+              <span class="zone leg calf-left" data-zone-muscles="calves"></span><span class="zone leg calf-right" data-zone-muscles="calves"></span>
+            </div><div id="muscle-status-totals" class="status-totals"></div></article>
             <div id="muscle-grid" class="muscle-grid"></div>
           </div>
         </section>
 
         <section class="view" data-view-section="settings">
           <div class="settings-layout">
-            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">PROFILE &amp; MODEL</p><h3>Training reference</h3></div></div><form id="settings-form" class="stack-form">
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">PROFILE &amp; MODEL</p><h3>Training reference <button class="info-button" type="button" data-info="These values calibrate calories, strength standards and weekly targets. The visual aura comes from your current player rank.">i</button></h3></div></div><form id="settings-form" class="stack-form">
               <div class="two-col"><label class="field"><span>Current body weight (kg)</span><input id="setting-weight" type="number" min="20" max="400" step="0.1"></label><label class="field"><span>Height (cm)</span><input id="setting-height" type="number" min="120" max="230" step="0.1"></label></div>
               <div class="two-col"><label class="field"><span>Birth year</span><input id="setting-birth-year" type="number" min="1900" max="2100"><small id="setting-age-preview" class="field-hint">Calculated age: —</small></label><label class="field"><span>Strength reference</span><select id="setting-sex"><option value="male">Male reference</option><option value="female">Female reference</option><option value="neutral">Neutral reference</option></select></label></div>
               <div class="two-col"><label class="field"><span>Weekly session target</span><input id="setting-session-target" type="number" min="1" max="14"></label><label class="field"><span>Weekly target sets / muscle</span><input id="setting-muscle-target" type="number" min="1" max="40"></label></div>
               <div class="two-col"><label class="field"><span>Default statistics window</span><input id="setting-stats-window" type="number" min="7" max="730"></label><label class="field"><span>History view</span><select id="setting-history-mode"><option value="month">Per month</option><option value="year">Per year</option></select></label></div>
               <label class="toggle-row"><input id="setting-show-rir" type="checkbox"><span><strong>Show RIR fields</strong><small>Add repetitions-in-reserve inputs to workout sets.</small></span></label>
-              <div class="two-col"><label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label><label class="field"><span>Stage color</span><select id="setting-accent"><option value="cyan">Mana blue</option><option value="violet">Shadow violet</option><option value="ember">Gate amber</option><option value="green">Recovery green</option></select></label></div>
+              <label class="field"><span>Appearance</span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select><small class="field-hint">Aura color is bound to your current player rank.</small></label>
               <label class="field"><span>Motion</span><select id="setting-motion"><option value="on">Animations on</option><option value="off">Reduced motion</option></select></label>
               <button class="primary-button" type="submit">Save settings</button><p id="settings-message" class="form-message"></p>
             </form></article>
 
-            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">EXERCISE LIBRARY</p><h3>Catalog and custom movements</h3></div><span id="catalog-status" class="tag">Bundled</span></div><p class="muted">The bundled catalog is defined in <code>js/exercises.js</code>. Authenticated updates can also be read from Firestore, while personal movements remain private.</p><button id="open-custom-exercise" class="secondary-button full-width" type="button">＋ Create custom exercise</button><div id="custom-exercise-list" class="compact-list"></div></article>
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">RANK LADDER</p><h3>Stages and XP <button class="info-button" type="button" data-info="Ranks are based on total XP from saved workouts. The estimate uses your current average XP pace.">i</button></h3></div></div><button id="open-rank-guide" class="secondary-button full-width" type="button">Open rank guide</button></article>
 
-            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">DATA</p><h3>Account and backup</h3></div></div><div class="info-list"><div><span>Signed in as</span><strong id="settings-email">—</strong></div><div><span>Workouts</span><strong id="settings-workouts">0</strong></div><div><span>Offline cache</span><strong>Enabled</strong></div><div><span>Cloud database</span><strong>Firestore</strong></div><div><span>App version</span><strong id="app-version">—</strong></div></div><button id="open-sync-choice" class="secondary-button full-width" type="button">Resolve device sync</button><button id="export-data" class="secondary-button full-width" type="button">Export JSON backup</button><label class="secondary-button full-width file-button">Import JSON backup<input id="import-data" type="file" accept="application/json" hidden></label><div class="danger-zone"><div><strong>Total reset</strong><span>Type RESET to delete workouts, custom exercises, legacy saved structures and settings from this account.</span></div><label class="field"><span>Confirmation</span><input id="reset-confirm" type="text" autocomplete="off" placeholder="RESET"></label><button id="reset-all-data" class="danger-button full-width" type="button" disabled>Reset all data</button></div><p class="disclaimer">Strength levels and calorie estimates are training references. Equipment calibration, technique, terrain and individual efficiency can shift the result.</p></article>
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">EXERCISE LIBRARY</p><h3>Catalog and custom movements <button class="info-button" type="button" data-info="Bundled exercises are available offline. Custom movements are private to your account and mirrored on this device.">i</button></h3></div><span id="catalog-status" class="tag">Bundled</span></div><p class="muted">The bundled catalog is defined in <code>js/exercises.js</code>. Authenticated updates can also be read from Firestore, while personal movements remain private.</p><button id="open-custom-exercise" class="secondary-button full-width" type="button">＋ Create custom exercise</button><div id="custom-exercise-list" class="compact-list"></div></article>
+
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">DATA</p><h3>Account and backup <button class="info-button" type="button" data-info="Resolve sync compares this device with Firestore. Export and import are manual backups for extra safety.">i</button></h3></div></div><div class="info-list"><div><span>Signed in as</span><strong id="settings-email">—</strong></div><div><span>Workouts</span><strong id="settings-workouts">0</strong></div><div><span>Offline cache</span><strong>Enabled</strong></div><div><span>Cloud database</span><strong>Firestore</strong></div><div><span>App version</span><strong id="app-version">—</strong></div></div><div class="data-action-stack"><button id="open-sync-choice" class="secondary-button full-width" type="button">Resolve device sync</button><button id="export-data" class="secondary-button full-width" type="button">Export JSON backup</button><label class="secondary-button full-width file-button">Import JSON backup<input id="import-data" type="file" accept="application/json" hidden></label></div><div class="danger-zone"><div><strong>Total reset</strong><span>Type RESET to delete workouts, custom exercises, legacy saved structures and settings from this account.</span></div><label class="field"><span>Confirmation</span><input id="reset-confirm" type="text" autocomplete="off" placeholder="RESET"></label><button id="reset-all-data" class="danger-button full-width" type="button" disabled>Reset all data</button></div><button id="sign-out" class="ghost-button full-width settings-sign-out" type="button">Log out</button><p class="disclaimer">Strength levels and calorie estimates are training references. Equipment calibration, technique, terrain and individual efficiency can shift the result.</p></article>
           </div>
         </section>
       </div>
@@ -214,6 +217,7 @@
     <section class="modal-card" data-modal="detail" hidden><div class="modal-heading"><div><p class="eyebrow">SESSION DETAIL</p><h3 id="detail-title">Workout</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div id="detail-content"></div></section>
     <section class="modal-card" data-modal="custom" hidden><div class="modal-heading"><div><p class="eyebrow">CUSTOM MOVEMENT</p><h3>Create exercise</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><form id="custom-exercise-form" class="stack-form"><label class="field"><span>Name</span><input id="custom-name" required maxlength="80"></label><div class="two-col"><label class="field"><span>Equipment</span><input id="custom-equipment" placeholder="Dumbbells, machine…"></label><label class="field"><span>Type</span><select id="custom-type"><option value="strength">Strength</option><option value="activity">Activity</option></select></label></div><div class="two-col"><label class="field"><span>Primary muscle</span><select id="custom-primary"></select></label><label class="field"><span>Secondary muscle</span><select id="custom-secondary"><option value="">None</option></select></label></div><div class="two-col"><label class="field"><span>Default sets</span><input id="custom-sets" type="number" min="1" max="20" value="3"></label><label class="field"><span>Default reps</span><input id="custom-reps" type="number" min="1" max="100" value="10"></label></div><label class="field"><span>Active MET estimate</span><input id="custom-met" type="number" min="1" max="20" step="0.1" value="3.5"></label><button class="primary-button" type="submit">Save custom exercise</button><p id="custom-message" class="form-message"></p></form></section>
     <section class="modal-card sync-modal" data-modal="sync" hidden><div class="modal-heading"><div><p class="eyebrow">SYNC CHOICE</p><h3>Device data check</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div class="sync-grid"><div><span>This device</span><strong id="sync-local-summary">—</strong></div><div><span>Cloud</span><strong id="sync-cloud-summary">—</strong></div></div><div class="sync-actions"><button class="primary-button" data-sync-choice="merge" type="button">Merge safely</button><button class="secondary-button" data-sync-choice="cloud" type="button">Fetch cloud</button><button class="ghost-button" data-sync-choice="device" type="button">Push this device</button></div><p class="disclaimer">Merge keeps cloud-only records and chooses newer matching records. Fetch cloud refreshes this device from Firestore. Push this device uploads local records without deleting cloud-only workouts.</p></section>
+    <section class="modal-card rank-guide-modal" data-modal="ranks" hidden><div class="modal-heading"><div><p class="eyebrow">RANK GUIDE</p><h3>Player stages</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div id="rank-guide-content" class="rank-guide-content"></div></section>
     <section class="modal-card confirm-modal" data-modal="confirm" hidden><div class="confirm-mark">!</div><h3 id="confirm-title">Confirm</h3><p id="confirm-copy" class="muted"></p><div class="two-col"><button id="confirm-cancel" class="ghost-button" type="button">Cancel</button><button id="confirm-accept" class="danger-button" type="button">Delete</button></div></section>
   </div>
 
