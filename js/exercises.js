@@ -277,3 +277,66 @@ export function searchableExerciseText(exercise) {
     .join(" ")
     .toLowerCase();
 }
+
+function normalizeSearchText(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function editDistance(a, b, limit = 3) {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    let rowMin = current[0];
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const value = Math.min(
+        previous[j] + 1,
+        current[j - 1] + 1,
+        previous[j - 1] + cost
+      );
+      current[j] = value;
+      rowMin = Math.min(rowMin, value);
+    }
+    if (rowMin > limit) return limit + 1;
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+function tokenScore(queryToken, targetToken) {
+  if (!queryToken || !targetToken) return 0;
+  if (targetToken === queryToken) return 120;
+  if (targetToken.startsWith(queryToken)) return 104 - Math.min(28, targetToken.length - queryToken.length);
+  if (targetToken.includes(queryToken)) return 88 - Math.min(24, targetToken.length - queryToken.length);
+  if (queryToken.length < 3) return 0;
+  const limit = queryToken.length <= 4 ? 1 : queryToken.length <= 7 ? 2 : 3;
+  const distance = editDistance(queryToken, targetToken, limit);
+  if (distance <= limit) return 86 - distance * 16;
+  return 0;
+}
+
+export function exerciseSearchScore(exercise, query) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 0;
+  const text = normalizeSearchText(searchableExerciseText(exercise));
+  if (!text) return 0;
+  if (text.includes(normalizedQuery)) return 1000 + Math.min(120, normalizedQuery.length * 4);
+
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+  const targetTokens = text.split(" ").filter(Boolean);
+  if (!queryTokens.length || !targetTokens.length) return 0;
+
+  const score = queryTokens.reduce((sum, token) => {
+    const best = Math.max(0, ...targetTokens.map(target => tokenScore(token, target)));
+    return sum + best;
+  }, 0) / queryTokens.length;
+
+  const allMatched = queryTokens.every(token => targetTokens.some(target => tokenScore(token, target) >= 50));
+  return allMatched && score >= 42 ? score : 0;
+}

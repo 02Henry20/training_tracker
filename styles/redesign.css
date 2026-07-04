@@ -2312,3 +2312,169 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
 .calendar-legend i.rank-tier-2 { background: linear-gradient(135deg, rgba(255,228,92,.8), rgba(71,240,181,.5)); }
 .calendar-legend i.rank-tier-3 { background: linear-gradient(135deg, rgba(181,119,255,.85), rgba(255,95,191,.55)); }
 .calendar-legend i.rank-tier-4 { background: linear-gradient(135deg, rgba(255,211,90,.92), rgba(255,78,199,.62)); }
+
+/* 0.2.9 interaction and performance refinements */
+.records-card { grid-column: span 8; }
+.focus-card { grid-column: span 5; }
+.recent-card { grid-column: span 7; }
+
+.track-mark span {
+  position: relative;
+  z-index: 1;
+  font-size: .95em;
+  letter-spacing: .04em;
+}
+.track-mark.small span { font-size: .86em; }
+
+.sync-pill {
+  min-width: 88px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  justify-items: start;
+}
+.sync-pill i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(242,196,95,.12), 0 0 12px rgba(242,196,95,.34);
+}
+.sync-pill.synced i {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(69,230,163,.12), 0 0 12px rgba(69,230,163,.35);
+}
+.sync-pill.syncing i,
+.sync-pill.checking i {
+  background: var(--yellow);
+}
+.sync-pill > div { justify-items: start; }
+
+.rank-copy .xp-rail { contain: paint; }
+.xp-rail span {
+  min-width: 0;
+  will-change: width;
+}
+.xp-rail span::before {
+  display: none !important;
+}
+.xp-rail span::after {
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .16), 0 0 10px rgba(var(--accent-rgb), .46);
+  filter: none;
+  transform: translate3d(0, -50%, 0) scale(.9);
+  animation: xp-dot-pulse 1.25s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+.xp-rail span[data-progress="empty"]::after {
+  opacity: .55;
+}
+@keyframes xp-dot-pulse {
+  from { opacity: .68; transform: translate3d(0, -50%, 0) scale(.82); }
+  to { opacity: 1; transform: translate3d(0, -50%, 0) scale(1.12); }
+}
+
+.content-scroll .panel::after {
+  animation: none !important;
+  filter: none !important;
+  opacity: .1;
+  transform: none;
+}
+.builder-header::after,
+.save-workout-bar::after {
+  animation: none !important;
+  filter: none !important;
+  opacity: .22;
+}
+.weekly-target .donut-wrap::before {
+  display: block !important;
+  filter: none;
+  opacity: .58;
+  will-change: transform;
+}
+
+.exercise-block.collapsed .exercise-block-head {
+  border-bottom-color: transparent;
+}
+.exercise-footer.collapsed {
+  padding-top: 0;
+}
+.exercise-actions .fold-exercise {
+  color: var(--accent);
+}
+
+.muscle-card.selected {
+  border-color: rgba(var(--accent-rgb), .52);
+  background: rgba(var(--accent-rgb), .065);
+}
+.muscle-card-exercises {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.muscle-card-exercises button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 54px;
+  padding: 8px;
+  border: 1px solid rgba(var(--accent-rgb), .2);
+  border-radius: 6px;
+  color: inherit;
+  background: rgba(var(--accent-rgb), .045);
+  text-align: left;
+  cursor: pointer;
+}
+.muscle-card-exercises button:hover {
+  border-color: rgba(var(--accent-rgb), .42);
+  background: rgba(var(--accent-rgb), .09);
+}
+.muscle-card-exercises button > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), .08);
+  font-size: 1.1rem;
+}
+.muscle-card-exercises strong,
+.muscle-card-exercises small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muscle-card-exercises small {
+  margin-top: 2px;
+  font-size: .66rem;
+}
+
+.calorie-score,
+.session-xp-breakdown .calorie-score {
+  color: var(--yellow);
+}
+
+@media (max-width: 1240px) {
+  .records-card { grid-column: span 7; }
+  .focus-card,
+  .recent-card { grid-column: span 6; }
+}
+
+@media (max-width: 760px) {
+  .records-card,
+  .focus-card,
+  .recent-card { grid-column: 1 / -1; }
+  .sync-pill {
+    min-width: 78px;
+    padding-inline: 10px;
+  }
+}

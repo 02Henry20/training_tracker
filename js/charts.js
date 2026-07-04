@@ -188,18 +188,33 @@ export function drawDonut(canvas, value, target, label) {
   const ratio = Math.min(1, safeValue / safeTarget);
   const motionEnabled = document.documentElement.dataset.motion !== "off";
 
-  if (!canvas.__donutAnimation) canvas.__donutAnimation = { frame: null };
+  if (!canvas.__donutAnimation) canvas.__donutAnimation = { frame: null, cssSize: 0, dpr: 0, lastFrame: 0 };
   if (canvas.__donutAnimation.frame) cancelAnimationFrame(canvas.__donutAnimation.frame);
 
   const drawFrame = timestamp => {
+    const animation = canvas.__donutAnimation;
+    if (!canvas.getClientRects().length) {
+      animation.frame = null;
+      return;
+    }
+    if (motionEnabled && timestamp - animation.lastFrame < 33) {
+      animation.frame = requestAnimationFrame(drawFrame);
+      return;
+    }
+    animation.lastFrame = timestamp;
     refreshColors();
     const rect = canvas.getBoundingClientRect();
     const cssSize = Math.max(128, Math.min(rect.width || 188, rect.height || 188));
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    canvas.width = Math.round(cssSize * dpr);
-    canvas.height = Math.round(cssSize * dpr);
-    canvas.style.width = `${cssSize}px`;
-    canvas.style.height = `${cssSize}px`;
+    const pixelSize = Math.round(cssSize * dpr);
+    if (animation.cssSize !== cssSize || animation.dpr !== dpr || canvas.width !== pixelSize || canvas.height !== pixelSize) {
+      canvas.width = pixelSize;
+      canvas.height = pixelSize;
+      canvas.style.width = `${cssSize}px`;
+      canvas.style.height = `${cssSize}px`;
+      animation.cssSize = cssSize;
+      animation.dpr = dpr;
+    }
 
     const context = canvas.getContext("2d");
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -302,8 +317,10 @@ export function drawDonut(canvas, value, target, label) {
     context.fillText(label, center, center + cssSize * 0.18);
     context.textAlign = "left";
 
-    if (motionEnabled && document.body.contains(canvas)) {
-      canvas.__donutAnimation.frame = requestAnimationFrame(drawFrame);
+    if (motionEnabled && document.body.contains(canvas) && canvas.getClientRects().length) {
+      animation.frame = requestAnimationFrame(drawFrame);
+    } else {
+      animation.frame = null;
     }
   };
 

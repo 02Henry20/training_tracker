@@ -21,7 +21,7 @@
   <main id="auth-shell" class="auth-shell">
     <section class="auth-stage" aria-label="Ascend introduction">
       <div class="auth-stage-top">
-        <div class="track-mark" aria-hidden="true"><span>A</span><i></i></div>
+        <div class="track-mark" aria-hidden="true"><span>AR</span><i></i></div>
         <span class="auth-build">OFFLINE READY</span>
       </div>
 
@@ -65,7 +65,7 @@
   <div id="app-shell" class="app-shell" hidden>
     <header class="command-header">
       <div class="command-brand">
-        <div class="track-mark small" aria-hidden="true"><span>A</span><i></i></div>
+        <div class="track-mark small" aria-hidden="true"><span>AR</span><i></i></div>
         <div><strong>ASCEND</strong><small id="brand-stage">RANK E</small></div>
       </div>
 
@@ -106,6 +106,11 @@
               <div class="donut-wrap session-target-donut"><canvas id="weekly-target-chart"></canvas></div>
             </article>
 
+            <article class="records-card panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" type="button">All ranks →</button></div>
+              <div id="recent-records" class="record-list"></div>
+            </article>
+
             <article class="focus-card panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">SYSTEM GUIDANCE</p><h3 id="focus-title">Build your baseline</h3></div><span class="system-glyph">◆</span></div>
               <p id="focus-copy">Complete your first workout to reveal recent muscle coverage.</p>
@@ -116,11 +121,6 @@
             <article class="recent-card panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="stats" type="button">Open history →</button></div>
               <div id="recent-workouts" class="session-list"></div>
-            </article>
-
-            <article class="records-card panel reveal">
-              <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" type="button">All ranks →</button></div>
-              <div id="recent-records" class="record-list"></div>
             </article>
           </div>
         </section>

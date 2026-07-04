@@ -4,25 +4,26 @@ const DAY_MS = 86_400_000;
 
 export const PLAYER_RANKS = Object.freeze([
   { rank: "E", stageKey: "E", label: "Awakened", minLevel: 1, description: "The gate has opened. The focus is showing up, learning the movements and building the first streak of evidence." },
-  { rank: "E+", stageKey: "E-plus", label: "Spark", minLevel: 4, description: "The first upgrade pulse. Training is no longer random; the system starts recognizing repeatable effort." },
-  { rank: "D", stageKey: "D", label: "Hunter", minLevel: 7, description: "Baseline strength and conditioning are forming. Sessions begin to feel like quests instead of isolated workouts." },
-  { rank: "D+", stageKey: "D-plus", label: "Breaker", minLevel: 10, description: "Capacity rises. The body can take more volume, recover cleaner and return with intent." },
-  { rank: "C", stageKey: "C", label: "Raider", minLevel: 13, description: "The middle ranks. Weak links become visible, progress becomes measurable and the map starts lighting up." },
-  { rank: "C+", stageKey: "C-plus", label: "Vanguard", minLevel: 16, description: "Momentum is now a weapon. You are stacking sessions with enough consistency to change the trend line." },
-  { rank: "B", stageKey: "B", label: "Executor", minLevel: 19, description: "A serious training identity. Volume, intensity and standards are high enough that recovery becomes strategy." },
-  { rank: "B+", stageKey: "B-plus", label: "Gatebreaker", minLevel: 22, description: "The ceiling moves. Your best sets are no longer accidents; they are summoned by preparation." },
-  { rank: "A", stageKey: "A", label: "Elite", minLevel: 25, description: "High-rank output. Progress slows, but every improvement carries more weight." },
-  { rank: "A+", stageKey: "A-plus", label: "Apex", minLevel: 28, description: "A refined stage where balance, precision and patience matter as much as force." },
-  { rank: "S", stageKey: "S", label: "Sovereign", minLevel: 31, description: "Rare territory. The system expects excellence across repeated cycles, not a single peak." },
-  { rank: "S+", stageKey: "S-plus", label: "Mythic", minLevel: 36, description: "Beyond ordinary classification. Training has become a long campaign with visible power curves." },
-  { rank: "World", stageKey: "World", icon: "✦", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
-  { rank: "Monarch", stageKey: "Monarch", icon: "♕", label: "Shadow Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
+  { rank: "E+", stageKey: "E-plus", label: "Spark", minLevel: 5, description: "The first upgrade pulse. Training is no longer random; the system starts recognizing repeatable effort." },
+  { rank: "D", stageKey: "D", label: "Hunter", minLevel: 9, description: "Baseline strength and conditioning are forming. Sessions begin to feel like quests instead of isolated workouts." },
+  { rank: "D+", stageKey: "D-plus", label: "Breaker", minLevel: 13, description: "Capacity rises. The body can take more volume, recover cleaner and return with intent." },
+  { rank: "C", stageKey: "C", label: "Raider", minLevel: 17, description: "The middle ranks. Weak links become visible, progress becomes measurable and the map starts lighting up." },
+  { rank: "C+", stageKey: "C-plus", label: "Vanguard", minLevel: 21, description: "Momentum is now a weapon. You are stacking sessions with enough consistency to change the trend line." },
+  { rank: "B", stageKey: "B", label: "Executor", minLevel: 25, description: "A serious training identity. Volume, intensity and standards are high enough that recovery becomes strategy." },
+  { rank: "B+", stageKey: "B-plus", label: "Gatebreaker", minLevel: 29, description: "The ceiling moves. Your best sets are no longer accidents; they are summoned by preparation." },
+  { rank: "A", stageKey: "A", label: "Elite", minLevel: 33, description: "High-rank output. Progress slows, but every improvement carries more weight." },
+  { rank: "A+", stageKey: "A-plus", label: "Apex", minLevel: 37, description: "A refined stage where balance, precision and patience matter as much as force." },
+  { rank: "S", stageKey: "S", label: "Sovereign", minLevel: 41, description: "Rare territory. The system expects excellence across repeated cycles, not a single peak." },
+  { rank: "S+", stageKey: "S-plus", label: "Mythic", minLevel: 45, description: "Beyond ordinary classification. Training has become a long campaign with visible power curves." },
+  { rank: "World", stageKey: "World", icon: "✦", label: "World", minLevel: 49, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
+  { rank: "Monarch", stageKey: "Monarch", icon: "♕", label: "Shadow Monarch", minLevel: 53, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
 ]);
 
-const XP_CURVE = 42;
+const XP_PER_LEVEL = 500;
+const HISTORY_TIER_XP = [180, 420, 720, 1050];
 
 export function xpForLevel(level) {
-  return Math.max(0, Math.round((Math.max(1, Number(level) || 1) - 1) ** 2 * XP_CURVE));
+  return Math.max(0, Math.round((Math.max(1, Number(level) || 1) - 1) * XP_PER_LEVEL));
 }
 
 export function localDateString(date = new Date()) {
@@ -507,7 +508,7 @@ export function xpSummary(workouts, catalog, settings) {
     xp += 80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + prCount * 35 + Math.min(120, workout.sets * 3);
   }
   xp = Math.round(xp);
-  const level = Math.max(1, Math.floor(Math.sqrt(xp / XP_CURVE)) + 1);
+  const level = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
   const currentFloor = xpForLevel(level);
   const nextFloor = xpForLevel(level + 1);
   const progress = clamp((xp - currentFloor) / Math.max(1, nextFloor - currentFloor), 0, 1);
@@ -552,6 +553,15 @@ export function statistics(workouts, catalog, settings, days = 28) {
   };
 }
 
+function historyTierFromXp(xp) {
+  const load = Math.max(0, Number(xp) || 0);
+  if (load <= 0) return 0;
+  if (load >= HISTORY_TIER_XP[3]) return 4;
+  if (load >= HISTORY_TIER_XP[2]) return 3;
+  if (load >= HISTORY_TIER_XP[1]) return 2;
+  return 1;
+}
+
 export function calendarIntensity(workouts, catalog, settings, monthDate) {
   const start = startOfMonth(monthDate);
   const date = parseDate(start);
@@ -567,10 +577,9 @@ export function calendarIntensity(workouts, catalog, settings, monthDate) {
     current.workouts.push(workout);
     byDate.set(workout.date, current);
   }
-  const maxXp = Math.max(1, ...[...byDate.values()].map(day => day.xp));
   for (const day of byDate.values()) {
-    day.intensity = clamp(day.xp / maxXp, 0, 1);
-    day.tier = day.xp < 140 ? 1 : day.xp < 240 ? 2 : day.xp < 380 ? 3 : 4;
+    day.intensity = clamp(day.xp / HISTORY_TIER_XP[3], 0, 1);
+    day.tier = historyTierFromXp(day.xp);
   }
   return byDate;
 }

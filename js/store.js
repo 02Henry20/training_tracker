@@ -437,6 +437,7 @@ export function saveWorkout(workout) {
     return Promise.resolve();
   }
   const id = workout.id || crypto.randomUUID();
+  saveLocalWorkout(user, { ...workout, id });
   const data = workoutPayload(workout);
   if (!workout.id) {
     data.createdAt = serverTimestamp();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { BUNDLED_EXERCISES, MUSCLE_GROUPS } from "../js/exercises.js";
-import { analyseWorkout, muscleBalance, statistics, xpSummary } from "../js/calculations.js";
+import { BUNDLED_EXERCISES, MUSCLE_GROUPS, exerciseSearchScore } from "../js/exercises.js";
+import { PLAYER_RANKS, analyseWorkout, muscleBalance, statistics, xpForLevel, xpSummary } from "../js/calculations.js";
 
 const ids = new Set();
 for (const exercise of BUNDLED_EXERCISES) {
@@ -51,5 +51,8 @@ assert.equal(analysis.exerciseResults.length, 2);
 assert.equal(statistics([workout], BUNDLED_EXERCISES, settings, 28).sessions, 1);
 assert.ok(muscleBalance([workout], BUNDLED_EXERCISES, settings, 7).some(item => item.score > 0));
 assert.ok(xpSummary([workout], BUNDLED_EXERCISES, settings).xp > 0);
+assert.equal(xpForLevel(4) - xpForLevel(3), xpForLevel(3) - xpForLevel(2));
+assert.ok(PLAYER_RANKS.every((rank, index) => index === 0 || rank.minLevel - PLAYER_RANKS[index - 1].minLevel === 4));
+assert.ok(exerciseSearchScore(BUNDLED_EXERCISES.find(exercise => exercise.id === "barbell-squat"), "sqaut") > 0);
 
 console.log(`Smoke test passed: ${BUNDLED_EXERCISES.length} bundled exercises.`);
