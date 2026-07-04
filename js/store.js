@@ -38,12 +38,7 @@ export const state = {
   customExercises: [],
   remoteExercises: [],
   settings: { ...DEFAULT_SETTINGS },
-  metadata: {
-    workouts: { fromCache: true, pending: false },
-    templates: { fromCache: true, pending: false },
-    customExercises: { fromCache: true, pending: false },
-    settings: { fromCache: true, pending: false }
-  },
+  metadata: initialMetadata(),
   catalogAvailable: true
 };
 
@@ -52,6 +47,18 @@ let unsubscribers = [];
 let errorHandler = null;
 
 const USER_COLLECTIONS = ["workouts", "templates", "customExercises"];
+
+function initialMetadata() {
+  return {
+    workouts: { fromCache: true, pending: false },
+    customExercises: { fromCache: true, pending: false },
+    settings: { fromCache: true, pending: false }
+  };
+}
+
+function resetMetadata() {
+  state.metadata = initialMetadata();
+}
 
 function notify() {
   for (const listener of listeners) listener(state);
@@ -156,6 +163,7 @@ function settingsPayload(settings = {}) {
 export function connectUserData(user) {
   disconnectUserData();
   state.user = user;
+  resetMetadata();
 
   unsubscribers.push(onSnapshot(
     userCollection(user.uid, "workouts"),
@@ -163,17 +171,6 @@ export function connectUserData(user) {
     snapshot => {
       state.workouts = snapshot.docs.map(cleanDocument).sort((a, b) => `${b.date}${b.createdAtMs}`.localeCompare(`${a.date}${a.createdAtMs}`));
       setMetadata("workouts", snapshot);
-      notify();
-    },
-    reportError
-  ));
-
-  unsubscribers.push(onSnapshot(
-    userCollection(user.uid, "templates"),
-    { includeMetadataChanges: true },
-    snapshot => {
-      state.templates = snapshot.docs.map(cleanDocument).sort((a, b) => a.name.localeCompare(b.name));
-      setMetadata("templates", snapshot);
       notify();
     },
     reportError
@@ -231,6 +228,7 @@ export function disconnectUserData() {
   state.customExercises = [];
   state.remoteExercises = [];
   state.settings = normalizeSettings();
+  resetMetadata();
   notify();
 }
 
@@ -317,8 +315,8 @@ export function hasPendingWrites() {
 }
 
 export function isUsingCacheOnly() {
-  return [state.metadata.workouts, state.metadata.templates, state.metadata.customExercises]
-    .every(metadata => metadata.fromCache);
+  return [state.metadata.workouts, state.metadata.customExercises, state.metadata.settings]
+    .every(metadata => metadata?.fromCache);
 }
 
 function metadataScore(item) {
@@ -366,13 +364,12 @@ async function readSettings(user, source) {
 }
 
 async function readUserBundle(user, source) {
-  const [workouts, templates, customExercises, settings] = await Promise.all([
+  const [workouts, customExercises, settings] = await Promise.all([
     readCollection(user, "workouts", source),
-    readCollection(user, "templates", source),
     readCollection(user, "customExercises", source),
     readSettings(user, source)
   ]);
-  return { workouts, templates, customExercises, settings };
+  return { workouts, templates: [], customExercises, settings };
 }
 
 function mergeByNewest(localItems = [], cloudItems = []) {
@@ -395,7 +392,6 @@ function bundleCounts(bundle) {
   return {
     workouts: bundle.workouts.length,
     customExercises: bundle.customExercises.length,
-    templates: bundle.templates.length,
     settings: bundle.settings ? 1 : 0
   };
 }
@@ -458,11 +454,13 @@ export async function getSyncSummary() {
 export async function resolveSyncChoice(mode) {
   const user = requireUser();
   if (mode === "cloud") {
-    await Promise.all([
-      readCollection(user, "workouts", "server"),
-      readCollection(user, "customExercises", "server"),
-      readSettings(user, "server")
-    ]);
+    const cloud = await readUserBundle(user, "server");
+    state.workouts = cloud.workouts.sort((a, b) => `${b.date}${b.createdAtMs}`.localeCompare(`${a.date}${a.createdAtMs}`));
+    state.customExercises = cloud.customExercises.sort((a, b) => a.name.localeCompare(b.name));
+    if (cloud.settings) state.settings = normalizeSettings(cloud.settings);
+    state.metadata.workouts = { fromCache: false, pending: false };
+    state.metadata.customExercises = { fromCache: false, pending: false };
+    state.metadata.settings = { fromCache: false, pending: false };
     notify();
     return;
   }

@@ -55,7 +55,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.1";
+const APP_VERSION = "0.2.2";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -218,8 +218,15 @@ async function initializeAuthentication() {
 
 async function submitAuth(event) {
   event.preventDefault();
+  const submitLabel = elements.authSubmit.querySelector("span");
+  const originalSubmitText = submitLabel?.textContent ?? "Enter Ascend";
+  let slowNotice = null;
   for (const control of elements.authForm.querySelectorAll("button,input")) control.disabled = true;
   setMessage(elements.authMessage, "");
+  if (submitLabel) submitLabel.textContent = "Entering...";
+  slowNotice = window.setTimeout(() => {
+    setMessage(elements.authMessage, "Still contacting Firebase. Check your connection if this does not finish soon.", true);
+  }, 8000);
   try {
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
@@ -227,6 +234,8 @@ async function submitAuth(event) {
   } catch (error) {
     setMessage(elements.authMessage, firebaseErrorMessage(error), true);
   } finally {
+    window.clearTimeout(slowNotice);
+    if (submitLabel) submitLabel.textContent = originalSubmitText;
     for (const control of elements.authForm.querySelectorAll("button,input")) control.disabled = false;
   }
 }

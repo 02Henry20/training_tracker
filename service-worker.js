@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.2.1";
+const CACHE_NAME = "ascend-v0.2.2";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -22,7 +22,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => Promise.all(APP_SHELL.map(path => cache.add(path).catch(() => null))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", event => {
@@ -38,11 +42,11 @@ self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
   const isFirebaseModule = url.hostname === "www.gstatic.com" && url.pathname.includes("/firebasejs/");
   if (isFirebaseModule) {
-    event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+    event.respondWith(fetch(event.request).then(response => {
       const copy = response.clone();
       caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
       return response;
-    })));
+    }).catch(() => caches.match(event.request)));
     return;
   }
   if (url.origin !== self.location.origin) return;
@@ -51,11 +55,11 @@ self.addEventListener("fetch", event => {
     return;
   }
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+    fetch(event.request).then(response => {
       const copy = response.clone();
       caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
       return response;
-    }))
+    }).catch(() => caches.match(event.request))
   );
 });
 
