@@ -2478,3 +2478,198 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     padding-inline: 10px;
   }
 }
+
+/* 0.3.0 requested UI refinements */
+.header-plus-button {
+  width: 54px;
+  height: 54px;
+  border-color: rgba(var(--accent-rgb), .38);
+  border-radius: 10px;
+  color: #06111b;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 86%, white 14%), var(--accent-2));
+  box-shadow: 0 12px 26px rgba(var(--accent-rgb), .18);
+  text-shadow: none;
+}
+.header-plus-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(var(--accent-rgb), .24);
+}
+
+.focus-card {
+  align-self: start;
+  min-height: auto;
+}
+.focus-card > p {
+  flex: 0 1 auto;
+  margin-bottom: 14px;
+}
+.focus-card .secondary-button {
+  width: fit-content;
+  min-height: 42px;
+}
+
+.session-meta.single-field {
+  grid-template-columns: minmax(210px, 320px) minmax(0, 1fr);
+  align-items: center;
+  padding: 16px;
+}
+#workout-date {
+  min-height: 50px;
+  border-radius: 9px;
+  border-color: rgba(var(--accent-rgb), .28);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), .08), rgba(var(--accent-2-rgb), .035)),
+    rgba(3, 9, 17, .72);
+  font-weight: 760;
+}
+#workout-date:focus {
+  border-color: rgba(var(--accent-rgb), .7);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12);
+}
+
+.calendar-day.rank-tier-1,
+.calendar-month-tile.rank-tier-1 {
+  border-color: rgba(125, 184, 255, .35) !important;
+  background: linear-gradient(135deg, rgba(86, 157, 255, .14), rgba(58, 94, 181, .05)) !important;
+}
+.calendar-day.rank-tier-2,
+.calendar-month-tile.rank-tier-2 {
+  border-color: rgba(76, 232, 166, .42) !important;
+  background: linear-gradient(135deg, rgba(76, 232, 166, .18), rgba(238, 212, 88, .06)) !important;
+}
+.calendar-day.rank-tier-3,
+.calendar-month-tile.rank-tier-3 {
+  border-color: rgba(177, 124, 255, .48) !important;
+  background: linear-gradient(135deg, rgba(177, 124, 255, .22), rgba(255, 104, 184, .09)) !important;
+}
+.calendar-day.rank-tier-4,
+.calendar-month-tile.rank-tier-4 {
+  border-color: rgba(255, 209, 85, .62) !important;
+  background: linear-gradient(135deg, rgba(255, 209, 85, .27), rgba(255, 77, 151, .13)) !important;
+  box-shadow: inset 0 -4px 0 rgba(255, 209, 85, .82) !important;
+}
+.calendar-day.rank-tier-1.has-training::after { background: #7db8ff; box-shadow: 0 0 13px rgba(125, 184, 255, .72); }
+.calendar-day.rank-tier-2.has-training::after { background: #4ce8a6; box-shadow: 0 0 13px rgba(76, 232, 166, .72); }
+.calendar-day.rank-tier-3.has-training::after { background: #b17cff; box-shadow: 0 0 13px rgba(177, 124, 255, .72); }
+.calendar-day.rank-tier-4.has-training::after { background: #ffd155; box-shadow: 0 0 15px rgba(255, 209, 85, .82); }
+.calendar-legend small::before { content: "kcal load · "; }
+
+.consistency-card {
+  align-self: start;
+}
+.consistency-card .panel-heading {
+  align-items: center;
+  margin-bottom: 10px;
+}
+.consistency-card .chart-wrap {
+  min-height: 215px;
+  height: 215px;
+}
+.metric-select,
+#weekly-metric {
+  min-width: 142px;
+  min-height: 42px;
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  border-radius: 999px;
+  padding: 8px 36px 8px 14px;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), .11), rgba(var(--accent-2-rgb), .045)),
+    rgba(3, 9, 17, .68);
+  font-size: .75rem;
+  font-weight: 820;
+}
+
+.progress-search.search-field,
+.search-field.progress-search {
+  min-height: 46px;
+  border: 1px solid rgba(var(--accent-rgb), .25);
+  border-radius: 999px;
+  padding-inline: 13px;
+  background:
+    linear-gradient(135deg, rgba(var(--accent-rgb), .085), rgba(var(--accent-2-rgb), .035)),
+    rgba(3, 9, 17, .7);
+}
+.progress-search input {
+  font-weight: 700;
+}
+.progress-exercise-list {
+  padding-bottom: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--accent-rgb), .55) rgba(var(--accent-rgb), .08);
+}
+.progress-exercise-list::-webkit-scrollbar { height: 9px; }
+.progress-exercise-list::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), .08);
+}
+.progress-exercise-list::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(0,0,0,0);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background-clip: padding-box;
+}
+.progress-exercise-chip {
+  border-radius: 9px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.035), rgba(var(--accent-rgb), .035));
+}
+
+.body-system {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.body-system-head {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+.body-system-head h3 {
+  font-size: clamp(1.45rem, 2.6vw, 2rem);
+  line-height: 1;
+}
+.body-core.muscle-map {
+  justify-self: center;
+}
+.muscle-summary { display: none !important; }
+.muscle-card-exercises {
+  max-height: none;
+}
+.muscle-exercise-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding-top: 5px;
+}
+.muscle-exercise-pager button {
+  display: grid;
+  width: 34px;
+  height: 30px;
+  min-height: 0;
+  place-items: center;
+  border: 1px solid rgba(var(--accent-rgb), .25);
+  border-radius: 999px;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), .06);
+  cursor: pointer;
+}
+.muscle-exercise-pager button:disabled {
+  color: var(--muted);
+  opacity: .45;
+  cursor: not-allowed;
+}
+.muscle-exercise-pager span {
+  color: var(--muted-strong);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+@media (min-width: 1001px) {
+  .focus-card { max-width: 720px; }
+}
+@media (max-width: 900px) {
+  .body-system { grid-template-columns: 1fr !important; }
+  .session-meta.single-field { grid-template-columns: 1fr; }
+  .consistency-card .chart-wrap { min-height: 205px; height: 205px; }
+}

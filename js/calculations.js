@@ -172,6 +172,10 @@ export function activityMet(exercise, activity = {}, settings = {}) {
   switch (exercise?.activityType) {
     case "running":
       return clamp(metForRunning(speed) + Math.min(5, gradeProxy * 22), 5.5, 18.5);
+    case "treadmillRunning": {
+      const incline = clamp(Number(activity.inclinePercent) || 0, 0, 30) / 100;
+      return clamp(metForRunning(speed) + Math.min(5, incline * 18), 5.5, 18.5);
+    }
     case "walking":
       return clamp(metForWalking(speed) + Math.min(5, gradeProxy * 18), 2.0, 12.0);
     case "hiking": {
@@ -300,7 +304,7 @@ export function analyseExerciseEntry(entry, exercise, settings) {
       activeMinutes += exercise.inputType === "timedSets"
         ? seconds / 60
         : reps * (Number(exercise.calorie?.repSeconds) || 3) / 60;
-      if (exercise.inputType === "sets" || exercise.inputType === "bodyweightSets") {
+      if (exercise.inputType === "sets") {
         const estimate = epley1RM(effectiveLoad, reps);
         if (estimate != null && (bestE1RM == null || estimate > bestE1RM)) {
           bestE1RM = estimate;
@@ -553,12 +557,12 @@ export function statistics(workouts, catalog, settings, days = 28) {
   };
 }
 
-function historyTierFromXp(xp) {
-  const load = Math.max(0, Number(xp) || 0);
+function historyTierFromCalories(calories) {
+  const load = Math.max(0, Number(calories) || 0);
   if (load <= 0) return 0;
-  if (load >= HISTORY_TIER_XP[3]) return 4;
-  if (load >= HISTORY_TIER_XP[2]) return 3;
-  if (load >= HISTORY_TIER_XP[1]) return 2;
+  if (load > 1200) return 4;
+  if (load >= 700) return 3;
+  if (load >= 200) return 2;
   return 1;
 }
 
@@ -578,8 +582,8 @@ export function calendarIntensity(workouts, catalog, settings, monthDate) {
     byDate.set(workout.date, current);
   }
   for (const day of byDate.values()) {
-    day.intensity = clamp(day.xp / HISTORY_TIER_XP[3], 0, 1);
-    day.tier = historyTierFromXp(day.xp);
+    day.intensity = clamp(day.calories / 1200, 0, 1);
+    day.tier = historyTierFromCalories(day.calories);
   }
   return byDate;
 }

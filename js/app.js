@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.9";
+const APP_VERSION = "0.3.0";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -102,14 +102,13 @@ let selectedHistoryMonth = localDateString().slice(0, 7);
 let draftWorkout = createEmptyDraft();
 let renderQueued = false;
 let lastCatalogSignature = "";
-let statsWindowInitialized = false;
 let offlineAuthActive = false;
 let selectedProgressExerciseId = "";
 let selectedProgressMetric = "e1rm";
 let progressSearchQuery = "";
 let bodyViewMode = "front";
 let selectedMuscleKey = null;
-let muscleSortAscending = true;
+let muscleExercisePage = 0;
 let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
 
@@ -639,6 +638,7 @@ const ACTIVITY_FIELD_META = {
   durationMin: ["Duration", "min", "number", "1"],
   distanceKm: ["Distance", "km", "number", "0.01"],
   elevationM: ["Elevation gain", "m", "number", "1"],
+  inclinePercent: ["Incline", "%", "number", "0.5"],
   steps: ["Steps", "", "number", "1"],
   packKg: ["Pack weight", "kg", "number", "0.5"],
   watts: ["Average power", "W", "number", "1"],
@@ -764,9 +764,9 @@ async function removeDraftExercise(index) {
   renderBuilder();
 }
 
-function pickerRecommendedScore(exercise, usedIds, balanceByMuscle) {
+function pickerRecommendedScore(exercise, usedIds, balanceByMuscle, frequencyCounts = new Map()) {
   if (exercise.category !== "strength") return -Infinity;
-  const usedBonus = usedIds.has(exercise.id) ? 60 : 0;
+  const usedBonus = usedIds.has(exercise.id) ? 45 + Math.min(60, (frequencyCounts.get(exercise.id) ?? 0) * 8) : 0;
   const muscleNeed = [...(exercise.muscles.primary ?? []), ...(exercise.muscles.secondary ?? [])]
     .map(key => balanceByMuscle.get(key))
     .filter(Boolean)
@@ -782,6 +782,7 @@ function pickerRecommendedScore(exercise, usedIds, balanceByMuscle) {
 function renderExercisePicker() {
   const query = document.querySelector("#exercise-search").value.trim();
   const used = new Set(state.workouts.flatMap(workout => (workout.exercises ?? []).map(entry => entry.exerciseId)));
+  const frequencyCounts = exerciseFrequencyMap();
   const prData = detectPersonalRecords(state.workouts, catalog(), state.settings);
   const balanceByMuscle = new Map(muscleBalance(state.workouts, catalog(), state.settings, state.settings.bodyWindowDays || 14).map(item => [item.key, item]));
   let list = catalog()
@@ -800,14 +801,14 @@ function renderExercisePicker() {
       .map(item => ({
         exercise: item.exercise,
         searchScore: item.searchScore,
-        score: pickerRecommendedScore(item.exercise, used, balanceByMuscle)
+        score: pickerRecommendedScore(item.exercise, used, balanceByMuscle, frequencyCounts)
       }))
-      .sort((a, b) => (query ? b.searchScore - a.searchScore : 0) || b.score - a.score || a.exercise.name.localeCompare(b.exercise.name))
+      .sort((a, b) => (query ? b.searchScore - a.searchScore : 0) || b.score - a.score || (frequencyCounts.get(b.exercise.id) ?? 0) - (frequencyCounts.get(a.exercise.id) ?? 0) || a.exercise.name.localeCompare(b.exercise.name))
       .slice(0, 24);
   } else if (query) {
-    list = list.sort((a, b) => b.searchScore - a.searchScore || a.exercise.name.localeCompare(b.exercise.name));
+    list = list.sort((a, b) => b.searchScore - a.searchScore || (frequencyCounts.get(b.exercise.id) ?? 0) - (frequencyCounts.get(a.exercise.id) ?? 0) || a.exercise.name.localeCompare(b.exercise.name));
   } else {
-    list = list.sort((a, b) => a.exercise.name.localeCompare(b.exercise.name));
+    list = list.sort((a, b) => (frequencyCounts.get(b.exercise.id) ?? 0) - (frequencyCounts.get(a.exercise.id) ?? 0) || a.exercise.name.localeCompare(b.exercise.name));
   }
   list = list.map(item => item.exercise);
   const container = document.querySelector("#exercise-picker-list");
@@ -1005,7 +1006,7 @@ function renderHistoryMonth() {
     if (info) button.classList.add("has-training", `tier-${info.tier}`, `rank-tier-${info.tier}`);
     if (date < firstDate || date > today) button.disabled = true;
     else button.dataset.calendarDate = date;
-    button.innerHTML = `<strong>${Number(date.slice(-2))}</strong><small>${info ? `+${formatNumber(info.xp ?? 0)} XP` : ""}</small>`;
+    button.innerHTML = `<strong>${Number(date.slice(-2))}</strong><small>${info ? `${formatNumber(info.calories ?? 0)} kcal` : ""}</small>`;
     grid.append(button);
   }
   renderCalendarDay();
@@ -1106,7 +1107,7 @@ const PROGRESSION_METRICS = {
 function progressionMetricOptions(exercise) {
   const options = [];
   if (exercise?.inputType === "sets") options.push("e1rm", "volume", "reps");
-  if (exercise?.inputType === "bodyweightSets") options.push("e1rm", "volume", "reps");
+  if (exercise?.inputType === "bodyweightSets") options.push("volume", "reps");
   if (exercise?.inputType === "timedSets") options.push("seconds");
   if (exercise?.inputType === "activity") {
     options.push("duration");
@@ -1178,16 +1179,7 @@ function renderProgressPicker() {
 }
 
 function renderStats() {
-  const statsWindowSelect = document.querySelector("#stats-window");
-  if (!statsWindowInitialized) {
-    const configured = String(state.settings.statsWindowDays || 28);
-    if (![...statsWindowSelect.options].some(option => option.value === configured)) {
-      statsWindowSelect.add(new Option(`${configured} days`, configured));
-    }
-    statsWindowSelect.value = configured;
-    statsWindowInitialized = true;
-  }
-  const days = Number(statsWindowSelect.value || state.settings.statsWindowDays || 28);
+  const days = Number(state.settings.statsWindowDays || 28);
   const stats = statistics(state.workouts, catalog(), state.settings, days);
   document.querySelector("#stat-frequency").textContent = stats.sessionsPerWeek.toFixed(1);
   document.querySelector("#stat-session-total").textContent = `${stats.sessions} active day${stats.sessions === 1 ? "" : "s"}`;
@@ -1205,7 +1197,7 @@ function renderActiveCharts() {
     drawDonut(document.querySelector("#weekly-target-chart"), weekSessions, state.settings.weeklySessionTarget, "sessions");
   }
   if (activeView === "stats") {
-    const days = Number(document.querySelector("#stats-window").value || state.settings.statsWindowDays || 28);
+    const days = Number(state.settings.statsWindowDays || 28);
     const stats = statistics(state.workouts, catalog(), state.settings, days);
     drawWeeklyBars(document.querySelector("#weekly-chart"), stats.weekly, document.querySelector("#weekly-metric").value);
     const metric = selectedProgressMetric;
@@ -1241,40 +1233,37 @@ function updateBodyMap(balance) {
 }
 
 function exercisesForMuscle(muscleKey) {
+  const counts = exerciseFrequencyMap();
   return catalog()
     .filter(exercise => exercise.muscles?.primary?.includes(muscleKey) || exercise.muscles?.secondary?.includes(muscleKey))
     .sort((a, b) => {
+      const aCount = counts.get(a.id) ?? 0;
+      const bCount = counts.get(b.id) ?? 0;
       const aPrimary = a.muscles.primary.includes(muscleKey) ? 0 : 1;
       const bPrimary = b.muscles.primary.includes(muscleKey) ? 0 : 1;
-      return aPrimary - bPrimary || a.name.localeCompare(b.name);
+      return bCount - aCount || aPrimary - bPrimary || a.name.localeCompare(b.name);
     });
 }
 
-function renderSelectedMusclePanel(balanceByKey) {
+function renderSelectedMusclePanel() {
   const panel = document.querySelector("#selected-muscle-panel");
   if (!panel) return;
-  if (!selectedMuscleKey) {
-    panel.hidden = true;
-    panel.innerHTML = "";
-    return;
-  }
-  const muscle = balanceByKey.get(selectedMuscleKey) ?? { key: selectedMuscleKey, ...MUSCLE_GROUPS[selectedMuscleKey], score: 0, target: 0, status: "missing" };
-  const exercises = exercisesForMuscle(selectedMuscleKey).slice(0, 16);
-  panel.hidden = false;
-  panel.innerHTML = `<div class="selected-muscle-head"><strong>${escapeHtml(muscle.name)}</strong><span class="tag">${escapeHtml(muscle.status ?? "missing")}</span></div><small>${muscle.score ?? 0} / ${muscle.target ?? 0} effective sets in the selected window</small><div class="selected-muscle-exercises">${exercises.map(exercise => `<button data-add-exercise="${exercise.id}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${exercise.muscles.primary.includes(selectedMuscleKey) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}</div>`;
+  panel.hidden = true;
+  panel.innerHTML = "";
 }
 
 function renderMuscles() {
   const days = Number(state.settings.bodyWindowDays || 14);
+  const leastFirst = state.settings.bodySortMode !== "most";
   let balance = muscleBalance(state.workouts, catalog(), state.settings, days).filter(item => item.key !== "cardio");
-  balance = balance.sort((a, b) => muscleSortAscending ? a.score - b.score : b.score - a.score);
+  balance = balance.sort((a, b) => leastFirst ? a.score - b.score : b.score - a.score);
   const balanceByKey = new Map(balance.map(item => [item.key, item]));
   const grid = document.querySelector("#muscle-grid");
   grid.replaceChildren();
   updateBodyMap(balance);
   renderSelectedMusclePanel(balanceByKey);
-  document.querySelector("#muscle-sort-toggle").textContent = muscleSortAscending ? "Least used first" : "Most used first";
   const counts = { missing: 0, low: 0, balanced: 0, high: 0 };
+  const exerciseCounts = exerciseFrequencyMap();
   for (const item of balance) {
     counts[item.status] += 1;
     const card = document.createElement("article");
@@ -1286,7 +1275,12 @@ function renderMuscles() {
     const muscleRank = item.level.hasData ? `Rank ${item.level.rank}` : "Unranked";
     const matchingExercises = exercisesForMuscle(item.key);
     const exercisePreview = matchingExercises.slice(0, 3).map(exercise => exercise.name).join(" · ") || "No catalog matches";
-    const exerciseList = selected ? `<div class="muscle-card-exercises">${matchingExercises.slice(0, 8).map(exercise => `<button data-add-exercise="${exercise.id}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${exercise.muscles.primary.includes(item.key) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}</div>` : "";
+    const pageSize = 5;
+    const pageCount = Math.max(1, Math.ceil(matchingExercises.length / pageSize));
+    if (selected && muscleExercisePage >= pageCount) muscleExercisePage = pageCount - 1;
+    const pageExercises = matchingExercises.slice(muscleExercisePage * pageSize, muscleExercisePage * pageSize + pageSize);
+    const pager = selected && pageCount > 1 ? `<div class="muscle-exercise-pager"><button data-muscle-page="prev" type="button" ${muscleExercisePage <= 0 ? "disabled" : ""}>←</button><span>${muscleExercisePage + 1} / ${pageCount}</span><button data-muscle-page="next" type="button" ${muscleExercisePage >= pageCount - 1 ? "disabled" : ""}>→</button></div>` : "";
+    const exerciseList = selected ? `<div class="muscle-card-exercises">${pageExercises.map(exercise => `<button data-add-exercise="${exercise.id}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(exerciseCounts.get(exercise.id) ?? 0)}× logged · ${exercise.muscles.primary.includes(item.key) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}${pager}</div>` : "";
     card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer><small class="muscle-exercise-preview">${escapeHtml(exercisePreview)}</small>${exerciseList}`;
     grid.append(card);
   }
@@ -1335,6 +1329,7 @@ function renderSettings() {
     document.querySelector("#setting-muscle-target").value = state.settings.weeklyMuscleTargetSets;
     document.querySelector("#setting-stats-window").value = state.settings.statsWindowDays;
     document.querySelector("#setting-body-window").value = state.settings.bodyWindowDays;
+    document.querySelector("#setting-muscle-sort").value = state.settings.bodySortMode === "most" ? "most" : "least";
     document.querySelector("#setting-history-mode").value = state.settings.historyViewMode;
     document.querySelector("#setting-show-rir").checked = Boolean(state.settings.showRir);
     document.querySelector("#setting-duration-prompt").checked = state.settings.showDurationPrompt !== false;
@@ -1345,7 +1340,8 @@ function renderSettings() {
   document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
   document.querySelector("#settings-workouts").textContent = state.workouts.length.toString();
   document.querySelector("#app-version").textContent = `Ascend ${APP_VERSION}`;
-  document.querySelector("#catalog-status").textContent = state.catalogAvailable ? `${BUNDLED_EXERCISES.length + state.remoteExercises.length} bundled/remote` : "Bundled only";
+  const catalogStatus = document.querySelector("#catalog-status");
+  if (catalogStatus) catalogStatus.textContent = state.catalogAvailable ? `${BUNDLED_EXERCISES.length + state.remoteExercises.length} bundled/remote` : "Bundled only";
 }
 
 function openWorkoutDetail(id) {
@@ -1372,6 +1368,7 @@ function submitSettings(event) {
     weeklyMuscleTargetSets: Number(document.querySelector("#setting-muscle-target").value),
     statsWindowDays: Number(document.querySelector("#setting-stats-window").value),
     bodyWindowDays: Number(document.querySelector("#setting-body-window").value),
+    bodySortMode: document.querySelector("#setting-muscle-sort").value,
     historyViewMode: document.querySelector("#setting-history-mode").value,
     showRir: document.querySelector("#setting-show-rir").checked,
     showDurationPrompt: document.querySelector("#setting-duration-prompt").checked,
@@ -1393,6 +1390,8 @@ function submitSettings(event) {
   queueWrite(saveSettings(settings), "Settings saved");
   setMessage(message, "Settings saved locally and queued for synchronization.");
   renderCalendar();
+  renderStats();
+  renderMuscles();
   renderBuilder();
 }
 
@@ -1614,15 +1613,26 @@ function bindEvents() {
       return;
     }
 
+    const musclePage = event.target.closest("[data-muscle-page]");
+    if (musclePage) {
+      muscleExercisePage += musclePage.dataset.musclePage === "next" ? 1 : -1;
+      renderMuscles();
+      return;
+    }
+
     const zone = event.target.closest("[data-zone-muscles]");
     if (zone) {
-      selectedMuscleKey = zoneMuscleKeys(zone)[0] ?? null;
+      const nextKey = zoneMuscleKeys(zone)[0] ?? null;
+      selectedMuscleKey = selectedMuscleKey === nextKey ? null : nextKey;
+      muscleExercisePage = 0;
       renderMuscles();
       return;
     }
     const muscleCard = event.target.closest("[data-muscle-card]");
     if (muscleCard) {
-      selectedMuscleKey = muscleCard.dataset.muscleCard;
+      const nextKey = muscleCard.dataset.muscleCard;
+      selectedMuscleKey = selectedMuscleKey === nextKey ? null : nextKey;
+      muscleExercisePage = 0;
       renderMuscles();
       return;
     }
@@ -1647,7 +1657,11 @@ function bindEvents() {
     }
   });
 
-  ["stats-window", "weekly-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { if (id === "weekly-metric" && document.querySelector("#weekly-metric").value === "minutes") document.querySelector("#weekly-metric").value = "sessions"; renderStats(); renderActiveCharts(); }));
+  document.querySelector("#weekly-metric").addEventListener("change", () => {
+    if (document.querySelector("#weekly-metric").value === "minutes") document.querySelector("#weekly-metric").value = "sessions";
+    renderStats();
+    renderActiveCharts();
+  });
   document.querySelector("#progress-search").addEventListener("input", event => {
     progressSearchQuery = event.target.value;
     renderStats();
@@ -1669,10 +1683,6 @@ function bindEvents() {
   document.querySelector("#body-view-toggle").addEventListener("click", () => {
     bodyViewMode = bodyViewMode === "front" ? "back" : "front";
     selectedMuscleKey = null;
-    renderMuscles();
-  });
-  document.querySelector("#muscle-sort-toggle").addEventListener("click", () => {
-    muscleSortAscending = !muscleSortAscending;
     renderMuscles();
   });
   document.querySelector("#settings-form").addEventListener("submit", submitSettings);
