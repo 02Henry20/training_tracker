@@ -78,15 +78,15 @@
       </nav>
 
       <div class="command-actions">
-        <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
         <span id="user-chip" class="user-chip"></span>
+        <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail">Checking cache</small></div></div>
+        <button id="header-start-workout" class="header-plus-button" type="button" aria-label="Start session">+</button>
       </div>
     </header>
 
     <div class="workspace">
       <header class="topbar">
         <div class="view-heading"><p id="view-kicker" class="eyebrow">STATUS</p><h2 id="view-title">Dashboard</h2></div>
-        <button id="top-start-workout" class="primary-button compact" type="button"><span>Start session</span><b>＋</b></button>
       </header>
 
       <div class="content-scroll">
@@ -98,7 +98,6 @@
             </article>
             <article id="last-training-card" class="metric-card panel reveal recency-empty"><span>Last training</span><strong id="last-training-days">No data</strong><small id="last-training-copy">Log your first session</small></article>
             <article class="metric-card panel reveal"><span>Weekly consistency</span><strong id="week-streak">0</strong><small>active weeks</small></article>
-            <article class="metric-card accent panel reveal"><span>Personal records</span><strong id="pr-count">0</strong><small>improvements detected</small></article>
           </div>
 
           <div class="dashboard-grid">
@@ -168,17 +167,43 @@
         <section class="view" data-view-section="muscles">
           <div class="muscle-summary panel"><div><p class="eyebrow">MUSCLE COVERAGE</p><h3>What your recent training targets</h3><p class="muted">Primary sets count fully; secondary involvement counts partially. Cardio minutes are converted into a small coverage score.</p></div><label class="field compact-field"><span>Window</span><select id="muscle-window"><option value="7">7 days</option><option value="14">14 days</option><option value="28">28 days</option></select></label></div>
           <div class="muscle-layout">
-            <article class="body-system panel"><div class="body-core advanced-map" aria-label="Training map">
-              <span class="aura-ring"></span><span class="map-label">TRAINING MAP</span>
-              <span class="zone head" data-zone-muscles="traps"></span><span class="zone neck" data-zone-muscles="traps"></span>
-              <span class="zone shoulder left" data-zone-muscles="frontDelts,sideDelts,rearDelts"></span><span class="zone shoulder right" data-zone-muscles="frontDelts,sideDelts,rearDelts"></span>
-              <span class="zone chest" data-zone-muscles="chest"></span><span class="zone lats left" data-zone-muscles="lats,upperBack"></span><span class="zone lats right" data-zone-muscles="lats,upperBack"></span>
-              <span class="zone core" data-zone-muscles="abs,lowerBack"></span><span class="zone oblique left" data-zone-muscles="obliques"></span><span class="zone oblique right" data-zone-muscles="obliques"></span>
-              <span class="zone arm upper-left" data-zone-muscles="biceps,triceps"></span><span class="zone arm upper-right" data-zone-muscles="biceps,triceps"></span>
-              <span class="zone arm fore-left" data-zone-muscles="forearms"></span><span class="zone arm fore-right" data-zone-muscles="forearms"></span>
-              <span class="zone hips" data-zone-muscles="glutes,hipFlexors"></span>
-              <span class="zone leg thigh-left" data-zone-muscles="quads,hamstrings"></span><span class="zone leg thigh-right" data-zone-muscles="quads,hamstrings"></span>
-              <span class="zone leg calf-left" data-zone-muscles="calves"></span><span class="zone leg calf-right" data-zone-muscles="calves"></span>
+            <article class="body-system panel"><div class="body-core muscle-map" aria-label="Training map">
+              <span class="aura-ring"></span>
+              <svg class="muscle-figure" viewBox="0 0 240 430" role="img" aria-labelledby="training-map-title">
+                <title id="training-map-title">Training map muscle silhouette</title>
+                <defs>
+                  <linearGradient id="muscleStroke" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="var(--accent)" stop-opacity=".95"></stop>
+                    <stop offset="1" stop-color="var(--accent-2)" stop-opacity=".75"></stop>
+                  </linearGradient>
+                  <radialGradient id="muscleGlow" cx="50%" cy="38%" r="62%">
+                    <stop offset="0" stop-color="var(--accent)" stop-opacity=".2"></stop>
+                    <stop offset="1" stop-color="transparent" stop-opacity="0"></stop>
+                  </radialGradient>
+                </defs>
+                <path class="figure-aura" d="M120 20C72 26 43 83 39 153c-5 86 27 178 81 214 54-36 86-128 81-214-4-70-33-127-81-133Z"></path>
+                <path class="muscle-outline" d="M120 34c-18 0-31 14-31 32 0 13 6 24 15 30l-5 17-39 16-36 66 20 17 31-50 7 75-16 96 25 7 22-83h14l22 83 25-7-16-96 7-75 31 50 20-17-36-66-39-16-5-17c9-6 15-17 15-30 0-18-13-32-31-32Z"></path>
+                <path class="muscle-zone neck" data-zone-muscles="traps" d="M104 95l16 9 16-9 5 23-21 10-21-10 5-23Z"></path>
+                <path class="muscle-zone chest left" data-zone-muscles="chest" d="M84 128c12-9 25-10 36-1l-6 49c-18-3-31-12-39-27l9-21Z"></path>
+                <path class="muscle-zone chest right" data-zone-muscles="chest" d="M156 128c-12-9-25-10-36-1l6 49c18-3 31-12 39-27l-9-21Z"></path>
+                <path class="muscle-zone shoulder left" data-zone-muscles="frontDelts,sideDelts,rearDelts" d="M62 129c10-8 22-11 33-9l-20 43-28 12c-2-18 3-34 15-46Z"></path>
+                <path class="muscle-zone shoulder right" data-zone-muscles="frontDelts,sideDelts,rearDelts" d="M178 129c-10-8-22-11-33-9l20 43 28 12c2-18-3-34-15-46Z"></path>
+                <path class="muscle-zone lats left" data-zone-muscles="lats,upperBack" d="M78 153c10 14 23 22 38 25l-8 62c-21-13-35-32-42-58l12-29Z"></path>
+                <path class="muscle-zone lats right" data-zone-muscles="lats,upperBack" d="M162 153c-10 14-23 22-38 25l8 62c21-13 35-32 42-58l-12-29Z"></path>
+                <path class="muscle-zone core" data-zone-muscles="abs,lowerBack" d="M104 177h32l9 62-25 27-25-27 9-62Z"></path>
+                <path class="muscle-zone oblique left" data-zone-muscles="obliques" d="M82 181l22-4-9 62-18 26c-6-25-5-53 5-84Z"></path>
+                <path class="muscle-zone oblique right" data-zone-muscles="obliques" d="M158 181l-22-4 9 62 18 26c6-25 5-53-5-84Z"></path>
+                <path class="muscle-zone arm upper-left" data-zone-muscles="biceps,triceps" d="M47 174l28-13 8 26-21 55-22-9 7-59Z"></path>
+                <path class="muscle-zone arm upper-right" data-zone-muscles="biceps,triceps" d="M193 174l-28-13-8 26 21 55 22-9-7-59Z"></path>
+                <path class="muscle-zone forearm left" data-zone-muscles="forearms" d="M40 235l22 8-13 66-20-5 11-69Z"></path>
+                <path class="muscle-zone forearm right" data-zone-muscles="forearms" d="M200 235l-22 8 13 66 20-5-11-69Z"></path>
+                <path class="muscle-zone hips" data-zone-muscles="glutes,hipFlexors" d="M85 248l35 18 35-18 14 35-49 22-49-22 14-35Z"></path>
+                <path class="muscle-zone thigh left" data-zone-muscles="quads,hamstrings" d="M78 284l41 18-10 72-31-8-14-45 14-37Z"></path>
+                <path class="muscle-zone thigh right" data-zone-muscles="quads,hamstrings" d="M162 284l-41 18 10 72 31-8 14-45-14-37Z"></path>
+                <path class="muscle-zone calf left" data-zone-muscles="calves" d="M78 365l31 8-10 40-27-7 6-41Z"></path>
+                <path class="muscle-zone calf right" data-zone-muscles="calves" d="M162 365l-31 8 10 40 27-7-6-41Z"></path>
+              </svg>
+              <span class="map-label">TRAINING MAP</span>
             </div><div id="muscle-status-totals" class="status-totals"></div></article>
             <div id="muscle-grid" class="muscle-grid"></div>
           </div>

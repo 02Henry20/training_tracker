@@ -59,7 +59,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.3";
+const APP_VERSION = "0.2.4";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -129,6 +129,14 @@ function currentPlayerSummary() {
 
 function applyRankStage(summary = currentPlayerSummary()) {
   document.documentElement.dataset.rankStage = summary.rank.stageKey ?? "E";
+}
+
+function rankIcon(rank) {
+  return rank.icon ?? rank.rank;
+}
+
+function rankTitle(rank) {
+  return rank.rank === "Monarch" ? rank.label : rank.rank;
 }
 
 function firstWorkoutDate() {
@@ -223,26 +231,29 @@ function applyAppearance(settings = state.settings) {
 function updateSyncStatus() {
   const pending = hasPendingWrites();
   const cacheOnly = isUsingCacheOnly();
+  let label = "Synced";
+  let detail = "Firebase";
   elements.syncPill.className = "sync-pill";
   if (state.user?.offlineOnly) {
     elements.syncPill.classList.add("offline");
-    elements.syncLabel.textContent = pending ? "Offline device" : "Offline cache";
-    elements.syncDetail.textContent = pending ? "Device changes pending" : "Cached data loaded";
+    label = "Offline";
+    detail = pending ? "Pending" : "Cache";
   } else if (!navigator.onLine) {
     elements.syncPill.classList.add("offline");
-    elements.syncLabel.textContent = pending ? "Offline · pending" : "Offline cache";
-    elements.syncDetail.textContent = pending ? "Will synchronize later" : "Local data available";
+    label = "Offline";
+    detail = pending ? "Pending" : "Local";
   } else if (pending) {
-    elements.syncLabel.textContent = "Synchronizing";
-    elements.syncDetail.textContent = "Local changes pending";
+    label = "Syncing";
+    detail = "Pending";
   } else if (cacheOnly) {
-    elements.syncLabel.textContent = "Connected";
-    elements.syncDetail.textContent = "Checking Firebase";
+    label = "Cloud";
+    detail = "Checking";
   } else {
     elements.syncPill.classList.add("synced");
-    elements.syncLabel.textContent = "Synced";
-    elements.syncDetail.textContent = "Firestore up to date";
   }
+  elements.syncLabel.textContent = label;
+  elements.syncDetail.textContent = detail;
+  elements.syncPill.title = `${label}: ${detail}`;
 }
 
 function showAppForUser(user) {
@@ -702,9 +713,9 @@ function renderDashboard() {
   const weekSessions = new Set(weekWorkouts.map(workout => workout.date)).size;
   const sessionTarget = Math.max(1, Number(state.settings.weeklySessionTarget) || 3);
 
-  document.querySelector("#rank-letter").textContent = xp.rank.rank;
+  document.querySelector("#rank-letter").textContent = rankIcon(xp.rank);
   document.querySelector("#rank-name").textContent = xp.rank.label;
-  document.querySelector("#brand-stage").textContent = `RANK ${xp.rank.rank}`;
+  document.querySelector("#brand-stage").textContent = `RANK ${rankTitle(xp.rank)}`;
   document.querySelector("#system-level").textContent = `Level ${xp.level}`;
   document.querySelector("#total-xp").textContent = `${xp.xp.toLocaleString()} XP`;
   document.querySelector("#xp-fill").style.width = `${xp.progress * 100}%`;
@@ -716,7 +727,6 @@ function renderDashboard() {
   document.querySelector("#last-training-days").textContent = recency.label;
   document.querySelector("#last-training-copy").textContent = recency.detail;
   document.querySelector("#week-streak").textContent = consistencyStreak(state.workouts, sessionTarget).toString();
-  document.querySelector("#pr-count").textContent = prs.best.size.toString();
   document.querySelector("#week-session-label").textContent = `${weekSessions} / ${sessionTarget}`;
   document.querySelector("#week-calories").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.calories, 0));
   document.querySelector("#week-minutes").textContent = formatNumber(weekWorkouts.reduce((sum, workout) => sum + workout.durationMin, 0));
@@ -1004,19 +1014,15 @@ function renderRankGuide() {
   const summary = currentPlayerSummary();
   const content = document.querySelector("#rank-guide-content");
   content.innerHTML = `
-    <div class="rank-guide-current">
-      <span class="rank-badge rank-${escapeHtml(summary.rank.stageKey)}">${escapeHtml(summary.rank.rank)}</span>
-      <div><strong>${escapeHtml(summary.rank.label)}</strong><small>Level ${summary.level} / ${summary.xp.toLocaleString()} XP</small></div>
-    </div>
     <div class="rank-guide-list">
       ${PLAYER_RANKS.map(rank => {
         const targetXp = xpForLevel(rank.minLevel);
         const reached = summary.xp >= targetXp;
-        const active = rank.rank === summary.rank.rank;
+        const active = rank.stageKey === summary.rank.stageKey;
         return `<article class="rank-guide-row ${reached ? "reached" : ""} ${active ? "active" : ""}">
-          <span class="rank-badge rank-${escapeHtml(rank.stageKey)}">${escapeHtml(rank.rank)}</span>
+          <span class="rank-badge rank-${escapeHtml(rank.stageKey)}">${escapeHtml(rankIcon(rank))}</span>
           <div><strong>${escapeHtml(rank.label)}</strong><small>Level ${rank.minLevel} / ${targetXp.toLocaleString()} XP</small><p>${escapeHtml(rank.description)}</p></div>
-          <em>${escapeHtml(rankEstimateText(targetXp, summary))}</em>
+          <em>${escapeHtml(active ? "Current" : rankEstimateText(targetXp, summary))}</em>
         </article>`;
       }).join("")}
     </div>`;
@@ -1240,7 +1246,7 @@ function bindEvents() {
 
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.view)));
   document.querySelectorAll("[data-go-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.goView)));
-  document.querySelector("#top-start-workout").addEventListener("click", () => startNewWorkout());
+  document.querySelector("#header-start-workout").addEventListener("click", () => startNewWorkout());
 
   document.querySelectorAll("[data-open-picker]").forEach(button => button.addEventListener("click", () => openModal("picker")));
   document.querySelectorAll("[data-close-modal]").forEach(button => button.addEventListener("click", closeModal));

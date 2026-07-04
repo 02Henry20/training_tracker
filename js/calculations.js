@@ -15,8 +15,8 @@ export const PLAYER_RANKS = Object.freeze([
   { rank: "A+", stageKey: "A-plus", label: "Apex", minLevel: 28, description: "A refined stage where balance, precision and patience matter as much as force." },
   { rank: "S", stageKey: "S", label: "Sovereign", minLevel: 31, description: "Rare territory. The system expects excellence across repeated cycles, not a single peak." },
   { rank: "S+", stageKey: "S-plus", label: "Mythic", minLevel: 36, description: "Beyond ordinary classification. Training has become a long campaign with visible power curves." },
-  { rank: "World", stageKey: "World", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
-  { rank: "Monarch", stageKey: "Monarch", label: "Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
+  { rank: "World", stageKey: "World", icon: "◇", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
+  { rank: "Monarch", stageKey: "Monarch", icon: "♛", label: "Shadow Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
 ]);
 
 export function xpForLevel(level) {
