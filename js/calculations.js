@@ -15,12 +15,14 @@ export const PLAYER_RANKS = Object.freeze([
   { rank: "A+", stageKey: "A-plus", label: "Apex", minLevel: 28, description: "A refined stage where balance, precision and patience matter as much as force." },
   { rank: "S", stageKey: "S", label: "Sovereign", minLevel: 31, description: "Rare territory. The system expects excellence across repeated cycles, not a single peak." },
   { rank: "S+", stageKey: "S-plus", label: "Mythic", minLevel: 36, description: "Beyond ordinary classification. Training has become a long campaign with visible power curves." },
-  { rank: "World", stageKey: "World", icon: "✷", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
-  { rank: "Monarch", stageKey: "Monarch", icon: "♛", label: "Shadow Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
+  { rank: "World", stageKey: "World", icon: "✦", label: "World", minLevel: 42, description: "The stage expands beyond personal baselines. The goal is durable, impressive performance across domains." },
+  { rank: "Monarch", stageKey: "Monarch", icon: "♕", label: "Shadow Monarch", minLevel: 50, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
 ]);
 
+const XP_CURVE = 42;
+
 export function xpForLevel(level) {
-  return Math.max(0, (Math.max(1, Number(level) || 1) - 1) ** 2 * 260);
+  return Math.max(0, Math.round((Math.max(1, Number(level) || 1) - 1) ** 2 * XP_CURVE));
 }
 
 export function localDateString(date = new Date()) {
@@ -441,7 +443,6 @@ export function calculateProgression(workouts, catalog, settings, exerciseId, me
       else if (metric === "seconds") value = result.bestSet?.seconds;
       else if (metric === "duration") value = result.activeMinutes;
       else if (metric === "speed") value = result.speedKmh;
-      else value = result.level.index + result.level.progress;
       if (Number.isFinite(value)) points.push({ date: workout.date, value, workoutId: workout.id });
     }
   }
@@ -506,7 +507,7 @@ export function xpSummary(workouts, catalog, settings) {
     xp += 80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + prCount * 35 + Math.min(120, workout.sets * 3);
   }
   xp = Math.round(xp);
-  const level = Math.max(1, Math.floor(Math.sqrt(xp / 260)) + 1);
+  const level = Math.max(1, Math.floor(Math.sqrt(xp / XP_CURVE)) + 1);
   const currentFloor = xpForLevel(level);
   const nextFloor = xpForLevel(level + 1);
   const progress = clamp((xp - currentFloor) / Math.max(1, nextFloor - currentFloor), 0, 1);
@@ -559,16 +560,17 @@ export function calendarIntensity(workouts, catalog, settings, monthDate) {
   const byDate = new Map();
   for (const workout of buildWorkoutAnalyses(workouts, catalog, settings)) {
     if (workout.date < start || workout.date > end) continue;
-    const current = byDate.get(workout.date) ?? { date: workout.date, calories: 0, minutes: 0, workouts: [] };
+    const current = byDate.get(workout.date) ?? { date: workout.date, calories: 0, minutes: 0, xp: 0, workouts: [] };
     current.calories += workout.calories;
     current.minutes += workout.durationMin;
+    current.xp += Math.round(80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + Math.min(120, workout.sets * 3));
     current.workouts.push(workout);
     byDate.set(workout.date, current);
   }
-  const maxCalories = Math.max(1, ...[...byDate.values()].map(day => day.calories));
+  const maxXp = Math.max(1, ...[...byDate.values()].map(day => day.xp));
   for (const day of byDate.values()) {
-    day.intensity = clamp(day.calories / maxCalories, 0, 1);
-    day.tier = day.calories < 120 ? 1 : day.calories < 250 ? 2 : day.calories < 450 ? 3 : 4;
+    day.intensity = clamp(day.xp / maxXp, 0, 1);
+    day.tier = day.xp < 140 ? 1 : day.xp < 240 ? 2 : day.xp < 380 ? 3 : 4;
   }
   return byDate;
 }

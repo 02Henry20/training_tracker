@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.2.7";
+const APP_VERSION = "0.2.8";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -105,7 +105,7 @@ let lastCatalogSignature = "";
 let statsWindowInitialized = false;
 let offlineAuthActive = false;
 let selectedProgressExerciseId = "";
-let selectedProgressMetric = "level";
+let selectedProgressMetric = "e1rm";
 let progressSearchQuery = "";
 let bodyViewMode = "front";
 let selectedMuscleKey = null;
@@ -802,6 +802,27 @@ function formatNumber(value) {
   return Math.round(Number(value) || 0).toLocaleString();
 }
 
+function workoutXpBreakdown(workout) {
+  const prItems = detectPersonalRecords(state.workouts, catalog(), state.settings).recordsByWorkout.get(workout.id) ?? [];
+  const prIds = new Set(prItems.map(item => item.exerciseId));
+  const results = workout.exerciseResults ?? [];
+  const totalSetBonus = Math.min(120, Number(workout.sets || 0) * 3);
+  const strengthSets = Math.max(1, Number(workout.sets || 0));
+  const baseShare = results.length ? 80 / results.length : 80;
+  const items = results.map(result => {
+    const entry = (workout.exercises ?? []).find(item => item.exerciseId === result.exerciseId);
+    const actualSets = result.exercise.inputType === "activity" ? 0 : (entry?.sets ?? []).filter(set => Number(set.reps) > 0 || Number(set.seconds) > 0).length;
+    const xp = baseShare
+      + result.activeMinutes * 0.5
+      + result.calories * 0.12
+      + (prIds.has(result.exerciseId) ? 35 : 0)
+      + (actualSets ? totalSetBonus * actualSets / strengthSets : 0);
+    return { exerciseId: result.exerciseId, xp: Math.max(1, Math.round(xp)) };
+  });
+  const total = items.reduce((sum, item) => sum + item.xp, 0);
+  return { total, byExercise: new Map(items.map(item => [item.exerciseId, item.xp])) };
+}
+
 function renderSessionList(container, workouts, limit = 5) {
   container.replaceChildren();
   if (!workouts.length) {
@@ -811,7 +832,13 @@ function renderSessionList(container, workouts, limit = 5) {
   for (const workout of workouts.slice(0, limit)) {
     const row = document.createElement("div");
     row.className = "session-row";
-    row.innerHTML = `<button data-open-workout="${workout.id}" type="button"><strong>${escapeHtml(workout.title)}</strong><small>${formatDate(workout.date)} · ${workout.exerciseResults.length} exercises · ${formatNumber(workout.durationMin)} min</small></button><div class="session-score">${formatNumber(workout.calories)} kcal</div>`;
+    const xpBreakdown = workoutXpBreakdown(workout);
+    const xp = xpBreakdown.total;
+    const exerciseXpPreview = (workout.exerciseResults ?? []).slice(0, 4)
+      .map(result => `<span>${escapeHtml(result.exercise.name)} <b>+${formatNumber(xpBreakdown.byExercise.get(result.exerciseId) ?? 0)}</b></span>`)
+      .join("");
+    const moreXp = (workout.exerciseResults ?? []).length > 4 ? `<span>+${workout.exerciseResults.length - 4} more</span>` : "";
+    row.innerHTML = `<button data-open-workout="${workout.id}" type="button"><strong>${escapeHtml(workout.title)}</strong><small>${formatDate(workout.date)} · ${workout.exerciseResults.length} exercises · ${formatNumber(workout.durationMin)} min</small><span class="session-xp-breakdown">${exerciseXpPreview}${moreXp}</span></button><div class="session-score xp-score">+${formatNumber(xp)} XP</div>`;
     container.append(row);
   }
 }
@@ -851,7 +878,8 @@ function renderDashboard() {
     document.querySelector("#last-training-copy").textContent = recency.detail;
   }
   document.querySelector("#week-streak").textContent = consistencyStreak(state.workouts, sessionTarget).toString();
-  document.querySelector("#week-session-label").textContent = `${weekSessions} / ${sessionTarget}`;
+  const weekSessionLabel = document.querySelector("#week-session-label");
+  if (weekSessionLabel) weekSessionLabel.textContent = `${weekSessions} / ${sessionTarget}`;
 
   const focus = suggestedFocus(state.workouts, allExercises, state.settings);
   document.querySelector("#focus-title").textContent = focus.title;
@@ -935,10 +963,10 @@ function renderHistoryMonth() {
     if (date > today) button.classList.add("future-day");
     if (date === localDateString()) button.classList.add("today");
     if (date === selectedCalendarDate) button.classList.add("selected");
-    if (info) button.classList.add("has-training", `tier-${info.tier}`);
+    if (info) button.classList.add("has-training", `tier-${info.tier}`, `rank-tier-${info.tier}`);
     if (date < firstDate || date > today) button.disabled = true;
     else button.dataset.calendarDate = date;
-    button.innerHTML = `<strong>${Number(date.slice(-2))}</strong><small>${info ? `${Math.round(info.calories)} kcal` : ""}</small>`;
+    button.innerHTML = `<strong>${Number(date.slice(-2))}</strong><small>${info ? `+${formatNumber(info.xp ?? 0)} XP` : ""}</small>`;
     grid.append(button);
   }
   renderCalendarDay();
@@ -980,11 +1008,12 @@ function renderHistoryYear() {
     button.className = "calendar-month-tile";
     if (item.key < firstMonth) button.classList.add("before-first");
     if (item.key > currentMonth) button.classList.add("future-day");
-    if (tier) button.classList.add(`tier-${tier}`);
+    if (tier) button.classList.add(`tier-${tier}`, `rank-tier-${tier}`);
     if (item.key === selectedHistoryMonth) button.classList.add("selected");
     if (item.key < firstMonth || item.key > currentMonth) button.disabled = true;
     else button.dataset.historyMonth = item.key;
-    button.innerHTML = `<strong>${monthFormatter.format(date)}</strong><small>${item.workouts.length} session${item.workouts.length === 1 ? "" : "s"}</small><span>${item.calories ? `${formatNumber(item.calories)} kcal` : "Rest"}</span>`;
+    const monthXp = item.workouts.reduce((sum, workout) => sum + workoutXpBreakdown(workout).total, 0);
+    button.innerHTML = `<strong>${monthFormatter.format(date)}</strong><small>${item.workouts.length} session${item.workouts.length === 1 ? "" : "s"}</small><span>${monthXp ? `+${formatNumber(monthXp)} XP` : "Rest"}</span>`;
     grid.append(button);
   }
   renderHistoryMonthDetail();
@@ -996,8 +1025,8 @@ function renderCalendarDay() {
     .filter(workout => workout.date === selectedCalendarDate)
     .reverse();
   document.querySelector("#calendar-day-title").textContent = formatDate(selectedCalendarDate, { weekday: "long" });
-  const calories = analyses.reduce((sum, workout) => sum + workout.calories, 0);
-  document.querySelector("#calendar-day-total").textContent = analyses.length ? `${Math.round(calories)} kcal` : "Rest day";
+  const xp = analyses.reduce((sum, workout) => sum + workoutXpBreakdown(workout).total, 0);
+  document.querySelector("#calendar-day-total").textContent = analyses.length ? `+${formatNumber(xp)} XP` : "Rest day";
   renderSessionList(document.querySelector("#calendar-day-list"), analyses, 20);
 }
 
@@ -1007,8 +1036,8 @@ function renderHistoryMonthDetail() {
     .reverse();
   const date = parseDate(`${selectedHistoryMonth}-01`);
   document.querySelector("#calendar-day-title").textContent = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(date);
-  const calories = analyses.reduce((sum, workout) => sum + workout.calories, 0);
-  document.querySelector("#calendar-day-total").textContent = analyses.length ? `${analyses.length} sessions · ${Math.round(calories)} kcal` : "No sessions";
+  const xp = analyses.reduce((sum, workout) => sum + workoutXpBreakdown(workout).total, 0);
+  document.querySelector("#calendar-day-total").textContent = analyses.length ? `${analyses.length} sessions · +${formatNumber(xp)} XP` : "No sessions";
   renderSessionList(document.querySelector("#calendar-day-list"), analyses, 80);
 }
 
@@ -1028,7 +1057,6 @@ function bestResultsByExercise() {
 }
 
 const PROGRESSION_METRICS = {
-  level: { label: "Rank score", unit: "", rankMode: true, short: "Rank" },
   e1rm: { label: "Estimated 1RM", unit: " kg", short: "1RM" },
   volume: { label: "Volume", unit: " kg", short: "Volume" },
   reps: { label: "Total reps", unit: "", short: "Reps" },
@@ -1039,7 +1067,6 @@ const PROGRESSION_METRICS = {
 
 function progressionMetricOptions(exercise) {
   const options = [];
-  if (exercise?.standard) options.push("level");
   if (exercise?.inputType === "sets") options.push("e1rm", "volume", "reps");
   if (exercise?.inputType === "bodyweightSets") options.push("e1rm", "volume", "reps");
   if (exercise?.inputType === "timedSets") options.push("seconds");
@@ -1047,15 +1074,24 @@ function progressionMetricOptions(exercise) {
     options.push("duration");
     if (exercise.standard?.type === "speedKmh") options.push("speed");
   }
-  return [...new Set(options.length ? options : ["level"])]
+  return [...new Set(options.length ? options : ["duration"])]
     .filter(key => PROGRESSION_METRICS[key]);
 }
 
+function exerciseFrequencyMap() {
+  const counts = new Map();
+  for (const workout of state.workouts) {
+    for (const entry of workout.exercises ?? []) counts.set(entry.exerciseId, (counts.get(entry.exerciseId) ?? 0) + 1);
+  }
+  return counts;
+}
+
 function loggedExercisesForProgress() {
+  const counts = exerciseFrequencyMap();
   return usedExerciseIds()
     .map(id => getExerciseById(id, catalog()))
     .filter(Boolean)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.name.localeCompare(b.name));
 }
 
 function renderProgressPicker() {
@@ -1067,7 +1103,7 @@ function renderProgressPicker() {
 
   if (!exercises.length) {
     selectedProgressExerciseId = "";
-    selectedProgressMetric = "level";
+    selectedProgressMetric = "e1rm";
     list.innerHTML = `<div class="empty-state">Log an exercise at least twice to build a trend.</div>`;
     metricButtons.innerHTML = "";
     if (help) help.textContent = "No progression data yet.";
@@ -1082,12 +1118,13 @@ function renderProgressPicker() {
   if (!validMetrics.includes(selectedProgressMetric)) selectedProgressMetric = validMetrics[0];
 
   const query = progressSearchQuery.trim().toLowerCase();
+  const counts = exerciseFrequencyMap();
   const filtered = exercises.filter(exercise => !query || searchableExerciseText(exercise).includes(query));
   list.innerHTML = filtered.length
     ? filtered.map(exercise => {
         const active = exercise.id === selectedProgressExerciseId;
         const primary = exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", ");
-        return `<button class="progress-exercise-chip ${active ? "active" : ""}" data-progress-exercise="${exercise.id}" type="button"><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(primary)}</small></button>`;
+        return `<button class="progress-exercise-chip ${active ? "active" : ""}" data-progress-exercise="${exercise.id}" type="button"><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(counts.get(exercise.id) ?? 0)}× · ${escapeHtml(primary)}</small></button>`;
       }).join("")
     : `<div class="empty-state">No logged exercise matches the search.</div>`;
 
@@ -1116,20 +1153,6 @@ function renderStats() {
 
   renderProgressPicker();
 
-  const best = bestResultsByExercise();
-  const grid = document.querySelector("#exercise-rank-grid");
-  grid.replaceChildren();
-  if (!best.size) {
-    grid.innerHTML = `<div class="empty-state">No exercise standard cards yet. Log a bundled exercise such as bench press, dips, pull-ups, squats, plank, running or hiking. Imported workouts must use bundled exercise IDs to appear here.</div>`;
-    return;
-  }
-  for (const { item, date } of [...best.values()].sort((a, b) => b.score - a.score)) {
-    const card = document.createElement("div");
-    card.className = "exercise-rank-card";
-    const label = item.level.value == null ? "No standard value" : levelValueLabel(item.exercise, item);
-    card.innerHTML = `<span class="rank-badge rank-${item.level.rank}">${item.level.rank}</span><div><strong>${escapeHtml(item.exercise.name)}</strong><small>${item.level.label} · ${escapeHtml(label)} · ${formatDate(date, { year: false })}</small><div class="mini-rail"><span style="width:${Math.max(4, item.level.progress * 100)}%"></span></div></div>`;
-    grid.append(card);
-  }
 }
 
 function renderActiveCharts() {
@@ -1147,8 +1170,8 @@ function renderActiveCharts() {
     const points = selectedProgressExerciseId
       ? calculateProgression(state.workouts, catalog(), state.settings, selectedProgressExerciseId, metric)
       : [];
-    const meta = PROGRESSION_METRICS[metric] ?? PROGRESSION_METRICS.level;
-    drawLineChart(document.querySelector("#progress-chart"), points, { unit: meta.unit, label: meta.label, rankMode: Boolean(meta.rankMode) });
+    const meta = PROGRESSION_METRICS[metric] ?? PROGRESSION_METRICS.e1rm;
+    drawLineChart(document.querySelector("#progress-chart"), points, { unit: meta.unit, label: meta.label, rankMode: false });
   }
 }
 
@@ -1160,10 +1183,9 @@ function updateBodyMap(balance) {
   const byKey = new Map(balance.map(item => [item.key, item]));
   const statusScore = { missing: 0, low: 1, balanced: 2, high: 3 };
   document.querySelector(".muscle-map")?.setAttribute("data-body-view", bodyViewMode);
-  document.querySelector("#body-view-toggle").textContent = bodyViewMode === "front" ? "Back view" : "Front view";
-  document.querySelector("#muscle-map-label").textContent = selectedMuscleKey
-    ? (MUSCLE_GROUPS[selectedMuscleKey]?.name ?? "Training map")
-    : `${bodyViewMode.toUpperCase()} TRAINING MAP`;
+  document.querySelector("#body-view-toggle").textContent = bodyViewMode === "front" ? "Front view" : "Back view";
+  const mapLabel = document.querySelector("#muscle-map-label");
+  if (mapLabel) mapLabel.textContent = bodyViewMode === "front" ? "Front view" : "Back view";
   document.querySelectorAll("[data-zone-muscles]").forEach(zone => {
     const keys = zoneMuscleKeys(zone);
     const strongest = keys
@@ -1223,7 +1245,7 @@ function renderMuscles() {
     card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer><small class="muscle-exercise-preview">${escapeHtml(exercisePreview)}</small>`;
     grid.append(card);
   }
-  document.querySelector("#muscle-status-totals").innerHTML = `<div><strong>${counts.balanced}</strong><span>Balanced</span></div><div><strong>${counts.low}</strong><span>Low</span></div><div><strong>${counts.missing}</strong><span>Missing</span></div><div><strong>${counts.high}</strong><span>High volume</span></div>`;
+  document.querySelector("#muscle-status-totals").innerHTML = `<div class="status-balanced"><strong>${counts.balanced}</strong><span>Balanced</span></div><div class="status-low"><strong>${counts.low}</strong><span>Low</span></div><div class="status-missing"><strong>${counts.missing}</strong><span>Missing</span></div><div class="status-high"><strong>${counts.high}</strong><span>High volume</span></div>`;
 }
 
 function rankEstimateText(targetXp, summary) {
@@ -1285,10 +1307,11 @@ function openWorkoutDetail(id) {
   const workout = buildWorkoutAnalyses(state.workouts, catalog(), state.settings).find(item => item.id === id);
   if (!workout) return;
   document.querySelector("#detail-title").textContent = workout.title;
+  const xpBreakdown = workoutXpBreakdown(workout);
   document.querySelector("#detail-content").innerHTML = `
-    <div class="detail-summary"><div><span>Date</span><strong>${formatDate(workout.date)}</strong></div><div><span>Duration</span><strong>${formatNumber(workout.durationMin)} min</strong></div><div><span>Calories</span><strong>${formatNumber(workout.calories)}</strong></div><div><span>Volume</span><strong>${formatNumber(workout.volumeKg)} kg</strong></div></div>
+    <div class="detail-summary"><div><span>Date</span><strong>${formatDate(workout.date)}</strong></div><div><span>Duration</span><strong>${formatNumber(workout.durationMin)} min</strong></div><div><span>XP earned</span><strong>+${formatNumber(xpBreakdown.total)} XP</strong></div><div><span>Volume</span><strong>${formatNumber(workout.volumeKg)} kg</strong></div></div>
     ${workout.notes ? `<p class="muted">${escapeHtml(workout.notes)}</p>` : ""}
-    ${workout.exerciseResults.map(result => `<div class="detail-exercise"><div class="detail-exercise-head"><strong>${escapeHtml(result.exercise.name)}</strong><span class="rank-badge rank-${result.level.rank}">${result.level.rank}</span></div><p>${result.exercise.inputType === "activity" ? `${result.speedKmh ? result.speedKmh.toFixed(1) + " km/h · " : ""}${Math.round(result.activeMinutes)} min` : `${result.totalReps} reps · ${formatNumber(result.volumeKg)} kg volume${result.bestE1RM ? ` · ${result.bestE1RM.toFixed(1)} kg e1RM` : ""}`} · ${Math.round(result.calories)} kcal</p></div>`).join("")}
+    ${workout.exerciseResults.map(result => `<div class="detail-exercise"><div class="detail-exercise-head"><strong>${escapeHtml(result.exercise.name)}</strong><span class="xp-pill">+${formatNumber(xpBreakdown.byExercise.get(result.exerciseId) ?? 0)} XP</span><span class="rank-badge rank-${result.level.rank}">${result.level.rank}</span></div><p>${result.exercise.inputType === "activity" ? `${result.speedKmh ? result.speedKmh.toFixed(1) + " km/h · " : ""}${Math.round(result.activeMinutes)} min` : `${result.totalReps} reps · ${formatNumber(result.volumeKg)} kg volume${result.bestE1RM ? ` · ${result.bestE1RM.toFixed(1)} kg e1RM` : ""}`} · ${Math.round(result.calories)} kcal</p></div>`).join("")}
     <div class="two-col" style="margin-top:16px"><button class="secondary-button" data-edit-workout="${workout.id}" type="button">Edit workout</button><button class="ghost-button" data-repeat-workout="${workout.id}" type="button">Repeat session</button></div>`;
   openModal("detail");
 }
@@ -1572,7 +1595,7 @@ function bindEvents() {
     }
   });
 
-  ["stats-window", "weekly-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { renderStats(); renderActiveCharts(); }));
+  ["stats-window", "weekly-metric"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => { if (id === "weekly-metric" && document.querySelector("#weekly-metric").value === "minutes") document.querySelector("#weekly-metric").value = "sessions"; renderStats(); renderActiveCharts(); }));
   document.querySelector("#progress-search").addEventListener("input", event => {
     progressSearchQuery = event.target.value;
     renderStats();

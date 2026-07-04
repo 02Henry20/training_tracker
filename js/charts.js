@@ -267,23 +267,27 @@ export function drawDonut(canvas, value, target, label) {
       }
       context.shadowBlur = 0;
 
-      // Actual progress marker: small diamond locked to the progress endpoint.
-      const markerSize = Math.max(7, cssSize * 0.044);
+      // Actual progress marker: compact glowing orb locked to the progress endpoint.
+      const markerRadius = Math.max(5.5, cssSize * 0.034);
       const markerX = center + Math.cos(end) * radius;
       const markerY = center + Math.sin(end) * radius;
+      const markerGradient = context.createRadialGradient(markerX - markerRadius * .35, markerY - markerRadius * .35, 1, markerX, markerY, markerRadius * 1.9);
+      markerGradient.addColorStop(0, "rgba(255,255,255,.95)");
+      markerGradient.addColorStop(.28, colors.accent);
+      markerGradient.addColorStop(.72, colors.accent2);
+      markerGradient.addColorStop(1, "rgba(255,255,255,0)");
       context.save();
-      context.translate(markerX, markerY);
-      context.rotate(end + Math.PI / 4);
-      context.fillStyle = colors.accent2;
-      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#050810";
-      context.lineWidth = 2.2;
+      context.shadowColor = colors.accent;
+      context.shadowBlur = 10 + pulse * 8;
+      context.fillStyle = markerGradient;
       context.beginPath();
-      context.moveTo(0, -markerSize);
-      context.lineTo(markerSize, 0);
-      context.lineTo(0, markerSize);
-      context.lineTo(-markerSize, 0);
-      context.closePath();
+      context.arc(markerX, markerY, markerRadius * 1.35, 0, Math.PI * 2);
       context.fill();
+      context.shadowBlur = 0;
+      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#050810";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(markerX, markerY, markerRadius, 0, Math.PI * 2);
       context.stroke();
       context.restore();
     }
