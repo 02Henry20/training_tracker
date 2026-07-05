@@ -1,1 +1,1 @@
-Transparent-background Ascend icon pack. Background removed for app icons and browser tab favicons.
+Dark-background app icon pack with transparent browser favicons. Reinstall PWA after replacing files to refresh Android icon cache.
