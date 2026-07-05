@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.4.1";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -112,6 +112,12 @@ let muscleExercisePage = 0;
 let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
 let levelCelebrationTimer = null;
+let settingsSaveTimer = null;
+let tutorialMode = false;
+let tutorialStepIndex = 0;
+let tutorialBackup = null;
+let tutorialDataCache = null;
+let tutorialRenderLock = false;
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -136,8 +142,17 @@ function currentPlayerSummary() {
   return xpSummary(state.workouts, catalog(), state.settings);
 }
 
+function syncThemeMeta() {
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (!themeMeta) return;
+  const styles = getComputedStyle(document.documentElement);
+  const themeColor = (styles.getPropertyValue('--bg') || styles.getPropertyValue('--panel-solid') || '#09101f').trim();
+  themeMeta.setAttribute('content', themeColor);
+}
+
 function applyRankStage(summary = currentPlayerSummary()) {
   document.documentElement.dataset.rankStage = summary.rank.stageKey ?? "E";
+  syncThemeMeta();
 }
 
 function rankIcon(rank) {
@@ -264,6 +279,7 @@ function applyAppearance(settings = state.settings) {
   document.documentElement.dataset.theme = settings.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.motion = settings.motion === "off" ? "off" : "on";
   applyRankStage();
+  syncThemeMeta();
 }
 
 function updateSyncStatus() {
@@ -937,6 +953,8 @@ function renderDashboard() {
   document.querySelector("#rank-letter").textContent = rankIcon(xp.rank);
   document.querySelector("#rank-name").textContent = xp.rank.label;
   document.querySelector("#brand-stage").textContent = `RANK ${rankTitle(xp.rank)}`;
+  const brandRankIcon = document.querySelector("#brand-rank-icon");
+  if (brandRankIcon) brandRankIcon.textContent = rankIcon(xp.rank);
   document.querySelector("#system-level").textContent = `Level ${xp.level}`;
   document.querySelector("#total-xp").textContent = `${xp.xp.toLocaleString()} XP`;
   const xpFill = document.querySelector("#xp-fill");
@@ -1401,9 +1419,9 @@ function openWorkoutDetail(id) {
   openModal("detail");
 }
 
-function submitSettings(event) {
-  event.preventDefault();
-  const settings = {
+
+function readSettingsForm() {
+  return {
     bodyWeightKg: Number(document.querySelector("#setting-weight").value),
     heightCm: Number(document.querySelector("#setting-height").value),
     birthYear: Number(document.querySelector("#setting-birth-year").value),
@@ -1421,22 +1439,50 @@ function submitSettings(event) {
     theme: document.querySelector("#setting-theme").value,
     motion: document.querySelector("#setting-motion").value
   };
-  const message = document.querySelector("#settings-message");
+}
+
+function validateSettings(settings, message = document.querySelector("#settings-message")) {
   if (settings.bodyWeightKg < 20 || settings.bodyWeightKg > 400 || settings.heightCm < 120 || settings.heightCm > 230) {
     setMessage(message, "Enter a valid body weight and height.", true);
-    return;
+    return false;
   }
   const year = new Date().getFullYear();
   if (settings.birthYear < 1900 || settings.birthYear > year) {
     setMessage(message, "Enter a valid birth year.", true);
-    return;
+    return false;
   }
-  queueWrite(saveSettings(settings), "Settings saved");
-  setMessage(message, "Settings saved locally and queued for synchronization.");
+  return true;
+}
+
+function autoSaveSettings({ quiet = false } = {}) {
+  const settings = readSettingsForm();
+  const message = document.querySelector("#settings-message");
+  if (!validateSettings(settings, message)) return;
+  state.settings = { ...state.settings, ...settings };
+  applyAppearance(state.settings);
   renderCalendar();
   renderStats();
   renderMuscles();
   renderBuilder();
+  renderActiveCharts();
+  if (tutorialMode) {
+    setMessage(message, "Tutorial preview updated. Your account data is untouched.");
+    return;
+  }
+  const promise = saveSettings(settings);
+  promise
+    .then(() => setMessage(message, quiet ? "Saved automatically." : "Saved automatically."))
+    .catch(error => setMessage(message, firebaseErrorMessage(error), true));
+}
+
+function scheduleSettingsAutosave(delay = 350) {
+  window.clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = window.setTimeout(() => autoSaveSettings({ quiet: true }), delay);
+}
+
+function submitSettings(event) {
+  event.preventDefault();
+  autoSaveSettings();
 }
 
 function exportBackup() {
@@ -1465,7 +1511,178 @@ async function importBackup(file) {
   }
 }
 
+
+const TUTORIAL_STEPS = [
+  { view: "dashboard", target: ".rank-hero", title: "Home: your rank core", copy: "This is your player status. XP from saved sessions feeds the rank, level and color aura across the whole app." },
+  { view: "dashboard", target: ".weekly-target", title: "Home: weekly target", copy: "The ring shows how many training days you completed this week compared with your session target." },
+  { view: "dashboard", target: ".records-card", title: "Home: recent advances", copy: "New personal records appear here. The tutorial data creates a few examples so the list is not empty." },
+  { view: "workout", target: "#add-exercise", title: "Train: add movements", copy: "Start a session here. Strength lifts, bodyweight exercises and endurance activities all live inside the same session builder." },
+  { view: "workout", target: ".save-workout-bar", title: "Train: save the session", copy: "After adding entries, this bar saves the workout. Tutorial data is only a preview and never synchronizes." },
+  { view: "stats", target: ".history-panel", title: "Stats: training history", copy: "The calendar shows training load by day. Higher calorie sessions light up with stronger intensity." },
+  { view: "stats", target: "#progression-section", title: "Stats: progression trend", copy: "Pick an exercise and metric to see trend lines for strength, reps, volume, speed or active minutes." },
+  { view: "muscles", target: ".body-system", title: "Body: muscle map", copy: "The body map shows which areas have enough recent work and which muscles need attention." },
+  { view: "muscles", target: ".muscle-grid", title: "Body: muscle cards", copy: "Tap a muscle group to open its exercises. The list is ordered by what appears most often in your training." },
+  { view: "settings", target: "#settings-form", title: "Setup: automatic settings", copy: "Settings apply and save immediately. There is no separate save button anymore." },
+  { view: "settings", target: ".data-action-stack", title: "Setup: backup and sync", copy: "Use manual backups or resolve device sync here. The guided tutorial never writes its sample data to Firebase." }
+];
+
+function materializeTutorialWorkout(workout) {
+  const { daysAgo, ...copy } = deepClone(workout);
+  return {
+    ...copy,
+    date: copy.date || addDays(localDateString(), -Number(daysAgo || 0)),
+    createdAtMs: Date.now() - Number(daysAgo || 0) * 86_400_000,
+    updatedAtMs: Date.now() - Number(daysAgo || 0) * 86_400_000
+  };
+}
+
+async function loadTutorialData() {
+  if (tutorialDataCache) return tutorialDataCache;
+  const response = await fetch("./tutorial-data.json", { cache: "no-store" });
+  if (!response.ok) throw new Error("Tutorial data could not be loaded.");
+  tutorialDataCache = await response.json();
+  return tutorialDataCache;
+}
+
+function applyTutorialDataset(data) {
+  const materialized = (data.workouts ?? []).map(materializeTutorialWorkout);
+  state.workouts = materialized;
+  state.customExercises = [];
+  state.remoteExercises = [];
+  state.settings = { ...state.settings, ...(data.settings ?? {}) };
+  selectedCalendarDate = materialized.at(-1)?.date ?? localDateString();
+  calendarMonth = startOfMonth(selectedCalendarDate);
+  selectedHistoryMonth = selectedCalendarDate.slice(0, 7);
+  selectedProgressExerciseId = "barbell-bench-press";
+  selectedProgressMetric = "e1rm";
+  progressSearchQuery = "";
+  selectedMuscleKey = "chest";
+  bodyViewMode = "front";
+}
+
+function restoreTutorialDataset() {
+  if (!tutorialBackup) return;
+  state.workouts = tutorialBackup.workouts;
+  state.customExercises = tutorialBackup.customExercises;
+  state.remoteExercises = tutorialBackup.remoteExercises;
+  state.settings = tutorialBackup.settings;
+  selectedCalendarDate = tutorialBackup.selectedCalendarDate;
+  calendarMonth = tutorialBackup.calendarMonth;
+  selectedHistoryMonth = tutorialBackup.selectedHistoryMonth;
+  selectedProgressExerciseId = tutorialBackup.selectedProgressExerciseId;
+  selectedProgressMetric = tutorialBackup.selectedProgressMetric;
+  progressSearchQuery = tutorialBackup.progressSearchQuery;
+  selectedMuscleKey = tutorialBackup.selectedMuscleKey;
+  bodyViewMode = tutorialBackup.bodyViewMode;
+  tutorialBackup = null;
+}
+
+function tutorialElements() {
+  return {
+    overlay: document.querySelector("#tutorial-overlay"),
+    focus: document.querySelector("#tutorial-focus"),
+    title: document.querySelector("#tutorial-title"),
+    copy: document.querySelector("#tutorial-copy"),
+    kicker: document.querySelector("#tutorial-kicker"),
+    progress: document.querySelector("#tutorial-progress-fill"),
+    count: document.querySelector("#tutorial-step-count"),
+    back: document.querySelector("#tutorial-back"),
+    next: document.querySelector("#tutorial-next")
+  };
+}
+
+function positionTutorialFocus(targetSelector) {
+  const { focus } = tutorialElements();
+  const target = document.querySelector(targetSelector) || document.querySelector(`[data-view-section="${activeView}"]`);
+  if (!target || !focus) return;
+  target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  window.setTimeout(() => {
+    const rect = target.getBoundingClientRect();
+    const pad = 10;
+    focus.style.left = `${Math.max(8, rect.left - pad)}px`;
+    focus.style.top = `${Math.max(8, rect.top - pad)}px`;
+    focus.style.width = `${Math.min(window.innerWidth - 16, rect.width + pad * 2)}px`;
+    focus.style.height = `${Math.min(window.innerHeight - 16, rect.height + pad * 2)}px`;
+  }, 260);
+}
+
+function showTutorialStep(index) {
+  if (!tutorialMode) return;
+  tutorialStepIndex = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, index));
+  const step = TUTORIAL_STEPS[tutorialStepIndex];
+  tutorialRenderLock = true;
+  navigateTo(step.view);
+  applyTutorialDataset(tutorialDataCache);
+  renderAll();
+  tutorialRenderLock = false;
+  const els = tutorialElements();
+  els.kicker.textContent = `SYSTEM TUTORIAL / ${VIEW_META[step.view]?.[1] ?? "Ascend"}`;
+  els.title.textContent = step.title;
+  els.copy.textContent = step.copy;
+  els.progress.style.width = `${((tutorialStepIndex + 1) / TUTORIAL_STEPS.length) * 100}%`;
+  els.count.textContent = `${tutorialStepIndex + 1} / ${TUTORIAL_STEPS.length}`;
+  els.back.disabled = tutorialStepIndex === 0;
+  els.next.textContent = tutorialStepIndex === TUTORIAL_STEPS.length - 1 ? "Finish" : "Next";
+  positionTutorialFocus(step.target);
+}
+
+async function startTutorial() {
+  try {
+    const data = await loadTutorialData();
+    if (!tutorialMode) {
+      tutorialBackup = {
+        workouts: deepClone(state.workouts),
+        customExercises: deepClone(state.customExercises),
+        remoteExercises: deepClone(state.remoteExercises),
+        settings: deepClone(state.settings),
+        activeView,
+        selectedCalendarDate,
+        calendarMonth,
+        selectedHistoryMonth,
+        selectedProgressExerciseId,
+        selectedProgressMetric,
+        progressSearchQuery,
+        selectedMuscleKey,
+        bodyViewMode
+      };
+    }
+    tutorialMode = true;
+    tutorialDataCache = data;
+    document.body.classList.add("tutorial-active");
+    tutorialElements().overlay.hidden = false;
+    applyTutorialDataset(data);
+    showTutorialStep(0);
+  } catch (error) {
+    showToast("Tutorial unavailable", error.message, "error");
+  }
+}
+
+function stopTutorial({ restoreView = true } = {}) {
+  if (!tutorialMode) return;
+  const previousView = tutorialBackup?.activeView ?? "dashboard";
+  tutorialMode = false;
+  document.body.classList.remove("tutorial-active");
+  tutorialElements().overlay.hidden = true;
+  restoreTutorialDataset();
+  if (restoreView) navigateTo(previousView);
+  renderAll();
+}
+
+function nextTutorialStep() {
+  if (tutorialStepIndex >= TUTORIAL_STEPS.length - 1) {
+    stopTutorial();
+    showToast("Tutorial complete", "Your original data is restored.");
+    return;
+  }
+  showTutorialStep(tutorialStepIndex + 1);
+}
+
+function previousTutorialStep() {
+  showTutorialStep(tutorialStepIndex - 1);
+}
+
 function renderAll() {
+  if (tutorialMode && tutorialDataCache && !tutorialRenderLock) applyTutorialDataset(tutorialDataCache);
   applyAppearance();
   updateSyncStatus();
   renderDashboard();
@@ -1754,6 +1971,10 @@ function bindEvents() {
     renderMuscles();
   });
   document.querySelector("#settings-form").addEventListener("submit", submitSettings);
+  document.querySelectorAll("#settings-form input, #settings-form select").forEach(control => {
+    const eventName = control.type === "checkbox" || control.tagName === "SELECT" ? "change" : "input";
+    control.addEventListener(eventName, () => scheduleSettingsAutosave(eventName === "change" ? 0 : 450));
+  });
   document.querySelector("#setting-birth-year").addEventListener("input", event => {
     const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
     document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
@@ -1761,10 +1982,18 @@ function bindEvents() {
   ["setting-theme", "setting-motion"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => {
     applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, motion: document.querySelector("#setting-motion").value });
     renderActiveCharts();
+    scheduleSettingsAutosave(0);
   }));
   document.querySelector("#open-rank-guide").addEventListener("click", () => {
     renderRankGuide();
     openModal("ranks");
+  });
+  document.querySelector("#start-tutorial")?.addEventListener("click", startTutorial);
+  document.querySelector("#tutorial-next")?.addEventListener("click", nextTutorialStep);
+  document.querySelector("#tutorial-back")?.addEventListener("click", previousTutorialStep);
+  document.querySelector("#tutorial-close")?.addEventListener("click", () => stopTutorial());
+  window.addEventListener("keydown", event => {
+    if (tutorialMode && event.key === "Escape") stopTutorial();
   });
 
   document.querySelector("#open-sync-choice").addEventListener("click", async () => {
