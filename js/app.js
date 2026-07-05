@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.1";
+const APP_VERSION = "0.3.2";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -691,7 +691,7 @@ function activityFieldsHtml(exercise, entry, entryIndex) {
 function renderBuilder() {
   syncDraftMetaToForm();
   const allExercises = catalog();
-  elements.builderEmpty.hidden = draftWorkout.exercises.length > 0;
+  elements.builderEmpty.hidden = true;
   elements.builderList.replaceChildren();
 
   draftWorkout.exercises.forEach((entry, entryIndex) => {
@@ -1219,9 +1219,12 @@ function renderProgressPicker() {
 function renderStats() {
   const days = Number(state.settings.statsWindowDays || 28);
   const stats = statistics(state.workouts, catalog(), state.settings, days);
+  const caloriesPerDay = stats.totalCalories / Math.max(1, days);
   document.querySelector("#stat-frequency").textContent = stats.sessionsPerWeek.toFixed(1);
   document.querySelector("#stat-session-total").textContent = `${stats.sessions} active day${stats.sessions === 1 ? "" : "s"}`;
-  document.querySelector("#stat-calories").textContent = formatNumber(stats.totalCalories);
+  document.querySelector("#stat-calories").textContent = formatNumber(caloriesPerDay);
+  const caloriesCopy = document.querySelector("#stat-calories-copy");
+  if (caloriesCopy) caloriesCopy.textContent = `avg across ${days}d`;
 
   renderProgressPicker();
 
@@ -1350,7 +1353,7 @@ function renderRankGuide() {
         const targetXp = xpForLevel(rank.minLevel);
         const reached = summary.xp >= targetXp;
         const active = rank.stageKey === summary.rank.stageKey;
-        return `<article class="rank-guide-row ${reached ? "reached" : ""} ${active ? "active" : ""}">
+        return `<article class="rank-guide-row rank-stage-${escapeHtml(rank.stageKey)} ${reached ? "reached" : ""} ${active ? "active" : ""}" data-rank-stage="${escapeHtml(rank.stageKey)}">
           <span class="rank-badge rank-${escapeHtml(rank.stageKey)}">${escapeHtml(rankIcon(rank))}</span>
           <div><strong>${escapeHtml(rank.label)}</strong><small>Level ${rank.minLevel} / ${targetXp.toLocaleString()} XP</small><p>${escapeHtml(rank.description)}</p></div>
           <em>${escapeHtml(active ? "Current" : rankEstimateText(targetXp, summary))}</em>

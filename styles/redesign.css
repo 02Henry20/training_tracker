@@ -3298,3 +3298,92 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     margin-top: 26px;
   }
 }
+
+
+/* Ascend 0.3.2 refinements */
+@media (min-width: 901px) {
+  .history-panel {
+    align-items: stretch !important;
+  }
+  .history-side {
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    align-self: stretch !important;
+  }
+  .history-side .calendar-detail {
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 430px !important;
+  }
+  .stats-grid {
+    align-items: stretch !important;
+  }
+  .consistency-stack {
+    display: grid !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    align-self: stretch !important;
+    min-height: 100% !important;
+  }
+  .consistency-card {
+    min-height: 330px !important;
+    height: 100% !important;
+  }
+  .consistency-card .chart-wrap {
+    min-height: 245px !important;
+    height: 245px !important;
+  }
+}
+
+.rank-guide-row.rank-stage-E,
+.rank-guide-row.rank-stage-E .rank-badge { --rank-color: #7fb8ff; --rank-glow: 127,184,255; }
+.rank-guide-row.rank-stage-E-plus,
+.rank-guide-row.rank-stage-E-plus .rank-badge { --rank-color: #30e7ff; --rank-glow: 48,231,255; }
+.rank-guide-row.rank-stage-D,
+.rank-guide-row.rank-stage-D .rank-badge { --rank-color: #37efb6; --rank-glow: 55,239,182; }
+.rank-guide-row.rank-stage-D-plus,
+.rank-guide-row.rank-stage-D-plus .rank-badge { --rank-color: #aaff52; --rank-glow: 170,255,82; }
+.rank-guide-row.rank-stage-C,
+.rank-guide-row.rank-stage-C .rank-badge { --rank-color: #ffe45c; --rank-glow: 255,228,92; }
+.rank-guide-row.rank-stage-C-plus,
+.rank-guide-row.rank-stage-C-plus .rank-badge { --rank-color: #ffb039; --rank-glow: 255,176,57; }
+.rank-guide-row.rank-stage-B,
+.rank-guide-row.rank-stage-B .rank-badge { --rank-color: #ff6f42; --rank-glow: 255,111,66; }
+.rank-guide-row.rank-stage-B-plus,
+.rank-guide-row.rank-stage-B-plus .rank-badge { --rank-color: #ff3d5e; --rank-glow: 255,61,94; }
+.rank-guide-row.rank-stage-A,
+.rank-guide-row.rank-stage-A .rank-badge { --rank-color: #b577ff; --rank-glow: 181,119,255; }
+.rank-guide-row.rank-stage-A-plus,
+.rank-guide-row.rank-stage-A-plus .rank-badge { --rank-color: #ff4fd8; --rank-glow: 255,79,216; }
+.rank-guide-row.rank-stage-S,
+.rank-guide-row.rank-stage-S .rank-badge { --rank-color: #fff8cf; --rank-glow: 255,248,207; }
+.rank-guide-row.rank-stage-S-plus,
+.rank-guide-row.rank-stage-S-plus .rank-badge { --rank-color: #ffd35a; --rank-glow: 255,211,90; }
+.rank-guide-row.rank-stage-World,
+.rank-guide-row.rank-stage-World .rank-badge { --rank-color: #f5fbff; --rank-glow: 86,234,255; }
+.rank-guide-row.rank-stage-Monarch,
+.rank-guide-row.rank-stage-Monarch .rank-badge { --rank-color: #d9b8ff; --rank-glow: 187,108,255; }
+
+.rank-guide-row {
+  border-color: rgba(var(--rank-glow, var(--accent-rgb)), .22) !important;
+  background:
+    linear-gradient(135deg, rgba(var(--rank-glow, var(--accent-rgb)), .105), rgba(var(--rank-glow, var(--accent-rgb)), .025)),
+    rgba(255,255,255,.018) !important;
+}
+.rank-guide-row .rank-badge {
+  color: var(--rank-color, var(--accent)) !important;
+  border-color: rgba(var(--rank-glow, var(--accent-rgb)), .58) !important;
+  background:
+    linear-gradient(145deg, rgba(var(--rank-glow, var(--accent-rgb)), .2), rgba(var(--rank-glow, var(--accent-rgb)), .055)),
+    rgba(0,0,0,.12) !important;
+  box-shadow: inset 0 0 22px rgba(var(--rank-glow, var(--accent-rgb)), .12), 0 0 18px rgba(var(--rank-glow, var(--accent-rgb)), .13) !important;
+  text-shadow: 0 0 15px rgba(var(--rank-glow, var(--accent-rgb)), .45) !important;
+}
+.rank-guide-row small,
+.rank-guide-row em {
+  color: var(--rank-color, var(--accent)) !important;
+}
+:root[data-theme="light"] .rank-guide-row {
+  background:
+    linear-gradient(135deg, rgba(var(--rank-glow, var(--accent-rgb)), .13), rgba(var(--rank-glow, var(--accent-rgb)), .04)),
+    rgba(255,255,255,.82) !important;
+}

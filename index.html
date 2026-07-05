@@ -124,7 +124,7 @@
               <label class="field"><span>Date</span><input id="workout-date" type="date" required></label>
               <p class="field-hint duration-auto-note">Duration is estimated from the first logged entry until saving. You can review it before saving unless disabled in settings.</p>
             </article>
-            <div id="builder-empty" class="builder-empty panel"><span>＋</span><h3>Add your first exercise</h3><p>Strength lifts, bodyweight work and endurance activities can share the same session.</p></div>
+            <div id="builder-empty" class="builder-empty panel" hidden></div>
             <div id="exercise-builder-list" class="exercise-builder-list"></div>
             <button id="add-exercise" class="add-exercise-button" data-open-picker type="button">＋ Add exercise or activity</button>
             <article class="save-workout-bar panel">
@@ -143,7 +143,7 @@
               <div class="calendar-legend"><span>E-light</span><i class="tier-1 rank-tier-1"></i><i class="tier-2 rank-tier-2"></i><i class="tier-3 rank-tier-3"></i><i class="tier-4 rank-tier-4"></i><span>S-hard</span><small>Color tier uses kcal load.</small></div>
             </article>
             <div class="history-side">
-              <div class="stats-metrics compact-stats"><article class="metric-card panel"><span>Sessions / week</span><strong id="stat-frequency">0</strong><small id="stat-session-total">0 sessions</small></article><article class="metric-card panel"><span>Estimated calories</span><strong id="stat-calories">0</strong><small>training only</small></article></div>
+              <div class="stats-metrics compact-stats"><article class="metric-card panel"><span>Sessions / week</span><strong id="stat-frequency">0</strong><small id="stat-session-total">0 sessions</small></article><article class="metric-card panel"><span>Estimated kcal / day</span><strong id="stat-calories">0</strong><small id="stat-calories-copy">avg over period</small></article></div>
               <article class="calendar-detail panel"><div class="panel-heading"><div><p class="eyebrow">SELECTED HISTORY</p><h3 id="calendar-day-title">Choose a date</h3></div><span id="calendar-day-total" class="tag">—</span></div><div id="calendar-day-list" class="session-list"></div></article>
             </div>
           </div>

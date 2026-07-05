@@ -19,7 +19,7 @@ export const PLAYER_RANKS = Object.freeze([
   { rank: "Monarch", stageKey: "Monarch", icon: "♕", label: "Shadow Monarch", minLevel: 53, description: "Endgame pressure. Every session is a command: maintain the throne, sharpen the system, leave no dead zones." }
 ]);
 
-const XP_PER_LEVEL = 500;
+const XP_PER_LEVEL = 60000 / 52;
 const HISTORY_TIER_XP = [180, 420, 720, 1050];
 
 export function xpForLevel(level) {

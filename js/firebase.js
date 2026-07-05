@@ -17,6 +17,7 @@ import {
   getDocsFromCache,
   getDocsFromServer,
   initializeFirestore,
+  memoryLocalCache,
   onSnapshot,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -28,9 +29,26 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const firebaseApp = initializeApp(firebaseConfig);
 
-export const db = initializeFirestore(firebaseApp, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-});
+const firestoreConnectionSettings = {
+  experimentalAutoDetectLongPolling: true
+};
+
+function createFirestoreDatabase() {
+  try {
+    return initializeFirestore(firebaseApp, {
+      ...firestoreConnectionSettings,
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+  } catch (error) {
+    console.warn("Persistent Firestore cache unavailable; falling back to memory cache.", error);
+    return initializeFirestore(firebaseApp, {
+      ...firestoreConnectionSettings,
+      localCache: memoryLocalCache()
+    });
+  }
+}
+
+export const db = createFirestoreDatabase();
 
 export const auth = getAuth(firebaseApp);
 
