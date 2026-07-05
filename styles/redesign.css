@@ -3526,3 +3526,58 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     padding-inline: 10px;
   }
 }
+
+
+/* 0.3.5 expanded tutorial spotlight: blur only the inactive area, never the selected element. */
+.tutorial-overlay {
+  z-index: 900 !important;
+}
+.tutorial-dim { display: none !important; }
+.tutorial-dim-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.tutorial-dim-block {
+  position: fixed;
+  display: block;
+  background: rgba(0, 0, 0, .68);
+  backdrop-filter: blur(3px) saturate(.78);
+  -webkit-backdrop-filter: blur(3px) saturate(.78);
+  box-shadow: inset 0 0 90px rgba(0,0,0,.35);
+}
+.tutorial-card {
+  width: min(520px, calc(100vw - 28px));
+  max-height: min(470px, calc(100svh - 28px));
+  z-index: 925;
+}
+.tutorial-card p:not(.eyebrow) {
+  font-size: .94rem;
+  line-height: 1.68;
+}
+.tutorial-focus {
+  z-index: 920 !important;
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 8px !important;
+  filter: none !important;
+  transform: translateZ(0);
+  box-shadow:
+    0 0 0 7px rgba(var(--accent-rgb), .13),
+    0 0 0 1px rgba(var(--accent-rgb), .75),
+    0 0 44px rgba(var(--accent-rgb), .42) !important;
+}
+.tutorial-focus::after {
+  opacity: .16 !important;
+}
+:root[data-theme="light"] .tutorial-dim-block {
+  background: rgba(17, 23, 34, .42);
+  backdrop-filter: blur(3px) saturate(.85);
+  -webkit-backdrop-filter: blur(3px) saturate(.85);
+}
+@media (max-width: 680px) {
+  .tutorial-card {
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    max-height: min(56svh, 480px);
+  }
+  .tutorial-card p:not(.eyebrow) { font-size: .88rem; }
+}

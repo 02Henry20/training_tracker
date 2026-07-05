@@ -142,66 +142,148 @@ function deepClone(value) {
 const TUTORIAL_STEPS = [
   {
     view: "dashboard",
+    target: ".command-brand",
+    title: "System header",
+    copy: "This header is your permanent status strip. The mark on the left shows your current rank, the center navigation jumps between the main modules, and the sync pill tells you whether your account is saved, pending, offline, or checking Firebase."
+  },
+  {
+    view: "dashboard",
     target: ".rank-hero",
-    title: "Your rank hub",
-    copy: "This is the main player panel. Every saved workout adds XP, moves the level bar, and can push you into a new rank tier."
+    title: "Current rank and XP",
+    copy: "This is the player card. Saved sessions generate XP, XP fills the rail, and the rank label changes once you cross the next threshold. The tutorial uses temporary data so you can see a living account without touching your own history."
+  },
+  {
+    view: "dashboard",
+    target: "#last-training-card",
+    title: "Training recency",
+    copy: "This card answers the simplest consistency question: how long has it been since the last session? Fresh training keeps it calm; longer gaps make the system more urgent."
   },
   {
     view: "dashboard",
     target: ".weekly-target",
     title: "Weekly quest target",
-    copy: "This circle shows whether the current week is on pace. The tutorial data is temporary, so you can see the target filled without touching your real account."
+    copy: "The weekly circle compares completed training days against the target from Setup. Use it as the main habit checkpoint: if the circle is behind, the week still needs another session."
   },
   {
     view: "dashboard",
     target: ".records-card",
     title: "Recent advances",
-    copy: "Personal records appear here when an exercise improves beyond its previous baseline. Use All ranks to jump into the full progression view."
+    copy: "Personal records are detected when a lift, bodyweight movement, timed set, or activity improves beyond its earlier baseline. The All ranks link jumps directly to the detailed progression chart."
+  },
+  {
+    view: "dashboard",
+    target: ".recent-card",
+    title: "Latest sessions",
+    copy: "The session log summarizes what was trained recently. Each entry contributes calories, XP, exercise previews, and the history used by Stats and Balance."
   },
   {
     view: "workout",
-    target: "#exercise-builder-list",
+    target: ".session-meta",
     draft: true,
-    title: "Build a session",
-    copy: "Add strength lifts, bodyweight work, or endurance activities into the same session. The preview line estimates calories and rank level before saving."
+    title: "Start a training session",
+    copy: "The Train page begins with the date. Duration is estimated from the moment you first add an exercise until saving, so you do not need to manually time every session unless you want to adjust it."
+  },
+  {
+    view: "workout",
+    target: "#add-exercise",
+    draft: true,
+    title: "Add exercises and activities",
+    copy: "Use this button to open the exercise picker. Strength lifts, bodyweight work, treadmill running, outdoor running, hiking, cycling, swimming, and other activities can all live in the same session."
+  },
+  {
+    view: "workout",
+    target: "#exercise-builder-list .exercise-block:first-child",
+    draft: true,
+    title: "Edit sets and effort",
+    copy: "Exercise blocks hold the actual training data. For weighted lifts, enter load and reps. For bodyweight moves, enter reps and added weight if needed. The preview line recalculates calories and level instantly."
+  },
+  {
+    view: "workout",
+    target: "#exercise-builder-list .exercise-block:last-child",
+    draft: true,
+    title: "Endurance inside the same log",
+    copy: "Activity blocks use duration, distance, incline, elevation, or intensity fields instead of sets. This is why treadmill running and outdoor running are separate: the app can estimate them differently."
   },
   {
     view: "workout",
     target: ".save-workout-bar",
     draft: true,
-    title: "Save only real sessions",
-    copy: "In normal use this saves to your account. During the tutorial, the example session is isolated and never synchronizes to Firebase."
+    title: "Saving is the commit point",
+    copy: "In normal use, Save workout writes the completed session to your account and queues it for Firebase. In tutorial mode, this button is only explained—the sample data never synchronizes."
   },
   {
     view: "stats",
     target: ".calendar-card",
     title: "Training history",
-    copy: "The calendar colors sessions by energy load. Light days stay subtle; harder days become stronger markers."
+    copy: "The history calendar is the activity map of the account. Month mode shows individual days; year mode compresses the view into months. Colors are based on estimated calorie load so hard days stand out."
+  },
+  {
+    view: "stats",
+    target: ".calendar-legend",
+    title: "Energy color scale",
+    copy: "The legend runs from E-light to S-hard. Low-calorie sessions stay subtle, while very demanding days receive stronger coloring. This gives the calendar a quick read without opening each session."
+  },
+  {
+    view: "stats",
+    target: ".calendar-detail",
+    title: "Selected history detail",
+    copy: "Selecting a day or month opens the sessions behind that block. This is where you can review what actually created the XP, calories, and muscle coverage for the selected history item."
+  },
+  {
+    view: "stats",
+    target: ".compact-stats",
+    title: "Period statistics",
+    copy: "These summary boxes use the period configured in Setup. Sessions per week shows training frequency, while estimated kcal per day turns the selected period into a comparable average."
+  },
+  {
+    view: "stats",
+    target: ".consistency-stack",
+    title: "Consistency and energy charts",
+    copy: "These charts separate behavior from workload. Frequency shows whether you kept showing up; energy shows how demanding those weeks were. Together they reveal whether progress came from more sessions, harder sessions, or both."
   },
   {
     view: "stats",
     target: "#progression-section",
     title: "Exercise progression",
-    copy: "Search a logged exercise and switch metrics to inspect estimated 1RM, volume, reps, time, speed, or activity trends."
+    copy: "Search any logged exercise and choose the metric that makes sense for it: estimated 1RM, volume, reps, hold time, active minutes, speed, or distance. This is the main place to inspect whether a specific exercise is moving upward."
   },
   {
     view: "muscles",
     target: ".body-system",
     muscle: "chest",
-    title: "Body balance map",
-    copy: "Tap a muscle group to see coverage, status, and the exercises contributing to that region. The list below opens automatically on mobile."
+    title: "Muscle coverage map",
+    copy: "Balance converts your recent sessions into muscle coverage. Tap the body map to select a region. The highlighted tutorial region is opened below so you can see how the map connects to exercise history."
+  },
+  {
+    view: "muscles",
+    target: "#muscle-grid .muscle-card.selected",
+    muscle: "chest",
+    title: "Muscle detail cards",
+    copy: "Each muscle card shows effective sets against your target, a status label, recovery context, and the most relevant exercises. Re-tap a selected muscle to fold its exercise list again."
   },
   {
     view: "settings",
     target: "#settings-form",
-    title: "Setup changes save instantly",
-    copy: "Every setting applies immediately. No save button is needed. Tutorial mode restores your real settings when you leave."
+    title: "Autosaving setup",
+    copy: "Setup calibrates the whole model: body weight, height, strength reference, weekly targets, statistics windows, appearance, and motion. Every change applies immediately and saves automatically—there is no save button."
   },
   {
     view: "settings",
-    target: ".data-action-stack",
-    title: "Backup and sync",
-    copy: "Use export/import for manual backups and Resolve device sync if Firestore and this device ever disagree."
+    target: "#open-rank-guide",
+    title: "Rank guide",
+    copy: "The rank guide explains each stage and how far the XP ladder extends. It is useful when you want the app to feel more like a long campaign instead of a simple workout counter."
+  },
+  {
+    view: "settings",
+    target: ".settings-card:last-child .data-action-stack",
+    title: "Backup and sync tools",
+    copy: "Use Resolve device sync if this device and Firestore disagree. Export JSON creates a manual backup, and Import JSON restores from one. These tools are separate from tutorial mode."
+  },
+  {
+    view: "settings",
+    target: "#start-tutorial",
+    title: "Replay this anytime",
+    copy: "This button restarts the guided tour. It temporarily loads tutorial-data.json, walks through the app, and then restores your real account data when you close or finish the tutorial."
   }
 ];
 
@@ -386,7 +468,12 @@ function tutorialOverlay() {
   overlay.id = "tutorial-overlay";
   overlay.className = "tutorial-overlay";
   overlay.innerHTML = `
-    <div class="tutorial-dim" aria-hidden="true"></div>
+    <div class="tutorial-dim-layer" aria-hidden="true">
+      <span class="tutorial-dim-block" data-tutorial-dim="top"></span>
+      <span class="tutorial-dim-block" data-tutorial-dim="right"></span>
+      <span class="tutorial-dim-block" data-tutorial-dim="bottom"></span>
+      <span class="tutorial-dim-block" data-tutorial-dim="left"></span>
+    </div>
     <section class="tutorial-card panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
       <button id="tutorial-close" class="tutorial-close" type="button" aria-label="Close tutorial">×</button>
       <p class="eyebrow">GUIDED TOUR</p>
@@ -421,22 +508,54 @@ function prepareTutorialStep(step) {
   }
 }
 
+function updateTutorialDim(target) {
+  const overlay = tutorialOverlay();
+  const blocks = {
+    top: overlay.querySelector('[data-tutorial-dim="top"]'),
+    right: overlay.querySelector('[data-tutorial-dim="right"]'),
+    bottom: overlay.querySelector('[data-tutorial-dim="bottom"]'),
+    left: overlay.querySelector('[data-tutorial-dim="left"]')
+  };
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const fallback = { left: 0, top: 0, right: 0, bottom: 0 };
+  const raw = target?.getBoundingClientRect?.() ?? fallback;
+  const pad = target ? 10 : 0;
+  const left = Math.max(0, Math.min(vw, raw.left - pad));
+  const top = Math.max(0, Math.min(vh, raw.top - pad));
+  const right = Math.max(left, Math.min(vw, raw.right + pad));
+  const bottom = Math.max(top, Math.min(vh, raw.bottom + pad));
+  const setRect = (node, x, y, width, height) => {
+    if (!node) return;
+    node.style.left = `${Math.max(0, x)}px`;
+    node.style.top = `${Math.max(0, y)}px`;
+    node.style.width = `${Math.max(0, width)}px`;
+    node.style.height = `${Math.max(0, height)}px`;
+  };
+  setRect(blocks.top, 0, 0, vw, top);
+  setRect(blocks.bottom, 0, bottom, vw, vh - bottom);
+  setRect(blocks.left, 0, top, left, bottom - top);
+  setRect(blocks.right, right, top, vw - right, bottom - top);
+}
+
 function positionTutorialCard(target) {
   const overlay = tutorialOverlay();
   const card = overlay.querySelector(".tutorial-card");
+  updateTutorialDim(target);
   if (!target) {
     card.style.removeProperty("--tutorial-card-x");
     card.style.removeProperty("--tutorial-card-y");
     return;
   }
   const rect = target.getBoundingClientRect();
-  const cardWidth = Math.min(460, window.innerWidth - 28);
+  const cardWidth = Math.min(520, window.innerWidth - 28);
+  const estimatedCardHeight = Math.min(360, window.innerHeight - 28);
   let x = Math.min(window.innerWidth - cardWidth - 14, Math.max(14, rect.left + rect.width / 2 - cardWidth / 2));
   let y = rect.bottom + 18;
-  if (y + 260 > window.innerHeight) y = Math.max(14, rect.top - 280);
+  if (y + estimatedCardHeight > window.innerHeight) y = Math.max(14, rect.top - estimatedCardHeight - 18);
   if (window.innerWidth <= 680) {
     x = 12;
-    y = window.innerHeight - 260;
+    y = window.innerHeight - 322;
   }
   card.style.setProperty("--tutorial-card-x", `${x}px`);
   card.style.setProperty("--tutorial-card-y", `${y}px`);
