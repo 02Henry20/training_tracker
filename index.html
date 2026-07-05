@@ -3,16 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#09101f">
+  <meta name="theme-color" content="#071326">
   <meta name="description" content="Ranked training progress, activity tracking and muscle-balance analytics.">
   <link rel="manifest" href="./manifest.webmanifest">
-  
-  <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
-  <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="shortcut icon" href="./icons/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+  <link rel="icon" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="stylesheet" href="./styles/base.css">
   <link rel="stylesheet" href="./styles/components.css">
   <link rel="stylesheet" href="./styles/layout.css">
@@ -70,7 +65,7 @@
   <div id="app-shell" class="app-shell" hidden>
     <header class="command-header">
       <div class="command-brand">
-        <div class="track-mark small" aria-hidden="true"><span id="brand-rank-icon">E</span><i></i></div>
+        <div class="track-mark small" aria-hidden="true"><span>AR</span><i></i></div>
         <div><strong>ASCEND</strong><small id="brand-stage">RANK E</small></div>
       </div>
 
@@ -237,10 +232,10 @@
               <label class="toggle-row"><input id="setting-show-rir" type="checkbox"><span><strong>Show RIR fields</strong><small>Add repetitions-in-reserve inputs to workout sets.</small></span></label><label class="toggle-row"><input id="setting-duration-prompt" type="checkbox"><span><strong>Review estimated duration <button class="info-button" type="button" data-info="When enabled, saving a new workout opens a small duration field. The default value is estimated from the first logged entry until save. Disable this to save the estimate automatically.">i</button></strong><small>Show a duration adjustment field before saving new sessions.</small></span></label>
               <label class="field"><span>Appearance <button class="info-button" type="button" data-info="Switches the app between dark and light themes. Rank colors still adapt to your current rank.">i</button></span><select id="setting-theme"><option value="dark">Dark</option><option value="light">Light</option></select><small class="field-hint">Aura color is bound to your current player rank.</small></label>
               <label class="field"><span>Motion <button class="info-button" type="button" data-info="Turns most interface animations on or off. Mobile Stats and Balance stay reduced for smoother scrolling.">i</button></span><select id="setting-motion"><option value="on">Animations on</option><option value="off">Reduced motion</option></select></label>
-              <p id="settings-message" class="form-message settings-auto-message">Changes save automatically.</p>
+              <button class="primary-button" type="submit">Save settings</button><p id="settings-message" class="form-message"></p>
             </form></article>
 
-            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">RANK LADDER</p><h3>Stages and XP <button class="info-button" type="button" data-info="Ranks are based on total XP from saved workouts. The estimate uses your current average XP pace.">i</button></h3></div></div><button id="open-rank-guide" class="secondary-button full-width" type="button">Open rank guide</button><button id="start-tutorial" class="primary-button full-width tutorial-start-button" type="button">Start guided tutorial</button></article>
+            <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">RANK LADDER</p><h3>Stages and XP <button class="info-button" type="button" data-info="Ranks are based on total XP from saved workouts. The estimate uses your current average XP pace.">i</button></h3></div></div><button id="open-rank-guide" class="secondary-button full-width" type="button">Open rank guide</button></article>
 
             <article class="settings-card panel"><div class="panel-heading"><div><p class="eyebrow">DATA</p><h3>Account and backup <button class="info-button" type="button" data-info="Resolve sync compares this device with Firestore. Export and import are manual backups for extra safety.">i</button></h3></div></div><div class="info-list"><div><span>Signed in as</span><strong id="settings-email">—</strong></div><div><span>Workouts</span><strong id="settings-workouts">0</strong></div><div><span>Offline cache</span><strong>Enabled</strong></div><div><span>Cloud database</span><strong>Firestore</strong></div><div><span>App version</span><strong id="app-version">—</strong></div></div><div class="data-action-stack"><button id="open-sync-choice" class="secondary-button full-width sync-resolve-button" type="button">Resolve device sync</button><button id="export-data" class="secondary-button full-width" type="button">Export JSON backup</button><label class="secondary-button full-width file-button">Import JSON backup<input id="import-data" type="file" accept="application/json" hidden></label></div><div class="danger-zone"><div><strong>Total reset</strong><span>Type RESET to delete workouts, legacy saved structures and settings from this account.</span></div><label class="field"><span>Confirmation</span><input id="reset-confirm" type="text" autocomplete="off" placeholder="RESET"></label><button id="reset-all-data" class="danger-button full-width" type="button" disabled>Reset all data</button></div><button id="sign-out" class="ghost-button full-width settings-sign-out" type="button">Log out</button><p class="disclaimer">Strength levels and calorie estimates are training references. Equipment calibration, technique, terrain and individual efficiency can shift the result.</p></article>
           </div>
@@ -260,24 +255,6 @@
     <section class="modal-card sync-modal" data-modal="sync" hidden><div class="modal-heading"><div><p class="eyebrow">SYNC CHOICE</p><h3>Device data check</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div class="sync-grid"><div><span>This device</span><strong id="sync-local-summary">—</strong></div><div><span>Cloud</span><strong id="sync-cloud-summary">—</strong></div></div><div class="sync-actions"><button class="primary-button" data-sync-choice="merge" type="button">Merge safely</button><button class="secondary-button" data-sync-choice="cloud" type="button">Fetch cloud</button><button class="ghost-button" data-sync-choice="device" type="button">Push this device</button></div><p class="disclaimer">Merge keeps cloud-only records and chooses newer matching records. Fetch cloud refreshes this device from Firestore. Push this device uploads local records without deleting cloud-only workouts.</p></section>
     <section class="modal-card rank-guide-modal" data-modal="ranks" hidden><div class="modal-heading"><div><p class="eyebrow">RANK GUIDE</p><h3>Player stages</h3></div><button class="icon-button" data-close-modal type="button">×</button></div><div id="rank-guide-content" class="rank-guide-content"></div></section>
     <section class="modal-card confirm-modal" data-modal="confirm" hidden><div class="confirm-mark">!</div><h3 id="confirm-title">Confirm</h3><p id="confirm-copy" class="muted"></p><div class="two-col"><button id="confirm-cancel" class="ghost-button" type="button">Cancel</button><button id="confirm-accept" class="danger-button" type="button">Delete</button></div></section>
-  </div>
-
-
-
-  <div id="tutorial-overlay" class="tutorial-overlay" hidden>
-    <div id="tutorial-focus" class="tutorial-focus-frame"></div>
-    <section class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
-      <button id="tutorial-close" class="tutorial-close icon-button" type="button" aria-label="Close tutorial">×</button>
-      <p class="eyebrow" id="tutorial-kicker">SYSTEM TUTORIAL</p>
-      <h3 id="tutorial-title">Welcome</h3>
-      <p id="tutorial-copy" class="muted"></p>
-      <div class="tutorial-controls">
-        <button id="tutorial-back" class="ghost-button" type="button">Back</button>
-        <div class="tutorial-progress" aria-hidden="true"><span id="tutorial-progress-fill"></span></div>
-        <button id="tutorial-next" class="primary-button" type="button">Next</button>
-      </div>
-      <small id="tutorial-step-count" class="tutorial-step-count">1 / 1</small>
-    </section>
   </div>
 
   <div id="toast-container" class="toast-container"></div>
