@@ -3402,3 +3402,6 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
   min-height: 1.4em;
   margin-top: 2px;
 }
+
+/* Login screen no longer shows the AR mark. */
+.auth-stage-top-clean { justify-content: flex-end !important; }
