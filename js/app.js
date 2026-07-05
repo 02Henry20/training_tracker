@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.3.1";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -1483,12 +1483,31 @@ function shiftHistoryPeriod(delta) {
   renderCalendar();
 }
 
+function scrollElementIntoContentView(selector, behavior = "smooth") {
+  const target = document.querySelector(selector);
+  if (!target) return;
+  window.requestAnimationFrame(() => target.scrollIntoView({ behavior, block: "start", inline: "nearest" }));
+}
+
+function scrollSelectedMuscleIntoView() {
+  if (!selectedMuscleKey) return;
+  scrollElementIntoContentView(`[data-muscle-card="${CSS.escape(selectedMuscleKey)}"]`);
+}
+
+function navigateFromButton(button) {
+  navigateTo(button.dataset.goView);
+  const mobileTarget = button.dataset.mobileScrollTarget;
+  if (mobileTarget && window.matchMedia("(max-width: 760px)").matches) {
+    scrollElementIntoContentView(mobileTarget);
+  }
+}
+
 function bindEvents() {
   elements.authForm.addEventListener("submit", submitAuth);
   elements.signOut.addEventListener("click", () => { void handleSignOut(); });
 
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.view)));
-  document.querySelectorAll("[data-go-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.goView)));
+  document.querySelectorAll("[data-go-view]").forEach(button => button.addEventListener("click", () => navigateFromButton(button)));
   document.querySelector("#header-start-workout").addEventListener("click", () => startNewWorkout());
 
   document.querySelectorAll("[data-open-picker]").forEach(button => button.addEventListener("click", () => openModal("picker")));
@@ -1626,6 +1645,7 @@ function bindEvents() {
       selectedMuscleKey = selectedMuscleKey === nextKey ? null : nextKey;
       muscleExercisePage = 0;
       renderMuscles();
+      if (selectedMuscleKey && window.matchMedia("(max-width: 760px)").matches) scrollSelectedMuscleIntoView();
       return;
     }
     const muscleCard = event.target.closest("[data-muscle-card]");
@@ -1634,6 +1654,7 @@ function bindEvents() {
       selectedMuscleKey = selectedMuscleKey === nextKey ? null : nextKey;
       muscleExercisePage = 0;
       renderMuscles();
+      if (selectedMuscleKey && window.matchMedia("(max-width: 760px)").matches) scrollSelectedMuscleIntoView();
       return;
     }
     if (selectedMuscleKey && !event.target.closest("#selected-muscle-panel") && !event.target.closest(".body-controls")) {

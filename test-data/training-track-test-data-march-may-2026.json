@@ -1,0 +1,3239 @@
+{
+  "format": "training-track-backup",
+  "version": 1,
+  "exportedAt": "2026-07-04T00:00:00.000Z",
+  "settings": {
+    "theme": "dark",
+    "motion": "on",
+    "bodyWeightKg": 72,
+    "heightCm": 171,
+    "birthYear": 2002,
+    "referenceSex": "male",
+    "statsWindowDays": 180,
+    "historyViewMode": "month",
+    "showRir": false,
+    "weeklySessionTarget": 3,
+    "weeklyMuscleTargetSets": 10,
+    "defaultRestSeconds": 90,
+    "autoStartRestTimer": false
+  },
+  "workouts": [
+    {
+      "id": "synthetic-2026-03-15-push-01",
+      "date": "2026-03-15",
+      "title": "Push",
+      "durationMin": 35,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1773576000000,
+      "updatedAtMs": 1773576060000
+    },
+    {
+      "id": "synthetic-2026-03-21-pull-02",
+      "date": "2026-03-21",
+      "title": "Pull",
+      "durationMin": 35,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1774094400000,
+      "updatedAtMs": 1774094460000
+    },
+    {
+      "id": "synthetic-2026-03-26-shoulders-core-03",
+      "date": "2026-03-26",
+      "title": "Shoulders & Core",
+      "durationMin": 35,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-overhead-press",
+          "restSeconds": 90,
+          "notes": "Mapped from Shoulder Press",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lateral-raise",
+          "restSeconds": 90,
+          "notes": "9 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1774526400000,
+      "updatedAtMs": 1774526460000
+    },
+    {
+      "id": "synthetic-2026-03-31-push-04",
+      "date": "2026-03-31",
+      "title": "Push",
+      "durationMin": 35,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-incline-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1774958400000,
+      "updatedAtMs": 1774958460000
+    },
+    {
+      "id": "synthetic-2026-04-06-pull-05",
+      "date": "2026-04-06",
+      "title": "Pull",
+      "durationMin": 45,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "one-arm-db-row",
+          "restSeconds": 90,
+          "notes": "12 kg each arm",
+          "sets": [
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-curl",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "upright-row",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1775476800000,
+      "updatedAtMs": 1775476860000
+    },
+    {
+      "id": "synthetic-2026-04-12-legs-06",
+      "date": "2026-04-12",
+      "title": "Legs",
+      "durationMin": 70,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-squat",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 80,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 80,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 80,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 80,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "leg-extension",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "standing-calf-raise",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "plank",
+          "restSeconds": 60,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-curl",
+          "restSeconds": 90,
+          "notes": "12 kg each arm",
+          "sets": [
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1775995200000,
+      "updatedAtMs": 1775995260000
+    },
+    {
+      "id": "synthetic-2026-04-17-shoulders-core-07",
+      "date": "2026-04-17",
+      "title": "Shoulders & Core",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-overhead-press",
+          "restSeconds": 90,
+          "notes": "Mapped from Shoulder Press",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lateral-raise",
+          "restSeconds": 90,
+          "notes": "9 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "skull-crusher",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "forward-lean-push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1776427200000,
+      "updatedAtMs": 1776427260000
+    },
+    {
+      "id": "synthetic-2026-04-22-push-08",
+      "date": "2026-04-22",
+      "title": "Push",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-incline-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "triceps-pushdown",
+          "restSeconds": 90,
+          "notes": "Rope attachment",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1776859200000,
+      "updatedAtMs": 1776859260000
+    },
+    {
+      "id": "synthetic-2026-04-28-pull-09",
+      "date": "2026-04-28",
+      "title": "Pull",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "one-arm-db-row",
+          "restSeconds": 90,
+          "notes": "12 kg each arm",
+          "sets": [
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-curl",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1777377600000,
+      "updatedAtMs": 1777377660000
+    },
+    {
+      "id": "synthetic-2026-05-04-push-10",
+      "date": "2026-05-04",
+      "title": "Push",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-incline-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "front-dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1777896000000,
+      "updatedAtMs": 1777896060000
+    },
+    {
+      "id": "synthetic-2026-05-09-pull-11",
+      "date": "2026-05-09",
+      "title": "Pull",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-shrug",
+          "restSeconds": 90,
+          "notes": "20 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "upright-row",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1778328000000,
+      "updatedAtMs": 1778328060000
+    },
+    {
+      "id": "synthetic-2026-05-14-shoulders-core-12",
+      "date": "2026-05-14",
+      "title": "Shoulders & Core",
+      "durationMin": 45,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-overhead-press",
+          "restSeconds": 90,
+          "notes": "Mapped from Shoulder Press",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lateral-raise",
+          "restSeconds": 90,
+          "notes": "9 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "hanging-leg-raise",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1778760000000,
+      "updatedAtMs": 1778760060000
+    },
+    {
+      "id": "synthetic-2026-05-20-legs-13",
+      "date": "2026-05-20",
+      "title": "Legs",
+      "durationMin": 45,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "standing-calf-raise",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "plank",
+          "restSeconds": 60,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 60,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-curl",
+          "restSeconds": 90,
+          "notes": "12 kg each arm",
+          "sets": [
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1779278400000,
+      "updatedAtMs": 1779278460000
+    },
+    {
+      "id": "synthetic-2026-05-26-push-14",
+      "date": "2026-05-26",
+      "title": "Push",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-incline-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1779796800000,
+      "updatedAtMs": 1779796860000
+    },
+    {
+      "id": "synthetic-2026-05-31-pull-15",
+      "date": "2026-05-31",
+      "title": "Pull",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "one-arm-db-row",
+          "restSeconds": 90,
+          "notes": "12 kg each arm",
+          "sets": [
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 12,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-curl",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1780228800000,
+      "updatedAtMs": 1780228860000
+    },
+    {
+      "id": "synthetic-2026-06-05-shoulders-core-16",
+      "date": "2026-06-05",
+      "title": "Shoulders & Core",
+      "durationMin": 70,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-overhead-press",
+          "restSeconds": 90,
+          "notes": "Mapped from Shoulder Press",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lateral-raise",
+          "restSeconds": 90,
+          "notes": "9 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "skull-crusher",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 15,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "forward-lean-push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "hanging-leg-raise",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1780660800000,
+      "updatedAtMs": 1780660860000
+    },
+    {
+      "id": "synthetic-2026-06-11-push-17",
+      "date": "2026-06-11",
+      "title": "Push",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "db-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-incline-bench-press",
+          "restSeconds": 90,
+          "notes": "4x10, 18 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "triceps-pushdown",
+          "restSeconds": 90,
+          "notes": "Rope attachment",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1781179200000,
+      "updatedAtMs": 1781179260000
+    },
+    {
+      "id": "synthetic-2026-06-17-pull-18",
+      "date": "2026-06-17",
+      "title": "Pull",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-shrug",
+          "restSeconds": 90,
+          "notes": "20 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "upright-row",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1781697600000,
+      "updatedAtMs": 1781697660000
+    },
+    {
+      "id": "synthetic-2026-06-22-shoulders-core-19",
+      "date": "2026-06-22",
+      "title": "Shoulders & Core",
+      "durationMin": 55,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "barbell-overhead-press",
+          "restSeconds": 90,
+          "notes": "Mapped from Shoulder Press",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 45,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lateral-raise",
+          "restSeconds": 90,
+          "notes": "9 kg per dumbbell",
+          "sets": [
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 9,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "forward-lean-push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "hanging-leg-raise",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1782129600000,
+      "updatedAtMs": 1782129660000
+    },
+    {
+      "id": "synthetic-2026-06-27-push-20",
+      "date": "2026-06-27",
+      "title": "Push",
+      "durationMin": 45,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "push-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 15,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "triceps-pushdown",
+          "restSeconds": 90,
+          "notes": "Rope attachment",
+          "sets": [
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 20,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "front-dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1782561600000,
+      "updatedAtMs": 1782561660000
+    },
+    {
+      "id": "synthetic-2026-07-03-pull-21",
+      "date": "2026-07-03",
+      "title": "Pull",
+      "durationMin": 45,
+      "notes": "Synthetic March–July 2026 import generated from provided exercise counts. Includes 5 min treadmill warm-up.",
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "Treadmill warm-up: 5 min at 13 km/h",
+          "sets": [],
+          "activity": {
+            "durationMin": 5,
+            "distanceKm": 1.08,
+            "elevationM": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-curl",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "upright-row",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 30,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ],
+      "createdAtMs": 1783080000000,
+      "updatedAtMs": 1783080060000
+    }
+  ],
+  "customExercises": []
+}

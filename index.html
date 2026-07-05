@@ -80,7 +80,7 @@
       <div class="command-actions">
         <span id="user-chip" class="user-chip"></span>
         <div id="sync-pill" class="sync-pill"><i></i><div><strong id="sync-label">Connecting</strong><small id="sync-detail" hidden></small></div></div>
-        <button id="header-start-workout" class="header-plus-button" type="button" aria-label="Start session">+</button>
+        <button id="header-start-workout" class="header-plus-button" type="button" aria-label="Start session"><span aria-hidden="true">+</span></button>
       </div>
     </header>
 
@@ -107,7 +107,7 @@
             </article>
 
             <article class="records-card panel reveal">
-              <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" type="button">All ranks →</button></div>
+              <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" data-mobile-scroll-target="#progression-section" type="button">All ranks →</button></div>
               <div id="recent-records" class="record-list"></div>
             </article>
 
@@ -150,14 +150,16 @@
               <div class="calendar-heading"><button id="calendar-prev" class="icon-button" type="button">←</button><div><p class="eyebrow">TRAINING HISTORY</p><h3 id="calendar-month">Month</h3></div><button id="calendar-next" class="icon-button" type="button">→</button></div>
               <div class="calendar-weekdays"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
               <div id="calendar-grid" class="calendar-grid"></div>
-              <div class="calendar-legend"><span>E-light</span><i class="tier-1 rank-tier-1"></i><i class="tier-2 rank-tier-2"></i><i class="tier-3 rank-tier-3"></i><i class="tier-4 rank-tier-4"></i><span>S-hard</span><small>Color tier uses rank-colored daily training load.</small></div>
+              <div class="calendar-legend"><span>E-light</span><i class="tier-1 rank-tier-1"></i><i class="tier-2 rank-tier-2"></i><i class="tier-3 rank-tier-3"></i><i class="tier-4 rank-tier-4"></i><span>S-hard</span><small>Color tier uses kcal load.</small></div>
             </article>
-            <article class="calendar-detail panel"><div class="panel-heading"><div><p class="eyebrow">SELECTED HISTORY</p><h3 id="calendar-day-title">Choose a date</h3></div><span id="calendar-day-total" class="tag">—</span></div><div id="calendar-day-list" class="session-list"></div></article>
+            <div class="history-side">
+              <div class="stats-metrics compact-stats"><article class="metric-card panel"><span>Sessions / week</span><strong id="stat-frequency">0</strong><small id="stat-session-total">0 sessions</small></article><article class="metric-card panel"><span>Estimated calories</span><strong id="stat-calories">0</strong><small>training only</small></article></div>
+              <article class="calendar-detail panel"><div class="panel-heading"><div><p class="eyebrow">SELECTED HISTORY</p><h3 id="calendar-day-title">Choose a date</h3></div><span id="calendar-day-total" class="tag">—</span></div><div id="calendar-day-list" class="session-list"></div></article>
+            </div>
           </div>
-          <div class="stats-metrics compact-stats"><article class="metric-card panel"><span>Sessions / week</span><strong id="stat-frequency">0</strong><small id="stat-session-total">0 sessions</small></article><article class="metric-card panel"><span>Estimated calories</span><strong id="stat-calories">0</strong><small>training only</small></article></div>
           <div class="stats-grid">
             <article class="chart-card panel consistency-card"><div class="panel-heading"><div><p class="eyebrow">CONSISTENCY</p><h3>Weekly frequency</h3></div><select id="weekly-metric" class="metric-select"><option value="sessions">Sessions</option><option value="calories">Calories</option></select></div><div class="chart-wrap"><canvas id="weekly-chart"></canvas><div class="chart-empty" hidden></div></div></article>
-            <article class="chart-card panel progress-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION</p><h3>Exercise trend</h3><p id="progress-help" class="muted progress-help">Choose a logged exercise, then pick a compatible measurable trend such as estimated 1RM, volume, reps, hold time, active minutes, or speed.</p></div></div><div class="progress-picker"><label class="search-field progress-search"><span>⌕</span><input id="progress-search" type="search" placeholder="Search logged exercise"></label><div id="progress-exercise-list" class="progress-exercise-list"></div><div id="progress-metric-buttons" class="filter-row metric-tabs"></div></div><div class="chart-wrap"><canvas id="progress-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+            <article id="progression-section" class="chart-card panel progress-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION</p><h3>Exercise trend</h3><p id="progress-help" class="muted progress-help">Choose a logged exercise, then pick a compatible measurable trend such as estimated 1RM, volume, reps, hold time, active minutes, or speed.</p></div></div><div class="progress-picker"><label class="search-field progress-search"><span>⌕</span><input id="progress-search" type="search" placeholder="Search logged exercise"></label><div id="progress-exercise-list" class="progress-exercise-list"></div><div id="progress-metric-buttons" class="filter-row metric-tabs"></div></div><div class="chart-wrap"><canvas id="progress-chart"></canvas><div class="chart-empty" hidden></div></div></article>
           </div>
         </section>
 

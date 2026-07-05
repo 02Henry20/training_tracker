@@ -2673,3 +2673,264 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
   .session-meta.single-field { grid-template-columns: 1fr; }
   .consistency-card .chart-wrap { min-height: 205px; height: 205px; }
 }
+
+/* 0.2.10 desktop/mobile layout corrections */
+.header-plus-button {
+  display: grid !important;
+  width: 58px !important;
+  height: 58px !important;
+  place-items: center !important;
+  border: 1px solid rgba(var(--accent-rgb), .36) !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  color: #06111b !important;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 84%, white 16%) 0%,
+    color-mix(in srgb, var(--accent) 62%, var(--accent-2) 38%) 100%) !important;
+  box-shadow: 0 12px 28px rgba(var(--accent-rgb), .22), inset 0 1px 0 rgba(255,255,255,.3) !important;
+  font: 950 2rem/1 "Segoe UI Variable", Inter, system-ui, sans-serif !important;
+  text-shadow: none !important;
+}
+.header-plus-button::before,
+.header-plus-button::after {
+  display: none !important;
+  content: none !important;
+}
+.header-plus-button span {
+  display: block;
+  line-height: 1;
+  transform: translateY(-1px);
+  pointer-events: none;
+}
+.header-plus-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(var(--accent-rgb), .28), inset 0 1px 0 rgba(255,255,255,.34) !important;
+}
+
+.sync-pill {
+  min-height: 44px !important;
+  align-items: center !important;
+  padding: 10px 13px 11px !important;
+  overflow: visible !important;
+}
+.sync-pill > div { align-content: center !important; }
+.sync-pill strong {
+  line-height: 1.25 !important;
+  overflow: visible !important;
+  padding-bottom: 1px;
+}
+
+.history-side {
+  display: grid;
+  min-width: 0;
+  gap: 13px;
+}
+
+@media (min-width: 901px) {
+  .history-panel {
+    grid-template-columns: minmax(0, .98fr) minmax(320px, .52fr);
+    align-items: start;
+    gap: 12px;
+  }
+  .history-panel .calendar-card {
+    padding: 18px;
+  }
+  .history-panel .calendar-heading {
+    margin-bottom: 12px;
+  }
+  .history-panel .calendar-weekdays,
+  .history-panel .calendar-grid {
+    gap: 5px;
+  }
+  .history-panel .calendar-day {
+    min-height: 66px;
+    padding: 7px;
+    border-radius: 6px;
+  }
+  .history-panel .calendar-day small {
+    font-size: .58rem;
+  }
+  .history-panel .calendar-legend {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  .history-side .stats-metrics.compact-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+  }
+  .history-side .stats-metrics .metric-card {
+    min-height: 116px;
+    padding: 14px;
+  }
+  .history-side .stats-metrics .metric-card strong {
+    margin: 8px 0 3px;
+    font-size: clamp(1.85rem, 2.4vw, 2.55rem);
+  }
+  .history-side .calendar-detail {
+    max-height: 365px;
+    overflow: auto;
+  }
+  .history-side .calendar-detail .session-row,
+  .history-side .calendar-detail .compact-row {
+    padding-block: 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .history-panel {
+    grid-template-columns: 1fr;
+  }
+  .history-side .stats-metrics.compact-stats {
+    margin-bottom: 0;
+  }
+}
+
+.body-view-switch.map-label {
+  right: calc(50% + 12px) !important;
+  bottom: 14px !important;
+}
+
+@media (max-width: 760px) {
+  .progress-panel {
+    padding: 14px !important;
+  }
+  .progress-panel .panel-heading {
+    margin-bottom: 7px !important;
+  }
+  .progress-help {
+    margin-top: 4px;
+    font-size: .72rem;
+    line-height: 1.35;
+  }
+  .progress-picker {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .progress-exercise-chip {
+    min-width: 142px;
+    max-width: 190px;
+    padding: 8px 10px;
+  }
+  .progress-exercise-chip small {
+    margin-top: 2px;
+  }
+  .progress-panel .chart-wrap {
+    min-height: 210px;
+    height: 210px;
+  }
+  .progress-panel canvas {
+    min-height: 210px;
+  }
+  .body-view-switch.map-label {
+    right: calc(50% + 8px) !important;
+  }
+}
+
+/* Softer, more legible light mode. Kept late so rank-stage accent overrides do not make light UI harsh. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1f5fa;
+  --bg-2: #fbfdff;
+  --panel: rgba(255,255,255,.96);
+  --panel-solid: #ffffff;
+  --panel-hover: #edf4fb;
+  --line: rgba(42, 77, 116, .16);
+  --line-strong: rgba(0, 111, 159, .38);
+  --text: #17263a;
+  --muted: #63758d;
+  --muted-strong: #344c66;
+  --accent: #006f9f;
+  --accent-2: #6657cf;
+  --green: #157d58;
+  --yellow: #956300;
+  --red: #c33c55;
+  --accent-rgb: 0, 111, 159;
+  --accent-2-rgb: 102, 87, 207;
+  --chart-grid: rgba(42, 77, 116, .13);
+  --shadow: 0 18px 42px rgba(43, 66, 94, .13), 0 0 0 1px rgba(255,255,255,.55) inset;
+}
+:root[data-theme="light"] body {
+  background:
+    linear-gradient(rgba(35, 80, 120, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 80, 120, .026) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% -18%, rgba(var(--accent-rgb), .12), transparent 42rem),
+    radial-gradient(ellipse at 100% 82%, rgba(var(--accent-2-rgb), .09), transparent 34rem),
+    var(--bg);
+  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+}
+:root[data-theme="light"] body::before {
+  opacity: .34;
+  filter: blur(28px);
+}
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .modal-card,
+:root[data-theme="light"] .toast,
+:root[data-theme="light"] .update-banner {
+  border-color: var(--line);
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,246,253,.94));
+  box-shadow: var(--shadow);
+}
+:root[data-theme="light"] .panel::before,
+:root[data-theme="light"] .modal-card::before {
+  opacity: .2;
+}
+:root[data-theme="light"] .panel::after {
+  opacity: .12;
+}
+:root[data-theme="light"] .command-header,
+:root[data-theme="light"] .topbar {
+  background: rgba(251,253,255,.93);
+}
+:root[data-theme="light"] .main-nav.desktop-nav,
+:root[data-theme="light"] .mobile-nav,
+:root[data-theme="light"] .auth-tabs {
+  background: rgba(224, 234, 244, .72);
+}
+:root[data-theme="light"] .field input,
+:root[data-theme="light"] .field select,
+:root[data-theme="light"] .field textarea,
+:root[data-theme="light"] .builder-header select,
+:root[data-theme="light"] .panel-heading select,
+:root[data-theme="light"] .inline-selects select,
+:root[data-theme="light"] .set-row input,
+:root[data-theme="light"] .search-field,
+:root[data-theme="light"] .picker-item,
+:root[data-theme="light"] .progress-exercise-chip,
+:root[data-theme="light"] .selected-muscle-exercises button,
+:root[data-theme="light"] .muscle-card-exercises button,
+:root[data-theme="light"] .quick-grid button,
+:root[data-theme="light"] .weekly-stats > div,
+:root[data-theme="light"] .calendar-day,
+:root[data-theme="light"] .calendar-month-tile {
+  color: var(--text);
+  background: rgba(255,255,255,.9);
+}
+:root[data-theme="light"] .header-plus-button {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #007cab 0%, #5f60d7 100%) !important;
+}
+:root[data-theme="light"] .sync-pill {
+  background: rgba(255,255,255,.78);
+}
+:root[data-theme="light"] .sync-pill strong,
+:root[data-theme="light"] .text-button,
+:root[data-theme="light"] .command-brand small,
+:root[data-theme="light"] .eyebrow {
+  color: var(--accent);
+}
+:root[data-theme="light"] .tag,
+:root[data-theme="light"] .chip,
+:root[data-theme="light"] .rank-badge {
+  background: rgba(var(--accent-rgb), .08);
+  border-color: rgba(var(--accent-rgb), .22);
+}
+:root[data-theme="light"] .calendar-day.tier-1,
+:root[data-theme="light"] .calendar-month-tile.tier-1 { background: rgba(0,111,159,.08); }
+:root[data-theme="light"] .calendar-day.tier-2,
+:root[data-theme="light"] .calendar-month-tile.tier-2 { background: rgba(21,125,88,.12); }
+:root[data-theme="light"] .calendar-day.tier-3,
+:root[data-theme="light"] .calendar-month-tile.tier-3 { background: linear-gradient(135deg, rgba(102,87,207,.16), rgba(0,111,159,.08)); }
+:root[data-theme="light"] .calendar-day.tier-4,
+:root[data-theme="light"] .calendar-month-tile.tier-4 { background: linear-gradient(135deg, rgba(149,99,0,.17), rgba(195,60,85,.12)); }
