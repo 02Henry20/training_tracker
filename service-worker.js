@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.3.3-tutorial";
+const CACHE_NAME = "ascend-v0.3.6";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -15,7 +15,6 @@ const APP_SHELL = [
   "./js/exercises.js",
   "./js/calculations.js",
   "./js/charts.js",
-  "./tutorial-data.json",
   "./icons/favicon.ico",
   "./icons/favicon-16x16.png",
   "./icons/favicon-32x32.png",
