@@ -111,13 +111,6 @@
               <div id="recent-records" class="record-list"></div>
             </article>
 
-            <article class="focus-card panel reveal">
-              <div class="panel-heading"><div><p class="eyebrow">SYSTEM GUIDANCE</p><h3 id="focus-title">Build your baseline</h3></div><span class="system-glyph">◆</span></div>
-              <p id="focus-copy">Complete your first workout to reveal recent muscle coverage.</p>
-              <div id="focus-muscles" class="chip-row"></div>
-              <button class="secondary-button" data-go-view="muscles" type="button">Open muscle analysis</button>
-            </article>
-
             <article class="recent-card panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="stats" type="button">Open history →</button></div>
               <div id="recent-workouts" class="session-list"></div>
@@ -126,9 +119,6 @@
         </section>
 
         <section class="view" data-view-section="workout">
-          <div class="builder-header panel">
-            <div><p class="eyebrow">SESSION BUILDER</p><h3 id="builder-heading">New workout</h3><p class="muted">Previous values become each exercise’s editable default.</p></div><div id="session-live-timer" class="session-live-timer" hidden><span>Training time</span><strong>00:00</strong></div>
-          </div>
           <form id="workout-form" class="workout-form">
             <article class="session-meta panel single-field">
               <label class="field"><span>Date</span><input id="workout-date" type="date" required></label>
@@ -158,7 +148,10 @@
             </div>
           </div>
           <div class="stats-grid">
-            <article class="chart-card panel consistency-card"><div class="panel-heading"><div><p class="eyebrow">CONSISTENCY</p><h3>Weekly frequency</h3></div><select id="weekly-metric" class="metric-select"><option value="sessions">Sessions</option><option value="calories">Calories</option></select></div><div class="chart-wrap"><canvas id="weekly-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+            <div class="consistency-stack">
+              <article class="chart-card panel consistency-card"><div class="panel-heading"><div><p class="eyebrow">CONSISTENCY</p><h3>Weekly frequency</h3></div></div><div class="chart-wrap"><canvas id="weekly-frequency-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+              <article class="chart-card panel consistency-card"><div class="panel-heading"><div><p class="eyebrow">ENERGY</p><h3>Weekly calories</h3></div></div><div class="chart-wrap"><canvas id="weekly-calorie-chart"></canvas><div class="chart-empty" hidden></div></div></article>
+            </div>
             <article id="progression-section" class="chart-card panel progress-panel"><div class="panel-heading"><div><p class="eyebrow">PROGRESSION</p><h3>Exercise trend</h3><p id="progress-help" class="muted progress-help">Choose a logged exercise, then pick a compatible measurable trend such as estimated 1RM, volume, reps, hold time, active minutes, or speed.</p></div></div><div class="progress-picker"><label class="search-field progress-search"><span>⌕</span><input id="progress-search" type="search" placeholder="Search logged exercise"></label><div id="progress-exercise-list" class="progress-exercise-list"></div><div id="progress-metric-buttons" class="filter-row metric-tabs"></div></div><div class="chart-wrap"><canvas id="progress-chart"></canvas><div class="chart-empty" hidden></div></div></article>
           </div>
         </section>

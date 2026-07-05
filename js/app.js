@@ -111,6 +111,7 @@ let selectedMuscleKey = null;
 let muscleExercisePage = 0;
 let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
+let levelCelebrationTimer = null;
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -214,6 +215,34 @@ function showToast(title, copy = "", type = "success") {
   window.setTimeout(() => toast.remove(), 4200);
 }
 
+function showLevelUpCelebration(previous, next) {
+  if (!next || !previous || next.level <= previous.level) return;
+  document.querySelector(".level-up-overlay")?.remove();
+  if (levelCelebrationTimer != null) window.clearTimeout(levelCelebrationTimer);
+
+  const levelGain = next.level - previous.level;
+  const overlay = document.createElement("div");
+  overlay.className = "level-up-overlay";
+  overlay.dataset.rankStage = next.rank.stageKey ?? "E";
+  overlay.setAttribute("role", "status");
+  overlay.setAttribute("aria-live", "polite");
+  overlay.innerHTML = `
+    <div class="level-up-burst" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="level-up-core">
+      <p class="eyebrow">SYSTEM ASCENSION</p>
+      <div class="level-up-rank"><span>${escapeHtml(rankIcon(next.rank))}</span></div>
+      <h2>Level ${next.level}</h2>
+      <strong>${escapeHtml(next.rank.label)}</strong>
+      <small>${levelGain > 1 ? `${levelGain} levels gained` : "New level reached"} / ${formatNumber(next.xp)} XP</small>
+    </div>`;
+  document.body.append(overlay);
+  window.setTimeout(() => overlay.classList.add("leaving"), 3600);
+  levelCelebrationTimer = window.setTimeout(() => {
+    overlay.remove();
+    levelCelebrationTimer = null;
+  }, 4300);
+}
+
 function queueWrite(promise, title, copy = "Saved locally and queued for Firebase synchronization.") {
   showToast(title, navigator.onLine ? copy : "Saved locally. It will synchronize when you are online.");
   promise.catch(error => showToast("Save failed", firebaseErrorMessage(error), "error"));
@@ -253,7 +282,7 @@ function updateSyncStatus() {
     label = "Syncing";
   } else if (cacheOnly) {
     elements.syncPill.classList.add("checking");
-    label = "Checking";
+    label = "Check";
   } else {
     elements.syncPill.classList.add("synced");
   }
@@ -516,7 +545,8 @@ function startNewWorkout(source = null, keepId = false) {
 
 function syncDraftMetaToForm() {
   document.querySelector("#workout-date").value = draftWorkout.date || localDateString();
-  document.querySelector("#builder-heading").textContent = draftWorkout.id ? "Edit workout" : "New workout";
+  const heading = document.querySelector("#builder-heading");
+  if (heading) heading.textContent = draftWorkout.id ? "Edit workout" : "New workout";
   document.querySelector("#delete-workout").classList.toggle("hidden", !draftWorkout.id);
   updateDraftTimer();
 }
@@ -723,6 +753,7 @@ async function submitWorkout(event) {
   draftWorkout.date = document.querySelector("#workout-date").value;
   draftWorkout.title = draftWorkout.title || "Training session";
   draftWorkout.notes = draftWorkout.notes || "";
+  const beforeSummary = currentPlayerSummary();
   const message = document.querySelector("#workout-message");
   if (!draftWorkout.date || !draftWorkout.exercises.length) {
     setMessage(message, "Choose a date and add at least one exercise.", true);
@@ -744,12 +775,15 @@ async function submitWorkout(event) {
 
   try {
     await saveWorkout(saved);
+    const afterSummary = currentPlayerSummary();
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
     draftWorkout = createEmptyDraft();
     draftCollapsedEntries = new Set();
     stopWorkoutTimer();
     renderBuilder();
+    renderDashboard();
     navigateTo("dashboard");
+    showLevelUpCelebration(beforeSummary, afterSummary);
   } catch (error) {
     setMessage(message, firebaseErrorMessage(error), true);
   }
@@ -921,13 +955,17 @@ function renderDashboard() {
   const weekSessionLabel = document.querySelector("#week-session-label");
   if (weekSessionLabel) weekSessionLabel.textContent = `${weekSessions} / ${sessionTarget}`;
 
-  const focus = suggestedFocus(state.workouts, allExercises, state.settings);
-  document.querySelector("#focus-title").textContent = focus.title;
-  document.querySelector("#focus-copy").textContent = focus.text;
+  const focusTitle = document.querySelector("#focus-title");
+  const focusCopy = document.querySelector("#focus-copy");
   const focusMuscles = document.querySelector("#focus-muscles");
-  focusMuscles.innerHTML = focus.muscles.length
-    ? focus.muscles.map(item => `<span class="chip">${item.icon} ${escapeHtml(item.name)}</span>`).join("")
-    : `<span class="chip">◆ Coverage on target</span>`;
+  if (focusTitle && focusCopy && focusMuscles) {
+    const focus = suggestedFocus(state.workouts, allExercises, state.settings);
+    focusTitle.textContent = focus.title;
+    focusCopy.textContent = focus.text;
+    focusMuscles.innerHTML = focus.muscles.length
+      ? focus.muscles.map(item => `<span class="chip">${item.icon} ${escapeHtml(item.name)}</span>`).join("")
+      : `<span class="chip">Coverage on target</span>`;
+  }
 
   renderSessionList(document.querySelector("#recent-workouts"), analyses, 5);
   const recordContainer = document.querySelector("#recent-records");
@@ -1199,7 +1237,10 @@ function renderActiveCharts() {
   if (activeView === "stats") {
     const days = Number(state.settings.statsWindowDays || 28);
     const stats = statistics(state.workouts, catalog(), state.settings, days);
-    drawWeeklyBars(document.querySelector("#weekly-chart"), stats.weekly, document.querySelector("#weekly-metric").value);
+    const frequencyChart = document.querySelector("#weekly-frequency-chart") ?? document.querySelector("#weekly-chart");
+    const calorieChart = document.querySelector("#weekly-calorie-chart");
+    if (frequencyChart) drawWeeklyBars(frequencyChart, stats.weekly, "sessions");
+    if (calorieChart) drawWeeklyBars(calorieChart, stats.weekly, "calories");
     const metric = selectedProgressMetric;
     const points = selectedProgressExerciseId
       ? calculateProgression(state.workouts, catalog(), state.settings, selectedProgressExerciseId, metric)
@@ -1678,11 +1719,14 @@ function bindEvents() {
     }
   });
 
-  document.querySelector("#weekly-metric").addEventListener("change", () => {
-    if (document.querySelector("#weekly-metric").value === "minutes") document.querySelector("#weekly-metric").value = "sessions";
-    renderStats();
-    renderActiveCharts();
-  });
+  const weeklyMetric = document.querySelector("#weekly-metric");
+  if (weeklyMetric) {
+    weeklyMetric.addEventListener("change", () => {
+      if (weeklyMetric.value === "minutes") weeklyMetric.value = "sessions";
+      renderStats();
+      renderActiveCharts();
+    });
+  }
   document.querySelector("#progress-search").addEventListener("input", event => {
     progressSearchQuery = event.target.value;
     renderStats();
