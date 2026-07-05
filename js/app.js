@@ -136,8 +136,17 @@ function currentPlayerSummary() {
   return xpSummary(state.workouts, catalog(), state.settings);
 }
 
+function syncThemeMeta() {
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (!themeMeta) return;
+  const styles = getComputedStyle(document.documentElement);
+  const themeColor = (styles.getPropertyValue('--bg') || styles.getPropertyValue('--panel-solid') || '#09101f').trim();
+  themeMeta.setAttribute('content', themeColor);
+}
+
 function applyRankStage(summary = currentPlayerSummary()) {
   document.documentElement.dataset.rankStage = summary.rank.stageKey ?? "E";
+  syncThemeMeta();
 }
 
 function rankIcon(rank) {
@@ -264,6 +273,7 @@ function applyAppearance(settings = state.settings) {
   document.documentElement.dataset.theme = settings.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.motion = settings.motion === "off" ? "off" : "on";
   applyRankStage();
+  syncThemeMeta();
 }
 
 function updateSyncStatus() {

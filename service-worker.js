@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.3.2";
+const CACHE_NAME = "ascend-shadowforge-v0.4.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -15,10 +15,15 @@ const APP_SHELL = [
   "./js/exercises.js",
   "./js/calculations.js",
   "./js/charts.js",
+  "./icons/icon-32.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/icon-1024.png",
   "./icons/icon-maskable-192.png",
-  "./icons/icon-maskable-512.png"
+  "./icons/icon-maskable-512.png",
+  "./icons/icon-maskable-1024.png",
+  "./icons/apple-touch-icon.png",
+  "./icons/favicon.ico"
 ];
 
 self.addEventListener("install", event => {
