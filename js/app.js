@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.2";
+const APP_VERSION = "0.3.3";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -112,6 +112,12 @@ let muscleExercisePage = 0;
 let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
 let levelCelebrationTimer = null;
+let settingsAutosaveTimer = null;
+let tutorialMode = false;
+let tutorialSnapshot = null;
+let tutorialData = null;
+let tutorialStepIndex = 0;
+let tutorialFocusedElement = null;
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -130,6 +136,368 @@ function escapeHtml(value) {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+
+const TUTORIAL_STEPS = [
+  {
+    view: "dashboard",
+    target: ".rank-hero",
+    title: "Your rank hub",
+    copy: "This is the main player panel. Every saved workout adds XP, moves the level bar, and can push you into a new rank tier."
+  },
+  {
+    view: "dashboard",
+    target: ".weekly-target",
+    title: "Weekly quest target",
+    copy: "This circle shows whether the current week is on pace. The tutorial data is temporary, so you can see the target filled without touching your real account."
+  },
+  {
+    view: "dashboard",
+    target: ".records-card",
+    title: "Recent advances",
+    copy: "Personal records appear here when an exercise improves beyond its previous baseline. Use All ranks to jump into the full progression view."
+  },
+  {
+    view: "workout",
+    target: "#exercise-builder-list",
+    draft: true,
+    title: "Build a session",
+    copy: "Add strength lifts, bodyweight work, or endurance activities into the same session. The preview line estimates calories and rank level before saving."
+  },
+  {
+    view: "workout",
+    target: ".save-workout-bar",
+    draft: true,
+    title: "Save only real sessions",
+    copy: "In normal use this saves to your account. During the tutorial, the example session is isolated and never synchronizes to Firebase."
+  },
+  {
+    view: "stats",
+    target: ".calendar-card",
+    title: "Training history",
+    copy: "The calendar colors sessions by energy load. Light days stay subtle; harder days become stronger markers."
+  },
+  {
+    view: "stats",
+    target: "#progression-section",
+    title: "Exercise progression",
+    copy: "Search a logged exercise and switch metrics to inspect estimated 1RM, volume, reps, time, speed, or activity trends."
+  },
+  {
+    view: "muscles",
+    target: ".body-system",
+    muscle: "chest",
+    title: "Body balance map",
+    copy: "Tap a muscle group to see coverage, status, and the exercises contributing to that region. The list below opens automatically on mobile."
+  },
+  {
+    view: "settings",
+    target: "#settings-form",
+    title: "Setup changes save instantly",
+    copy: "Every setting applies immediately. No save button is needed. Tutorial mode restores your real settings when you leave."
+  },
+  {
+    view: "settings",
+    target: ".data-action-stack",
+    title: "Backup and sync",
+    copy: "Use export/import for manual backups and Resolve device sync if Firestore and this device ever disagree."
+  }
+];
+
+function cloneStateForTutorial() {
+  return {
+    workouts: deepClone(state.workouts),
+    customExercises: deepClone(state.customExercises),
+    remoteExercises: deepClone(state.remoteExercises),
+    settings: deepClone(state.settings),
+    metadata: deepClone(state.metadata),
+    catalogAvailable: state.catalogAvailable,
+    activeView,
+    calendarMonth,
+    selectedCalendarDate,
+    selectedHistoryMonth,
+    selectedProgressExerciseId,
+    selectedProgressMetric,
+    progressSearchQuery,
+    bodyViewMode,
+    selectedMuscleKey,
+    muscleExercisePage,
+    draftWorkout: deepClone(draftWorkout),
+    draftCollapsedEntries: [...draftCollapsedEntries]
+  };
+}
+
+function restoreTutorialSnapshot() {
+  if (!tutorialSnapshot) return;
+  state.workouts = deepClone(tutorialSnapshot.workouts);
+  state.customExercises = deepClone(tutorialSnapshot.customExercises);
+  state.remoteExercises = deepClone(tutorialSnapshot.remoteExercises);
+  state.settings = deepClone(tutorialSnapshot.settings);
+  state.metadata = deepClone(tutorialSnapshot.metadata);
+  state.catalogAvailable = tutorialSnapshot.catalogAvailable;
+  calendarMonth = tutorialSnapshot.calendarMonth;
+  selectedCalendarDate = tutorialSnapshot.selectedCalendarDate;
+  selectedHistoryMonth = tutorialSnapshot.selectedHistoryMonth;
+  selectedProgressExerciseId = tutorialSnapshot.selectedProgressExerciseId;
+  selectedProgressMetric = tutorialSnapshot.selectedProgressMetric;
+  progressSearchQuery = tutorialSnapshot.progressSearchQuery;
+  bodyViewMode = tutorialSnapshot.bodyViewMode;
+  selectedMuscleKey = tutorialSnapshot.selectedMuscleKey;
+  muscleExercisePage = tutorialSnapshot.muscleExercisePage;
+  draftWorkout = deepClone(tutorialSnapshot.draftWorkout);
+  draftCollapsedEntries = new Set(tutorialSnapshot.draftCollapsedEntries);
+}
+
+function normalizeTutorialWorkout(workout, index) {
+  const dateOffset = Number(workout.dateOffset ?? -index);
+  const date = workout.date || addDays(localDateString(), dateOffset);
+  const createdAtMs = Date.now() + dateOffset * 86_400_000;
+  return {
+    ...workout,
+    id: workout.id || `tutorial-${index + 1}`,
+    date,
+    createdAtMs,
+    updatedAtMs: createdAtMs,
+    pending: false
+  };
+}
+
+function normalizeTutorialBundle(bundle = {}) {
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    ...state.settings,
+    ...(bundle.settings ?? {}),
+    theme: state.settings.theme,
+    motion: state.settings.motion
+  };
+  return {
+    settings,
+    workouts: (bundle.workouts ?? []).map(normalizeTutorialWorkout),
+    draftWorkout: {
+      id: null,
+      date: localDateString(),
+      title: "Tutorial session",
+      durationMin: "",
+      startedAtMs: Date.now() - 22 * 60_000,
+      notes: "Temporary tutorial session. This never syncs.",
+      exercises: deepClone(bundle.draftWorkout?.exercises ?? [])
+    }
+  };
+}
+
+function fallbackTutorialBundle() {
+  return normalizeTutorialBundle({
+    settings: {
+      bodyWeightKg: 72,
+      heightCm: 171,
+      birthYear: new Date().getFullYear() - 24,
+      referenceSex: "male",
+      statsWindowDays: 56,
+      bodyWindowDays: 21,
+      weeklySessionTarget: 4,
+      weeklyMuscleTargetSets: 10,
+      bodySortMode: "least",
+      historyViewMode: "month"
+    },
+    workouts: [
+      { id: "tutorial-01", dateOffset: -40, title: "Push Quest", durationMin: 58, exercises: [
+        { exerciseId: "barbell-bench-press", restSeconds: 120, notes: "", sets: [{ weightKg: 55, reps: 8, seconds: 0, rir: null, completed: true }, { weightKg: 57.5, reps: 6, seconds: 0, rir: null, completed: true }, { weightKg: 60, reps: 5, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "db-shoulder-press", restSeconds: 90, notes: "", sets: [{ weightKg: 18, reps: 9, seconds: 0, rir: null, completed: true }, { weightKg: 18, reps: 8, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "triceps-pushdown", restSeconds: 75, notes: "", sets: [{ weightKg: 32, reps: 12, seconds: 0, rir: null, completed: true }, { weightKg: 35, reps: 10, seconds: 0, rir: null, completed: true }], activity: null }
+      ]},
+      { id: "tutorial-02", dateOffset: -35, title: "Pull Gate", durationMin: 51, exercises: [
+        { exerciseId: "pull-up", restSeconds: 120, notes: "", sets: [{ weightKg: 0, reps: 7, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 6, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 5, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "lat-pulldown", restSeconds: 90, notes: "", sets: [{ weightKg: 55, reps: 10, seconds: 0, rir: null, completed: true }, { weightKg: 60, reps: 8, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "barbell-curl", restSeconds: 75, notes: "", sets: [{ weightKg: 25, reps: 10, seconds: 0, rir: null, completed: true }, { weightKg: 27.5, reps: 8, seconds: 0, rir: null, completed: true }], activity: null }
+      ]},
+      { id: "tutorial-03", dateOffset: -30, title: "Leg Raid", durationMin: 64, exercises: [
+        { exerciseId: "barbell-squat", restSeconds: 150, notes: "", sets: [{ weightKg: 70, reps: 8, seconds: 0, rir: null, completed: true }, { weightKg: 75, reps: 6, seconds: 0, rir: null, completed: true }, { weightKg: 80, reps: 5, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "leg-extension", restSeconds: 75, notes: "", sets: [{ weightKg: 45, reps: 12, seconds: 0, rir: null, completed: true }, { weightKg: 50, reps: 10, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "standing-calf-raise", restSeconds: 60, notes: "", sets: [{ weightKg: 55, reps: 14, seconds: 0, rir: null, completed: true }, { weightKg: 60, reps: 12, seconds: 0, rir: null, completed: true }], activity: null }
+      ]},
+      { id: "tutorial-04", dateOffset: -24, title: "Outdoor Run", durationMin: 33, exercises: [
+        { exerciseId: "running", restSeconds: null, notes: "", sets: [], activity: { durationMin: 31, distanceKm: 5.3, elevationM: 45, inclinePercent: 0, steps: 0, packKg: 0, watts: 0, floors: 0, stroke: "freestyle", intensity: "moderate" } }
+      ]},
+      { id: "tutorial-05", dateOffset: -19, title: "Upper Dungeon", durationMin: 62, exercises: [
+        { exerciseId: "barbell-bench-press", restSeconds: 120, notes: "", sets: [{ weightKg: 62.5, reps: 6, seconds: 0, rir: null, completed: true }, { weightKg: 65, reps: 5, seconds: 0, rir: null, completed: true }, { weightKg: 67.5, reps: 3, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "pull-up", restSeconds: 120, notes: "", sets: [{ weightKg: 0, reps: 9, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 7, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 6, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "dips", restSeconds: 90, notes: "", sets: [{ weightKg: 0, reps: 12, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 10, seconds: 0, rir: null, completed: true }], activity: null }
+      ]},
+      { id: "tutorial-06", dateOffset: -14, title: "Treadmill Sprint", durationMin: 28, exercises: [
+        { exerciseId: "treadmill-running", restSeconds: null, notes: "", sets: [], activity: { durationMin: 24, distanceKm: 5.1, elevationM: 0, inclinePercent: 1.5, steps: 0, packKg: 0, watts: 0, floors: 0, stroke: "freestyle", intensity: "vigorous" } }
+      ]},
+      { id: "tutorial-07", dateOffset: -10, title: "Full Body Gate", durationMin: 71, exercises: [
+        { exerciseId: "barbell-squat", restSeconds: 150, notes: "", sets: [{ weightKg: 82.5, reps: 5, seconds: 0, rir: null, completed: true }, { weightKg: 85, reps: 4, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "barbell-bench-press", restSeconds: 120, notes: "", sets: [{ weightKg: 67.5, reps: 5, seconds: 0, rir: null, completed: true }, { weightKg: 70, reps: 3, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "barbell-row", restSeconds: 100, notes: "", sets: [{ weightKg: 60, reps: 9, seconds: 0, rir: null, completed: true }, { weightKg: 65, reps: 7, seconds: 0, rir: null, completed: true }], activity: null }
+      ]},
+      { id: "tutorial-08", dateOffset: -5, title: "Core + Hike", durationMin: 86, exercises: [
+        { exerciseId: "plank", restSeconds: 60, notes: "", sets: [{ weightKg: 0, reps: 0, seconds: 70, rir: null, completed: true }, { weightKg: 0, reps: 0, seconds: 82, rir: null, completed: true }], activity: null },
+        { exerciseId: "hiking", restSeconds: null, notes: "", sets: [], activity: { durationMin: 72, distanceKm: 6.2, elevationM: 310, inclinePercent: 0, steps: 0, packKg: 3, watts: 0, floors: 0, stroke: "freestyle", intensity: "moderate" } }
+      ]},
+      { id: "tutorial-09", dateOffset: -1, title: "Rank Check", durationMin: 59, exercises: [
+        { exerciseId: "barbell-bench-press", restSeconds: 120, notes: "", sets: [{ weightKg: 72.5, reps: 4, seconds: 0, rir: null, completed: true }, { weightKg: 72.5, reps: 3, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "pull-up", restSeconds: 120, notes: "", sets: [{ weightKg: 0, reps: 10, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 8, seconds: 0, rir: null, completed: true }], activity: null },
+        { exerciseId: "db-curl", restSeconds: 75, notes: "", sets: [{ weightKg: 16, reps: 10, seconds: 0, rir: null, completed: true }, { weightKg: 16, reps: 9, seconds: 0, rir: null, completed: true }], activity: null }
+      ]}
+    ],
+    draftWorkout: { exercises: [
+      { exerciseId: "barbell-bench-press", restSeconds: 120, notes: "", sets: [{ weightKg: 70, reps: 5, seconds: 0, rir: null, completed: true }, { weightKg: 72.5, reps: 4, seconds: 0, rir: null, completed: true }], activity: null },
+      { exerciseId: "pull-up", restSeconds: 120, notes: "", sets: [{ weightKg: 0, reps: 10, seconds: 0, rir: null, completed: true }, { weightKg: 0, reps: 8, seconds: 0, rir: null, completed: true }], activity: null },
+      { exerciseId: "treadmill-running", restSeconds: null, notes: "", sets: [], activity: { durationMin: 18, distanceKm: 3.8, elevationM: 0, inclinePercent: 1, steps: 0, packKg: 0, watts: 0, floors: 0, stroke: "freestyle", intensity: "vigorous" } }
+    ]}
+  });
+}
+
+async function loadTutorialBundle() {
+  if (tutorialData) return tutorialData;
+  try {
+    const response = await fetch("./tutorial-data.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Tutorial dataset unavailable.");
+    tutorialData = normalizeTutorialBundle(await response.json());
+  } catch (error) {
+    console.warn("Using fallback tutorial data.", error);
+    tutorialData = fallbackTutorialBundle();
+  }
+  return tutorialData;
+}
+
+function applyTutorialBundle(bundle) {
+  state.workouts = deepClone(bundle.workouts);
+  state.settings = deepClone(bundle.settings);
+  state.metadata = {
+    workouts: { fromCache: true, pending: false },
+    customExercises: { fromCache: true, pending: false },
+    settings: { fromCache: true, pending: false }
+  };
+  state.catalogAvailable = true;
+}
+
+function clearTutorialFocus() {
+  tutorialFocusedElement?.classList.remove("tutorial-focus");
+  tutorialFocusedElement = null;
+}
+
+function tutorialOverlay() {
+  let overlay = document.querySelector("#tutorial-overlay");
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.id = "tutorial-overlay";
+  overlay.className = "tutorial-overlay";
+  overlay.innerHTML = `
+    <div class="tutorial-dim" aria-hidden="true"></div>
+    <section class="tutorial-card panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+      <button id="tutorial-close" class="tutorial-close" type="button" aria-label="Close tutorial">×</button>
+      <p class="eyebrow">GUIDED TOUR</p>
+      <h3 id="tutorial-title"></h3>
+      <p id="tutorial-copy"></p>
+      <div class="tutorial-controls">
+        <button id="tutorial-back" class="ghost-button" type="button">Back</button>
+        <div class="tutorial-progress" aria-hidden="true"><span id="tutorial-progress-fill"></span></div>
+        <button id="tutorial-next" class="primary-button" type="button">Next</button>
+      </div>
+      <small id="tutorial-count"></small>
+    </section>`;
+  document.body.append(overlay);
+  overlay.querySelector("#tutorial-close").addEventListener("click", stopTutorial);
+  overlay.querySelector("#tutorial-back").addEventListener("click", () => showTutorialStep(tutorialStepIndex - 1));
+  overlay.querySelector("#tutorial-next").addEventListener("click", () => {
+    if (tutorialStepIndex >= TUTORIAL_STEPS.length - 1) stopTutorial(true);
+    else showTutorialStep(tutorialStepIndex + 1);
+  });
+  return overlay;
+}
+
+function prepareTutorialStep(step) {
+  if (step.draft && tutorialData?.draftWorkout) {
+    draftWorkout = deepClone(tutorialData.draftWorkout);
+    draftCollapsedEntries = new Set();
+    startWorkoutTimer();
+  }
+  if (step.muscle) {
+    selectedMuscleKey = step.muscle;
+    muscleExercisePage = 0;
+  }
+}
+
+function positionTutorialCard(target) {
+  const overlay = tutorialOverlay();
+  const card = overlay.querySelector(".tutorial-card");
+  if (!target) {
+    card.style.removeProperty("--tutorial-card-x");
+    card.style.removeProperty("--tutorial-card-y");
+    return;
+  }
+  const rect = target.getBoundingClientRect();
+  const cardWidth = Math.min(460, window.innerWidth - 28);
+  let x = Math.min(window.innerWidth - cardWidth - 14, Math.max(14, rect.left + rect.width / 2 - cardWidth / 2));
+  let y = rect.bottom + 18;
+  if (y + 260 > window.innerHeight) y = Math.max(14, rect.top - 280);
+  if (window.innerWidth <= 680) {
+    x = 12;
+    y = window.innerHeight - 260;
+  }
+  card.style.setProperty("--tutorial-card-x", `${x}px`);
+  card.style.setProperty("--tutorial-card-y", `${y}px`);
+}
+
+function showTutorialStep(index) {
+  if (!tutorialMode) return;
+  tutorialStepIndex = Math.max(0, Math.min(TUTORIAL_STEPS.length - 1, index));
+  const step = TUTORIAL_STEPS[tutorialStepIndex];
+  clearTutorialFocus();
+  applyTutorialBundle(tutorialData);
+  prepareTutorialStep(step);
+  navigateTo(step.view);
+  renderAll();
+  window.requestAnimationFrame(() => {
+    let target = document.querySelector(step.target);
+    if (!target) target = document.querySelector(`[data-view-section="${step.view}"]`);
+    target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+    window.setTimeout(() => {
+      target = document.querySelector(step.target) ?? document.querySelector(`[data-view-section="${step.view}"]`);
+      if (target) {
+        tutorialFocusedElement = target;
+        target.classList.add("tutorial-focus");
+      }
+      const overlay = tutorialOverlay();
+      overlay.hidden = false;
+      overlay.querySelector("#tutorial-title").textContent = step.title;
+      overlay.querySelector("#tutorial-copy").textContent = step.copy;
+      overlay.querySelector("#tutorial-count").textContent = `${tutorialStepIndex + 1} / ${TUTORIAL_STEPS.length}`;
+      overlay.querySelector("#tutorial-progress-fill").style.width = `${(tutorialStepIndex + 1) / TUTORIAL_STEPS.length * 100}%`;
+      overlay.querySelector("#tutorial-back").disabled = tutorialStepIndex === 0;
+      overlay.querySelector("#tutorial-next").textContent = tutorialStepIndex === TUTORIAL_STEPS.length - 1 ? "Finish" : "Next";
+      positionTutorialCard(target);
+    }, 260);
+  });
+}
+
+async function startTutorial() {
+  if (tutorialMode) return;
+  tutorialSnapshot = cloneStateForTutorial();
+  tutorialMode = true;
+  closeInfoPopovers();
+  closeModal();
+  tutorialData = await loadTutorialBundle();
+  applyTutorialBundle(tutorialData);
+  showToast("Tutorial mode", "Temporary sample data loaded. Your real data will return when you leave.");
+  showTutorialStep(0);
+}
+
+function stopTutorial(finished = false) {
+  if (!tutorialMode) return;
+  clearTutorialFocus();
+  document.querySelector("#tutorial-overlay")?.remove();
+  stopWorkoutTimer();
+  restoreTutorialSnapshot();
+  const returnView = tutorialSnapshot?.activeView ?? "dashboard";
+  tutorialMode = false;
+  tutorialSnapshot = null;
+  navigateTo(returnView);
+  renderAll();
+  showToast(finished ? "Tutorial finished" : "Tutorial closed", "Your real account data is restored. Tutorial data was not synchronized.");
 }
 
 function currentPlayerSummary() {
@@ -936,6 +1304,8 @@ function renderDashboard() {
 
   document.querySelector("#rank-letter").textContent = rankIcon(xp.rank);
   document.querySelector("#rank-name").textContent = xp.rank.label;
+  const headerRankMark = document.querySelector("#header-rank-mark span");
+  if (headerRankMark) headerRankMark.textContent = rankIcon(xp.rank);
   document.querySelector("#brand-stage").textContent = `RANK ${rankTitle(xp.rank)}`;
   document.querySelector("#system-level").textContent = `Level ${xp.level}`;
   document.querySelector("#total-xp").textContent = `${xp.xp.toLocaleString()} XP`;
@@ -1401,9 +1771,9 @@ function openWorkoutDetail(id) {
   openModal("detail");
 }
 
-function submitSettings(event) {
-  event.preventDefault();
-  const settings = {
+
+function readSettingsFromForm() {
+  return {
     bodyWeightKg: Number(document.querySelector("#setting-weight").value),
     heightCm: Number(document.querySelector("#setting-height").value),
     birthYear: Number(document.querySelector("#setting-birth-year").value),
@@ -1421,23 +1791,51 @@ function submitSettings(event) {
     theme: document.querySelector("#setting-theme").value,
     motion: document.querySelector("#setting-motion").value
   };
+}
+
+async function saveSettingsFromForm({ toast = false } = {}) {
+  if (tutorialMode) return;
+  const settings = readSettingsFromForm();
   const message = document.querySelector("#settings-message");
   if (settings.bodyWeightKg < 20 || settings.bodyWeightKg > 400 || settings.heightCm < 120 || settings.heightCm > 230) {
     setMessage(message, "Enter a valid body weight and height.", true);
     return;
   }
-  const year = new Date().getFullYear();
-  if (settings.birthYear < 1900 || settings.birthYear > year) {
+  if (settings.birthYear < 1900 || settings.birthYear > new Date().getFullYear()) {
     setMessage(message, "Enter a valid birth year.", true);
     return;
   }
-  queueWrite(saveSettings(settings), "Settings saved");
-  setMessage(message, "Settings saved locally and queued for synchronization.");
+  state.settings = { ...state.settings, ...settings };
+  applyAppearance(state.settings);
   renderCalendar();
   renderStats();
   renderMuscles();
   renderBuilder();
+  renderActiveCharts();
+  try {
+    await saveSettings(settings);
+    setMessage(message, "Settings saved.");
+    if (toast) showToast("Settings saved");
+  } catch (error) {
+    setMessage(message, firebaseErrorMessage(error), true);
+    showToast("Settings save failed", firebaseErrorMessage(error), "error");
+  }
 }
+
+function scheduleSettingsAutosave() {
+  if (tutorialMode) return;
+  window.clearTimeout(settingsAutosaveTimer);
+  setMessage(document.querySelector("#settings-message"), "Saving settings…");
+  settingsAutosaveTimer = window.setTimeout(() => {
+    void saveSettingsFromForm();
+  }, 320);
+}
+
+function submitSettings(event) {
+  event.preventDefault();
+  void saveSettingsFromForm({ toast: true });
+}
+
 
 function exportBackup() {
   const blob = new Blob([JSON.stringify(exportState(), null, 2)], { type: "application/json" });
@@ -1466,6 +1864,7 @@ async function importBackup(file) {
 }
 
 function renderAll() {
+  if (tutorialMode && tutorialData) applyTutorialBundle(tutorialData);
   applyAppearance();
   updateSyncStatus();
   renderDashboard();
@@ -1753,19 +2152,27 @@ function bindEvents() {
     selectedMuscleKey = null;
     renderMuscles();
   });
-  document.querySelector("#settings-form").addEventListener("submit", submitSettings);
-  document.querySelector("#setting-birth-year").addEventListener("input", event => {
-    const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
-    document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
+  const settingsForm = document.querySelector("#settings-form");
+  settingsForm.addEventListener("submit", submitSettings);
+  settingsForm.addEventListener("input", event => {
+    if (event.target.id === "setting-birth-year") {
+      const age = Math.max(0, new Date().getFullYear() - Number(event.target.value || DEFAULT_SETTINGS.birthYear));
+      document.querySelector("#setting-age-preview").textContent = `Calculated age: ${age}`;
+    }
+    scheduleSettingsAutosave();
   });
-  ["setting-theme", "setting-motion"].forEach(id => document.querySelector(`#${id}`).addEventListener("change", () => {
-    applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, motion: document.querySelector("#setting-motion").value });
-    renderActiveCharts();
-  }));
+  settingsForm.addEventListener("change", event => {
+    if (event.target.id === "setting-theme" || event.target.id === "setting-motion") {
+      applyAppearance({ ...state.settings, theme: document.querySelector("#setting-theme").value, motion: document.querySelector("#setting-motion").value });
+      renderActiveCharts();
+    }
+    scheduleSettingsAutosave();
+  });
   document.querySelector("#open-rank-guide").addEventListener("click", () => {
     renderRankGuide();
     openModal("ranks");
   });
+  document.querySelector("#start-tutorial")?.addEventListener("click", () => { void startTutorial(); });
 
   document.querySelector("#open-sync-choice").addEventListener("click", async () => {
     try {

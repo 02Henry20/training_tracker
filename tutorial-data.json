@@ -1,0 +1,661 @@
+{
+  "settings": {
+    "bodyWeightKg": 72,
+    "heightCm": 171,
+    "birthYear": 2002,
+    "referenceSex": "male",
+    "statsWindowDays": 56,
+    "bodyWindowDays": 21,
+    "weeklySessionTarget": 4,
+    "weeklyMuscleTargetSets": 10,
+    "bodySortMode": "least",
+    "historyViewMode": "month"
+  },
+  "workouts": [
+    {
+      "id": "tutorial-01",
+      "dateOffset": -40,
+      "title": "Push Quest",
+      "durationMin": 58,
+      "exercises": [
+        {
+          "exerciseId": "barbell-bench-press",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 55,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 57.5,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-shoulder-press",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 18,
+              "reps": 9,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 18,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "triceps-pushdown",
+          "restSeconds": 75,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 32,
+              "reps": 12,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 35,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    },
+    {
+      "id": "tutorial-02",
+      "dateOffset": -35,
+      "title": "Pull Gate",
+      "durationMin": 51,
+      "exercises": [
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 7,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "lat-pulldown",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 55,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-curl",
+          "restSeconds": 75,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 25,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 27.5,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    },
+    {
+      "id": "tutorial-03",
+      "dateOffset": -30,
+      "title": "Leg Raid",
+      "durationMin": 64,
+      "exercises": [
+        {
+          "exerciseId": "barbell-squat",
+          "restSeconds": 150,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 70,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 75,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 80,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "leg-extension",
+          "restSeconds": 75,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 45,
+              "reps": 12,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 50,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "standing-calf-raise",
+          "restSeconds": 60,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 55,
+              "reps": 14,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 60,
+              "reps": 12,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    },
+    {
+      "id": "tutorial-04",
+      "dateOffset": -24,
+      "title": "Outdoor Run",
+      "durationMin": 33,
+      "exercises": [
+        {
+          "exerciseId": "running",
+          "restSeconds": null,
+          "notes": "",
+          "sets": [],
+          "activity": {
+            "durationMin": 31,
+            "distanceKm": 5.3,
+            "elevationM": 45,
+            "inclinePercent": 0,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tutorial-05",
+      "dateOffset": -19,
+      "title": "Upper Dungeon",
+      "durationMin": 62,
+      "exercises": [
+        {
+          "exerciseId": "barbell-bench-press",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 62.5,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 65,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 67.5,
+              "reps": 3,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 9,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 7,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 6,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "dips",
+          "restSeconds": 90,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 12,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    },
+    {
+      "id": "tutorial-06",
+      "dateOffset": -14,
+      "title": "Treadmill Sprint",
+      "durationMin": 28,
+      "exercises": [
+        {
+          "exerciseId": "treadmill-running",
+          "restSeconds": null,
+          "notes": "",
+          "sets": [],
+          "activity": {
+            "durationMin": 24,
+            "distanceKm": 5.1,
+            "elevationM": 0,
+            "inclinePercent": 1.5,
+            "steps": 0,
+            "packKg": 0,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "vigorous"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tutorial-07",
+      "dateOffset": -10,
+      "title": "Full Body Gate",
+      "durationMin": 71,
+      "exercises": [
+        {
+          "exerciseId": "barbell-squat",
+          "restSeconds": 150,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 82.5,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 85,
+              "reps": 4,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-bench-press",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 67.5,
+              "reps": 5,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 70,
+              "reps": 3,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "barbell-row",
+          "restSeconds": 100,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 60,
+              "reps": 9,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 65,
+              "reps": 7,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    },
+    {
+      "id": "tutorial-08",
+      "dateOffset": -5,
+      "title": "Core + Hike",
+      "durationMin": 86,
+      "exercises": [
+        {
+          "exerciseId": "plank",
+          "restSeconds": 60,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 70,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 0,
+              "seconds": 82,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "hiking",
+          "restSeconds": null,
+          "notes": "",
+          "sets": [],
+          "activity": {
+            "durationMin": 72,
+            "distanceKm": 6.2,
+            "elevationM": 310,
+            "inclinePercent": 0,
+            "steps": 0,
+            "packKg": 3,
+            "watts": 0,
+            "floors": 0,
+            "stroke": "freestyle",
+            "intensity": "moderate"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tutorial-09",
+      "dateOffset": -1,
+      "title": "Rank Check",
+      "durationMin": 59,
+      "exercises": [
+        {
+          "exerciseId": "barbell-bench-press",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 72.5,
+              "reps": 4,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 72.5,
+              "reps": 3,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "pull-up",
+          "restSeconds": 120,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 0,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 0,
+              "reps": 8,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        },
+        {
+          "exerciseId": "db-curl",
+          "restSeconds": 75,
+          "notes": "",
+          "sets": [
+            {
+              "weightKg": 16,
+              "reps": 10,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            },
+            {
+              "weightKg": 16,
+              "reps": 9,
+              "seconds": 0,
+              "rir": null,
+              "completed": true
+            }
+          ],
+          "activity": null
+        }
+      ]
+    }
+  ],
+  "draftWorkout": {
+    "exercises": [
+      {
+        "exerciseId": "barbell-bench-press",
+        "restSeconds": 120,
+        "notes": "",
+        "sets": [
+          {
+            "weightKg": 70,
+            "reps": 5,
+            "seconds": 0,
+            "rir": null,
+            "completed": true
+          },
+          {
+            "weightKg": 72.5,
+            "reps": 4,
+            "seconds": 0,
+            "rir": null,
+            "completed": true
+          }
+        ],
+        "activity": null
+      },
+      {
+        "exerciseId": "pull-up",
+        "restSeconds": 120,
+        "notes": "",
+        "sets": [
+          {
+            "weightKg": 0,
+            "reps": 10,
+            "seconds": 0,
+            "rir": null,
+            "completed": true
+          },
+          {
+            "weightKg": 0,
+            "reps": 8,
+            "seconds": 0,
+            "rir": null,
+            "completed": true
+          }
+        ],
+        "activity": null
+      },
+      {
+        "exerciseId": "treadmill-running",
+        "restSeconds": null,
+        "notes": "",
+        "sets": [],
+        "activity": {
+          "durationMin": 18,
+          "distanceKm": 3.8,
+          "elevationM": 0,
+          "inclinePercent": 1,
+          "steps": 0,
+          "packKg": 0,
+          "watts": 0,
+          "floors": 0,
+          "stroke": "freestyle",
+          "intensity": "vigorous"
+        }
+      }
+    ]
+  }
+}
