@@ -3956,3 +3956,16 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     overflow-y: auto !important;
   }
 }
+
+
+/* 0.3.14: make desktop Selected History taller to use the remaining open space. */
+@media (min-width: 1001px) {
+  .history-side {
+    height: calc(var(--history-calendar-height, 560px) + 92px) !important;
+    min-height: calc(var(--history-calendar-height, 560px) + 92px) !important;
+  }
+  .history-side .calendar-detail {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
