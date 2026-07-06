@@ -3887,3 +3887,72 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     grid-column: auto !important;
   }
 }
+
+/* 0.3.13 desktop progress history sizing: compact metrics, wider training history, aligned selected history. */
+@media (min-width: 1001px) {
+  .history-panel {
+    --history-metric-width: 178px;
+    --history-metric-gap: 10px;
+    --history-side-width: calc((var(--history-metric-width) * 2) + var(--history-metric-gap));
+    grid-template-columns: minmax(0, 1fr) var(--history-side-width) !important;
+    align-items: start !important;
+    gap: 12px !important;
+  }
+  .history-panel .calendar-card {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .history-panel .calendar-legend {
+    margin-bottom: 0 !important;
+  }
+  .history-side {
+    width: var(--history-side-width) !important;
+    min-width: var(--history-side-width) !important;
+    max-width: var(--history-side-width) !important;
+    height: var(--history-calendar-height, auto) !important;
+    align-self: start !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+  .history-side > .stats-metrics.compact-stats {
+    width: var(--history-side-width) !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, var(--history-metric-width)) !important;
+    gap: var(--history-metric-gap) !important;
+    margin: 0 !important;
+    align-items: stretch !important;
+  }
+  .history-side > .stats-metrics.compact-stats > .metric-card {
+    width: var(--history-metric-width) !important;
+    min-width: var(--history-metric-width) !important;
+    max-width: var(--history-metric-width) !important;
+    min-height: 104px !important;
+    padding: 12px !important;
+  }
+  .history-side > .stats-metrics.compact-stats > .metric-card > span {
+    font-size: .58rem !important;
+    line-height: 1.15 !important;
+  }
+  .history-side > .stats-metrics.compact-stats > .metric-card strong {
+    margin: 6px 0 2px !important;
+    font-size: clamp(1.65rem, 1.8vw, 2.1rem) !important;
+    line-height: .95 !important;
+  }
+  .history-side > .stats-metrics.compact-stats > .metric-card small {
+    max-width: 100% !important;
+    font-size: .62rem !important;
+    line-height: 1.25 !important;
+  }
+  .history-side .calendar-detail {
+    width: var(--history-side-width) !important;
+    min-width: var(--history-side-width) !important;
+    max-width: var(--history-side-width) !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+}

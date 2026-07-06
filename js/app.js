@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.12";
+const APP_VERSION = "0.3.13";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -1019,6 +1019,21 @@ function renderCalendar() {
   renderHistoryMonth();
 }
 
+function syncHistoryPanelSizing() {
+  const panel = document.querySelector(".history-panel");
+  const calendar = document.querySelector(".history-panel .calendar-card");
+  if (!panel || !calendar) return;
+  const isDesktop = window.matchMedia("(min-width: 1001px)").matches;
+  if (!isDesktop) {
+    panel.style.removeProperty("--history-calendar-height");
+    return;
+  }
+  window.requestAnimationFrame(() => {
+    const height = Math.ceil(calendar.getBoundingClientRect().height);
+    if (height > 0) panel.style.setProperty("--history-calendar-height", `${height}px`);
+  });
+}
+
 function updateHistoryNav() {
   document.querySelector("#calendar-prev").hidden = !periodCanShift(-1);
   document.querySelector("#calendar-next").hidden = !periodCanShift(1);
@@ -1037,6 +1052,7 @@ function renderHistoryEmpty() {
   document.querySelector("#calendar-day-title").textContent = "No sessions";
   document.querySelector("#calendar-day-total").textContent = "0";
   document.querySelector("#calendar-day-list").innerHTML = `<div class="empty-state">Logged sessions will appear here.</div>`;
+  syncHistoryPanelSizing();
 }
 
 function renderHistoryMonth() {
@@ -1069,6 +1085,7 @@ function renderHistoryMonth() {
     grid.append(button);
   }
   renderCalendarDay();
+  syncHistoryPanelSizing();
 }
 
 function renderHistoryYear() {
@@ -1137,6 +1154,7 @@ function renderHistoryMonthDetail() {
   const xp = analyses.reduce((sum, workout) => sum + workoutXpBreakdown(workout).total, 0);
   document.querySelector("#calendar-day-total").textContent = analyses.length ? `${analyses.length} sessions · +${formatNumber(xp)} XP` : "No sessions";
   renderSessionList(document.querySelector("#calendar-day-list"), analyses, 80, "calories");
+  syncHistoryPanelSizing();
 }
 
 function usedExerciseIds() {
@@ -1861,6 +1879,10 @@ function bindEvents() {
 setStoreErrorHandler(error => showToast("Synchronization error", firebaseErrorMessage(error), "error"));
 subscribeState(scheduleRender);
 bindEvents();
-redrawOnResize(renderActiveCharts);
+redrawOnResize(() => {
+  renderActiveCharts();
+  syncHistoryPanelSizing();
+});
+window.addEventListener("resize", syncHistoryPanelSizing);
 setupServiceWorker();
 initializeAuthentication();
