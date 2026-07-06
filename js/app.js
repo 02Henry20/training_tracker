@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.15";
+const APP_VERSION = "0.3.16";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -1022,15 +1022,21 @@ function renderCalendar() {
 function syncHistoryPanelSizing() {
   const panel = document.querySelector(".history-panel");
   const calendar = document.querySelector(".history-panel .calendar-card");
+  const metrics = document.querySelector(".history-side > .stats-metrics.compact-stats");
   if (!panel || !calendar) return;
   const isDesktop = window.matchMedia("(min-width: 1001px)").matches;
   if (!isDesktop) {
     panel.style.removeProperty("--history-calendar-height");
+    panel.style.removeProperty("--history-detail-height");
     return;
   }
   window.requestAnimationFrame(() => {
-    const height = Math.ceil(calendar.getBoundingClientRect().height);
-    if (height > 0) panel.style.setProperty("--history-calendar-height", `${height}px`);
+    const calendarHeight = Math.ceil(calendar.getBoundingClientRect().height);
+    const metricsHeight = Math.ceil(metrics?.getBoundingClientRect().height ?? 0);
+    const sideGap = Number.parseFloat(getComputedStyle(document.querySelector(".history-side")).rowGap) || 10;
+    const detailHeight = Math.max(220, calendarHeight - metricsHeight - sideGap);
+    if (calendarHeight > 0) panel.style.setProperty("--history-calendar-height", `${calendarHeight}px`);
+    if (detailHeight > 0) panel.style.setProperty("--history-detail-height", `${Math.floor(detailHeight)}px`);
   });
 }
 

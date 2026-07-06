@@ -3958,16 +3958,18 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
 }
 
 
-/* 0.3.15: cap desktop Selected History to the calendar height so it never drops below Training History. */
+/* 0.3.16: selected history height = training history height - metric row height - row gap. */
 @media (min-width: 1001px) {
   .history-side {
     height: var(--history-calendar-height, auto) !important;
     min-height: 0 !important;
     max-height: var(--history-calendar-height, none) !important;
+    grid-template-rows: auto var(--history-detail-height, minmax(0, 1fr)) !important;
   }
   .history-side .calendar-detail {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    height: var(--history-detail-height, auto) !important;
+    min-height: var(--history-detail-height, 0) !important;
+    max-height: var(--history-detail-height, none) !important;
+    align-self: stretch !important;
   }
 }
