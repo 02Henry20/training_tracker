@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.17";
+const APP_VERSION = "0.3.18";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],

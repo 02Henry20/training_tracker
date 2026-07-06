@@ -4003,3 +4003,42 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     overflow-y: auto !important;
   }
 }
+
+/* 0.3.18: Desktop Stats — force Selected History to fill the full remaining height beside Training History.
+   This does not depend on JS measurement; the right column stretches to the calendar row height,
+   then the Selected History panel consumes all space left under the two metric cards. */
+@media (min-width: 1001px) {
+  .history-panel {
+    align-items: stretch !important;
+  }
+
+  .history-panel .calendar-card {
+    align-self: stretch !important;
+  }
+
+  .history-side {
+    align-self: stretch !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .history-side > .stats-metrics.compact-stats {
+    align-self: start !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+
+  .history-side .calendar-detail {
+    align-self: stretch !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+}
