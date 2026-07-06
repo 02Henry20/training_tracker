@@ -64,10 +64,147 @@ function dateLabel(value) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(`${value}T00:00:00`));
 }
 
+function isDesktopPointer() {
+  return window.matchMedia?.("(hover: hover) and (pointer: fine)").matches ?? false;
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatChartValue(value, unit = "", rankMode = false) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return `—${unit}`;
+  if (rankMode) return `${number.toFixed(1)}${unit}`;
+  const rounded = Math.round(number * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}${unit}`;
+}
+
+function barValueText(value, metric) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  if (metric === "calories") return `${Math.round(number)} kcal`;
+  if (metric === "sessions") return `${Math.round(number)} session${Math.round(number) === 1 ? "" : "s"}`;
+  return formatChartValue(number);
+}
+
+const interactiveCanvases = new Set();
+let outsideDismissBound = false;
+
+function ensureTooltip(canvas) {
+  const wrap = canvas.parentElement;
+  if (!wrap) return null;
+  let tooltip = wrap.querySelector(":scope > .chart-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.className = "chart-tooltip";
+    tooltip.hidden = true;
+    wrap.append(tooltip);
+  }
+  return tooltip;
+}
+
+function hideChartTooltip(canvas) {
+  const tooltip = canvas.parentElement?.querySelector(":scope > .chart-tooltip");
+  if (tooltip) tooltip.hidden = true;
+  canvas.__chartActiveTarget = null;
+}
+
+function showChartTooltip(canvas, target, persistent = false) {
+  const tooltip = ensureTooltip(canvas);
+  const wrap = canvas.parentElement;
+  if (!tooltip || !wrap || !target) return;
+  const rect = wrap.getBoundingClientRect();
+  const safeX = clampNumber(target.x, 50, Math.max(50, rect.width - 50));
+  const safeY = clampNumber(target.y, 44, Math.max(44, rect.height - 10));
+  tooltip.innerHTML = `<strong>${target.title}</strong><span>${target.subtitle}</span>`;
+  tooltip.style.left = `${safeX}px`;
+  tooltip.style.top = `${safeY}px`;
+  tooltip.hidden = false;
+  tooltip.dataset.persistent = persistent ? "true" : "false";
+  canvas.__chartActiveTarget = target;
+}
+
+function pointerPosition(canvas, event) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function hitTestChart(canvas, event) {
+  const targets = canvas.__chartTargets ?? [];
+  if (!targets.length) return null;
+  const point = pointerPosition(canvas, event);
+  let best = null;
+  let bestDistance = Infinity;
+  const pointRadius = isDesktopPointer() ? 13 : 24;
+
+  for (const target of targets) {
+    if (target.kind === "bar") {
+      const withinX = point.x >= target.left && point.x <= target.right;
+      const withinY = point.y >= target.top && point.y <= target.bottom;
+      if (withinX && withinY) return target;
+      continue;
+    }
+    const distance = Math.hypot(point.x - target.x, point.y - target.y);
+    const radius = target.hitRadius ?? pointRadius;
+    if (distance <= radius && distance < bestDistance) {
+      best = target;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function bindChartInteraction(canvas) {
+  if (canvas.__chartInteractionBound) return;
+  canvas.__chartInteractionBound = true;
+  interactiveCanvases.add(canvas);
+  canvas.style.touchAction = "manipulation";
+
+  canvas.addEventListener("pointermove", event => {
+    if (!isDesktopPointer()) return;
+    const target = hitTestChart(canvas, event);
+    if (target) showChartTooltip(canvas, target, false);
+    else hideChartTooltip(canvas);
+  });
+
+  canvas.addEventListener("pointerleave", () => {
+    if (isDesktopPointer()) hideChartTooltip(canvas);
+  });
+
+  canvas.addEventListener("pointerdown", event => {
+    if (isDesktopPointer()) return;
+    const target = hitTestChart(canvas, event);
+    if (target) showChartTooltip(canvas, target, true);
+    else hideChartTooltip(canvas);
+  });
+
+  if (!outsideDismissBound) {
+    outsideDismissBound = true;
+    document.addEventListener("pointerdown", event => {
+      for (const item of interactiveCanvases) {
+        const wrap = item.parentElement;
+        if (!wrap || !wrap.contains(event.target)) hideChartTooltip(item);
+      }
+    }, true);
+  }
+}
+
+function setChartTargets(canvas, targets) {
+  canvas.__chartTargets = targets;
+  bindChartInteraction(canvas);
+}
+
 export function drawLineChart(canvas, points, { unit = "", label = "Progress", rankMode = false } = {}) {
+  if (!canvas) return;
+  hideChartTooltip(canvas);
   const valid = points.filter(point => point.date && Number.isFinite(Number(point.value)));
   empty(canvas, "Log this exercise at least twice to show progression.", valid.length < 2);
-  if (valid.length < 2) return;
+  if (valid.length < 2) {
+    setChartTargets(canvas, []);
+    hideChartTooltip(canvas);
+    return;
+  }
   const { context, width, height } = prepare(canvas);
   const area = { left: 48, right: width - 16, top: 18, bottom: height - 34 };
   const times = valid.map(point => new Date(`${point.date}T00:00:00`).getTime());
@@ -87,7 +224,7 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
     context.moveTo(area.left, py);
     context.lineTo(area.right, py);
     context.stroke();
-    const display = rankMode ? value.toFixed(1) : `${Math.round(value * 10) / 10}${unit}`;
+    const display = formatChartValue(value, unit, rankMode);
     context.fillText(display, 4, py + 4);
   }
 
@@ -124,6 +261,7 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
   context.lineWidth = 3;
   context.stroke();
 
+  const targets = [];
   for (const point of valid) {
     const px = x(new Date(`${point.date}T00:00:00`).getTime());
     const py = y(Number(point.value));
@@ -131,7 +269,16 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
     context.fillStyle = colors.accent2;
     context.arc(px, py, 3.5, 0, Math.PI * 2);
     context.fill();
+    targets.push({
+      kind: "point",
+      x: px,
+      y: py,
+      hitRadius: 22,
+      title: formatChartValue(point.value, unit, rankMode),
+      subtitle: `${label} · ${dateLabel(point.date)}`
+    });
   }
+  setChartTargets(canvas, targets);
 
   context.fillStyle = colors.text;
   context.font = "700 11px system-ui";
@@ -139,9 +286,15 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
 }
 
 export function drawWeeklyBars(canvas, points, metric = "sessions") {
+  if (!canvas) return;
+  hideChartTooltip(canvas);
   const valid = points.filter(point => Number.isFinite(Number(point[metric])));
   empty(canvas, "Complete workouts to build weekly statistics.", valid.length === 0);
-  if (!valid.length) return;
+  if (!valid.length) {
+    setChartTargets(canvas, []);
+    hideChartTooltip(canvas);
+    return;
+  }
   const { context, width, height } = prepare(canvas);
   const area = { left: 40, right: width - 14, top: 18, bottom: height - 38 };
   const max = Math.max(1, ...valid.map(point => Number(point[metric])));
@@ -161,6 +314,7 @@ export function drawWeeklyBars(canvas, points, metric = "sessions") {
     context.fillText(String(Math.round(value)), 4, y + 4);
   }
 
+  const targets = [];
   valid.forEach((point, index) => {
     const value = Number(point[metric]);
     const heightValue = value / max * (area.bottom - area.top);
@@ -173,12 +327,24 @@ export function drawWeeklyBars(canvas, points, metric = "sessions") {
     context.beginPath();
     context.roundRect(left, top, barWidth, Math.max(2, heightValue), 5);
     context.fill();
+    targets.push({
+      kind: "bar",
+      left,
+      right: left + barWidth,
+      top,
+      bottom: area.bottom,
+      x: left + barWidth / 2,
+      y: top,
+      title: barValueText(value, metric),
+      subtitle: dateLabel(point.date)
+    });
     if (valid.length <= 8 || index % Math.ceil(valid.length / 7) === 0 || index === valid.length - 1) {
       context.fillStyle = colors.text;
       context.textAlign = "center";
       context.fillText(dateLabel(point.date), left + barWidth / 2, height - 12);
     }
   });
+  setChartTargets(canvas, targets);
   context.textAlign = "left";
 }
 
