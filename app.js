@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.18";
+const APP_VERSION = "0.3.19";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -422,7 +422,10 @@ function navigateTo(view) {
   elements.viewTitle.textContent = VIEW_META[view][1];
   document.querySelector(".content-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
   if (view === "workout") renderBuilder();
-  window.requestAnimationFrame(renderActiveCharts);
+  window.requestAnimationFrame(() => {
+    renderActiveCharts();
+    if (view === "stats") syncHistoryPanelSizing();
+  });
 }
 
 function openModal(type) {
@@ -1019,28 +1022,76 @@ function renderCalendar() {
   renderHistoryMonth();
 }
 
+function clearHistoryPanelSizing() {
+  const panel = document.querySelector(".history-panel");
+  const side = document.querySelector(".history-side");
+  const metrics = document.querySelector(".history-side > .stats-metrics.compact-stats");
+  const detail = document.querySelector(".history-side .calendar-detail");
+  panel?.style.removeProperty("--history-calendar-height");
+  panel?.style.removeProperty("--history-metrics-height");
+  panel?.style.removeProperty("--history-detail-height");
+  for (const target of [side, metrics, detail]) {
+    if (!target) continue;
+    for (const property of ["height", "min-height", "max-height", "grid-template-rows", "overflow", "overflow-x", "overflow-y", "box-sizing"]) {
+      target.style.removeProperty(property);
+    }
+  }
+}
+
 function syncHistoryPanelSizing() {
   const panel = document.querySelector(".history-panel");
   const calendar = document.querySelector(".history-panel .calendar-card");
   const side = document.querySelector(".history-side");
   const metrics = document.querySelector(".history-side > .stats-metrics.compact-stats");
-  if (!panel || !calendar || !side) return;
+  const detail = document.querySelector(".history-side .calendar-detail");
+  const statsView = document.querySelector('[data-view-section="stats"]');
+  if (!panel || !calendar || !side || !detail) return;
+
   const isDesktop = window.matchMedia("(min-width: 1001px)").matches;
-  if (!isDesktop) {
-    panel.style.removeProperty("--history-calendar-height");
-    panel.style.removeProperty("--history-metrics-height");
-    panel.style.removeProperty("--history-detail-height");
+  const statsVisible = statsView?.classList.contains("active") ?? false;
+  if (!isDesktop || !statsVisible) {
+    clearHistoryPanelSizing();
     return;
   }
 
   const applySizing = () => {
+    // Reset first so old inline values or content wrapping do not distort the new measurement.
+    for (const target of [side, metrics, detail]) {
+      if (!target) continue;
+      for (const property of ["height", "min-height", "max-height", "grid-template-rows", "overflow", "overflow-x", "overflow-y", "box-sizing"]) {
+        target.style.removeProperty(property);
+      }
+    }
+
     const calendarHeight = Math.ceil(calendar.getBoundingClientRect().height);
     const metricsHeight = Math.ceil(metrics?.getBoundingClientRect().height ?? 0);
     const sideGap = Number.parseFloat(getComputedStyle(side).rowGap) || 10;
-    const detailHeight = Math.max(220, calendarHeight - metricsHeight - sideGap);
-    if (calendarHeight > 0) panel.style.setProperty("--history-calendar-height", `${calendarHeight}px`);
-    if (metricsHeight > 0) panel.style.setProperty("--history-metrics-height", `${metricsHeight}px`);
-    if (detailHeight > 0) panel.style.setProperty("--history-detail-height", `${Math.floor(detailHeight)}px`);
+    if (calendarHeight <= 0 || metricsHeight <= 0) return;
+
+    const detailHeight = Math.max(160, calendarHeight - metricsHeight - sideGap);
+    panel.style.setProperty("--history-calendar-height", `${calendarHeight}px`);
+    panel.style.setProperty("--history-metrics-height", `${metricsHeight}px`);
+    panel.style.setProperty("--history-detail-height", `${Math.floor(detailHeight)}px`);
+
+    // Apply directly from JS with important priority because older desktop rules also use !important.
+    // This targets only the desktop Stats history layout and leaves mobile untouched.
+    side.style.setProperty("height", `${calendarHeight}px`, "important");
+    side.style.setProperty("min-height", `${calendarHeight}px`, "important");
+    side.style.setProperty("max-height", `${calendarHeight}px`, "important");
+    side.style.setProperty("grid-template-rows", `${metricsHeight}px ${Math.floor(detailHeight)}px`, "important");
+    side.style.setProperty("overflow", "hidden", "important");
+    side.style.setProperty("box-sizing", "border-box", "important");
+
+    metrics?.style.setProperty("height", `${metricsHeight}px`, "important");
+    metrics?.style.setProperty("min-height", `${metricsHeight}px`, "important");
+    metrics?.style.setProperty("max-height", `${metricsHeight}px`, "important");
+
+    detail.style.setProperty("height", `${Math.floor(detailHeight)}px`, "important");
+    detail.style.setProperty("min-height", `${Math.floor(detailHeight)}px`, "important");
+    detail.style.setProperty("max-height", `${Math.floor(detailHeight)}px`, "important");
+    detail.style.setProperty("overflow-x", "hidden", "important");
+    detail.style.setProperty("overflow-y", "auto", "important");
+    detail.style.setProperty("box-sizing", "border-box", "important");
   };
 
   window.requestAnimationFrame(() => {
@@ -1158,6 +1209,7 @@ function renderCalendarDay() {
   const xp = analyses.reduce((sum, workout) => sum + workoutXpBreakdown(workout).total, 0);
   document.querySelector("#calendar-day-total").textContent = analyses.length ? `+${formatNumber(xp)} XP` : "Rest day";
   renderSessionList(document.querySelector("#calendar-day-list"), analyses, 20, "calories");
+  syncHistoryPanelSizing();
 }
 
 function renderHistoryMonthDetail() {
@@ -1304,6 +1356,7 @@ function renderActiveCharts() {
       : [];
     const meta = PROGRESSION_METRICS[metric] ?? PROGRESSION_METRICS.e1rm;
     drawLineChart(document.querySelector("#progress-chart"), points, { unit: meta.unit, label: meta.label, rankMode: false });
+    syncHistoryPanelSizing();
   }
 }
 
