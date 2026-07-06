@@ -3827,3 +3827,63 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* 0.3.12 targeted desktop fixes */
+@media (min-width: 1001px) {
+  /* Keep the session-target radar fully inside the card by shrinking the whole visual stack. */
+  .rank-grid .weekly-target {
+    min-height: 210px !important;
+    overflow: hidden !important;
+  }
+  .rank-grid .weekly-target .donut-wrap,
+  .rank-grid .weekly-target .session-target-donut {
+    height: 148px !important;
+    min-height: 148px !important;
+    margin-top: -2px !important;
+    overflow: visible !important;
+    contain: layout !important;
+  }
+  .rank-grid .weekly-target canvas {
+    width: 140px !important;
+    height: 140px !important;
+    max-width: 140px !important;
+    max-height: 140px !important;
+  }
+  .rank-grid .weekly-target .donut-wrap::before {
+    width: 128px !important;
+    height: 128px !important;
+    inset: auto !important;
+    display: block !important;
+  }
+
+  /* Progress page: keep the two metric cards beside each other and give Selected History more room. */
+  .history-panel {
+    grid-template-columns: minmax(0, .84fr) minmax(560px, .98fr) !important;
+    align-items: stretch !important;
+  }
+  .history-side {
+    grid-template-rows: auto minmax(620px, 1fr) !important;
+    align-self: stretch !important;
+  }
+  .history-side > .stats-metrics.compact-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+  .history-side > .stats-metrics.compact-stats > .metric-card {
+    grid-column: auto !important;
+    min-width: 0 !important;
+  }
+  .history-side .calendar-detail {
+    min-height: 620px !important;
+    height: 100% !important;
+    max-height: none !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .history-side > .stats-metrics.compact-stats > .metric-card {
+    grid-column: auto !important;
+  }
+}
