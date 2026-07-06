@@ -3688,3 +3688,142 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
     font-size: 1.08rem !important;
   }
 }
+
+
+/* 0.3.11 layout and interaction refinements */
+.command-brand #header-rank-mark.rank-mark {
+  display: grid !important;
+  place-items: center !important;
+}
+.command-brand #header-rank-mark.rank-mark span,
+.rank-mark span,
+.track-mark.small span {
+  display: grid !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  place-items: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  transform: none !important;
+}
+
+@media (min-width: 1001px) {
+  .rank-grid {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .rank-grid .rank-hero {
+    grid-column: span 5 !important;
+    min-height: 210px !important;
+  }
+  .rank-grid #last-training-card {
+    grid-column: span 2 !important;
+  }
+  .rank-grid .weekly-consistency-card {
+    grid-column: span 2 !important;
+  }
+  .rank-grid .weekly-target {
+    grid-column: span 3 !important;
+    max-width: none !important;
+    min-height: 210px !important;
+    padding: 18px !important;
+  }
+  .rank-grid .weekly-target .donut-wrap,
+  .rank-grid .weekly-target .session-target-donut {
+    height: 158px !important;
+    min-height: 158px !important;
+  }
+  .rank-grid .weekly-target canvas {
+    width: 158px !important;
+    height: 158px !important;
+    max-width: 158px !important;
+    max-height: 158px !important;
+  }
+  .dashboard-grid {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .dashboard-grid .recent-card {
+    grid-column: span 7 !important;
+  }
+  .dashboard-grid .records-card {
+    grid-column: span 5 !important;
+  }
+  .history-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(500px, .82fr) !important;
+  }
+  .history-side {
+    grid-template-rows: auto minmax(520px, 1fr) !important;
+  }
+  .history-side .calendar-detail {
+    min-height: 520px !important;
+  }
+}
+
+@media (max-width: 1000px) {
+  .rank-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .rank-grid .rank-hero {
+    grid-column: 1 / -1 !important;
+  }
+  .rank-grid #last-training-card,
+  .rank-grid .weekly-consistency-card {
+    grid-column: span 1 !important;
+  }
+  .rank-grid .weekly-target {
+    grid-column: 1 / -1 !important;
+    max-width: none !important;
+  }
+}
+
+.history-side .stats-metrics.compact-stats {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+.history-side .stats-metrics.compact-stats .metric-card {
+  min-width: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .command-actions .sync-pill.offline,
+  .command-actions .sync-pill.syncing,
+  .command-actions .sync-pill.checking {
+    position: fixed !important;
+    top: calc(10px + env(safe-area-inset-top)) !important;
+    right: 12px !important;
+    bottom: auto !important;
+    z-index: 140 !important;
+    min-width: 92px !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,.36), 0 0 22px rgba(var(--accent-rgb), .16) !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .rank-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .rank-grid .rank-hero,
+  .rank-grid .weekly-target {
+    grid-column: 1 / -1 !important;
+  }
+  .rank-grid #last-training-card,
+  .rank-grid .weekly-consistency-card {
+    grid-column: span 1 !important;
+  }
+  .rank-grid #last-training-card strong,
+  .rank-grid .weekly-consistency-card strong {
+    font-size: clamp(1.6rem, 10vw, 2.25rem) !important;
+  }
+  .history-side .stats-metrics.compact-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

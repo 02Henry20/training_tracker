@@ -99,23 +99,22 @@
               <div class="rank-copy"><p class="eyebrow">CURRENT RANK</p><div class="rank-title-row"><h3 id="rank-name">Starter</h3><span class="rank-xp-meta"><strong id="system-level">Level 1</strong><span id="total-xp">0 XP</span></span></div><div class="xp-rail"><span id="xp-fill"></span></div><small id="xp-next">Advance by completing training.</small></div>
             </article>
             <article id="last-training-card" class="metric-card panel reveal recency-empty"><span>Last training</span><strong id="last-training-days">No data</strong><small id="last-training-copy">Log your first session</small></article>
-            <article class="metric-card panel reveal"><span>Weekly consistency</span><strong id="week-streak">0</strong><small>active weeks</small></article>
-          </div>
-
-          <div class="dashboard-grid">
+            <article class="metric-card panel reveal weekly-consistency-card"><span>Weekly consistency</span><strong id="week-streak">0</strong><small>active weeks</small></article>
             <article class="weekly-target panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">THIS WEEK</p><h3>Session target</h3></div></div>
               <div class="donut-wrap session-target-donut"><canvas id="weekly-target-chart"></canvas></div>
+            </article>
+          </div>
+
+          <div class="dashboard-grid">
+            <article class="recent-card panel reveal">
+              <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="stats" type="button">Open history →</button></div>
+              <div id="recent-workouts" class="session-list"></div>
             </article>
 
             <article class="records-card panel reveal">
               <div class="panel-heading"><div><p class="eyebrow">RECENT ADVANCES</p><h3>Personal records</h3></div><button class="text-button" data-go-view="stats" data-mobile-scroll-target="#progression-section" type="button">All ranks →</button></div>
               <div id="recent-records" class="record-list"></div>
-            </article>
-
-            <article class="recent-card panel reveal">
-              <div class="panel-heading"><div><p class="eyebrow">RECENT LOG</p><h3>Latest sessions</h3></div><button class="text-button" data-go-view="stats" type="button">Open history →</button></div>
-              <div id="recent-workouts" class="session-list"></div>
             </article>
           </div>
         </section>

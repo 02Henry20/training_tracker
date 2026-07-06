@@ -144,17 +144,18 @@ function hitTestChart(canvas, event) {
   const desktop = isDesktopPointer();
   let best = null;
   let bestDistance = Infinity;
-  const pointRadius = desktop ? 14 : 34;
+  const pointRadius = desktop ? 16 : 58;
 
   for (const target of targets) {
     if (target.kind === "bar") {
-      const xPad = desktop ? 2 : Math.max(10, Math.min(24, (target.right - target.left) * 0.45));
-      const yPadTop = desktop ? 2 : 30;
-      const yPadBottom = desktop ? 2 : 26;
+      const barWidth = Math.max(1, target.right - target.left);
+      const xPad = desktop ? 3 : Math.max(18, Math.min(40, barWidth * 0.9));
+      const yPadTop = desktop ? 3 : 48;
+      const yPadBottom = desktop ? 3 : 38;
       const withinX = point.x >= target.left - xPad && point.x <= target.right + xPad;
       const withinY = point.y >= target.top - yPadTop && point.y <= target.bottom + yPadBottom;
       if (withinX && withinY) {
-        const distance = Math.abs(point.x - target.x) + Math.max(0, point.y - target.bottom, target.top - point.y) * 0.25;
+        const distance = Math.abs(point.x - target.x) + Math.max(0, point.y - target.bottom, target.top - point.y) * 0.18;
         if (distance < bestDistance) {
           best = target;
           bestDistance = distance;
@@ -162,16 +163,19 @@ function hitTestChart(canvas, event) {
       }
       continue;
     }
+
+    const dx = point.x - target.x;
+    const dy = point.y - target.y;
     const radius = target.hitRadius ?? pointRadius;
-    const distance = Math.hypot(point.x - target.x, point.y - target.y);
-    if (distance <= radius && distance < bestDistance) {
+    const distance = Math.hypot(dx, dy);
+    const touchNearX = !desktop && Math.abs(dx) <= 54 && Math.abs(dy) <= 118;
+    if ((distance <= radius || touchNearX) && distance < bestDistance) {
       best = target;
-      bestDistance = distance;
+      bestDistance = touchNearX ? Math.abs(dx) + Math.abs(dy) * 0.35 : distance;
     }
   }
   return best;
 }
-
 function bindChartInteraction(canvas) {
   if (canvas.__chartInteractionBound) return;
   canvas.__chartInteractionBound = true;
@@ -201,6 +205,7 @@ function bindChartInteraction(canvas) {
   };
 
   canvas.addEventListener("pointerdown", openPersistentTooltip);
+  canvas.addEventListener("pointerup", openPersistentTooltip);
   canvas.addEventListener("click", openPersistentTooltip);
 
   if (!outsideDismissBound) {
@@ -297,7 +302,7 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
       kind: "point",
       x: px,
       y: py,
-      hitRadius: 34,
+      hitRadius: 58,
       title: formatChartValue(point.value, unit, rankMode),
       subtitle: `${label} · ${dateLabel(point.date)}`
     });

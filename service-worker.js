@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.3.10-clean";
+const CACHE_NAME = "ascend-v0.3.11-clean";
 const APP_SHELL = [
   "./",
   "./index.html",
