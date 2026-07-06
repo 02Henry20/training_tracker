@@ -3958,14 +3958,16 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
 }
 
 
-/* 0.3.14: make desktop Selected History taller to use the remaining open space. */
+/* 0.3.15: cap desktop Selected History to the calendar height so it never drops below Training History. */
 @media (min-width: 1001px) {
   .history-side {
-    height: calc(var(--history-calendar-height, 560px) + 92px) !important;
-    min-height: calc(var(--history-calendar-height, 560px) + 92px) !important;
+    height: var(--history-calendar-height, auto) !important;
+    min-height: 0 !important;
+    max-height: var(--history-calendar-height, none) !important;
   }
   .history-side .calendar-detail {
-    height: 100% !important;
+    height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
   }
 }
