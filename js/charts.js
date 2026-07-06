@@ -110,10 +110,17 @@ function hideChartTooltip(canvas) {
   canvas.__chartActiveTarget = null;
 }
 
+function hideOtherChartTooltips(activeCanvas) {
+  for (const item of interactiveCanvases) {
+    if (item !== activeCanvas) hideChartTooltip(item);
+  }
+}
+
 function showChartTooltip(canvas, target, persistent = false) {
   const tooltip = ensureTooltip(canvas);
   const wrap = canvas.parentElement;
   if (!tooltip || !wrap || !target) return;
+  hideOtherChartTooltips(canvas);
   const rect = wrap.getBoundingClientRect();
   const safeX = clampNumber(target.x, 50, Math.max(50, rect.width - 50));
   const safeY = clampNumber(target.y, 44, Math.max(44, rect.height - 10));
@@ -134,19 +141,29 @@ function hitTestChart(canvas, event) {
   const targets = canvas.__chartTargets ?? [];
   if (!targets.length) return null;
   const point = pointerPosition(canvas, event);
+  const desktop = isDesktopPointer();
   let best = null;
   let bestDistance = Infinity;
-  const pointRadius = isDesktopPointer() ? 13 : 24;
+  const pointRadius = desktop ? 14 : 34;
 
   for (const target of targets) {
     if (target.kind === "bar") {
-      const withinX = point.x >= target.left && point.x <= target.right;
-      const withinY = point.y >= target.top && point.y <= target.bottom;
-      if (withinX && withinY) return target;
+      const xPad = desktop ? 2 : Math.max(10, Math.min(24, (target.right - target.left) * 0.45));
+      const yPadTop = desktop ? 2 : 30;
+      const yPadBottom = desktop ? 2 : 26;
+      const withinX = point.x >= target.left - xPad && point.x <= target.right + xPad;
+      const withinY = point.y >= target.top - yPadTop && point.y <= target.bottom + yPadBottom;
+      if (withinX && withinY) {
+        const distance = Math.abs(point.x - target.x) + Math.max(0, point.y - target.bottom, target.top - point.y) * 0.25;
+        if (distance < bestDistance) {
+          best = target;
+          bestDistance = distance;
+        }
+      }
       continue;
     }
-    const distance = Math.hypot(point.x - target.x, point.y - target.y);
     const radius = target.hitRadius ?? pointRadius;
+    const distance = Math.hypot(point.x - target.x, point.y - target.y);
     if (distance <= radius && distance < bestDistance) {
       best = target;
       bestDistance = distance;
@@ -172,12 +189,19 @@ function bindChartInteraction(canvas) {
     if (isDesktopPointer()) hideChartTooltip(canvas);
   });
 
-  canvas.addEventListener("pointerdown", event => {
+  const openPersistentTooltip = event => {
     if (isDesktopPointer()) return;
     const target = hitTestChart(canvas, event);
-    if (target) showChartTooltip(canvas, target, true);
-    else hideChartTooltip(canvas);
-  });
+    if (target) {
+      event.preventDefault();
+      showChartTooltip(canvas, target, true);
+    } else {
+      hideChartTooltip(canvas);
+    }
+  };
+
+  canvas.addEventListener("pointerdown", openPersistentTooltip);
+  canvas.addEventListener("click", openPersistentTooltip);
 
   if (!outsideDismissBound) {
     outsideDismissBound = true;
@@ -273,7 +297,7 @@ export function drawLineChart(canvas, points, { unit = "", label = "Progress", r
       kind: "point",
       x: px,
       y: py,
-      hitRadius: 22,
+      hitRadius: 34,
       title: formatChartValue(point.value, unit, rankMode),
       subtitle: `${label} · ${dateLabel(point.date)}`
     });
