@@ -3405,3 +3405,37 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
 
 /* Login screen no longer shows the AR mark. */
 .auth-stage-top-clean { justify-content: flex-end !important; }
+
+/* 0.3.8 requested refinements: mobile history order, header rank size, centered body label. */
+@media (max-width: 900px) {
+  .history-side {
+    display: grid !important;
+  }
+  .history-side .calendar-detail {
+    order: 1;
+  }
+  .history-side .stats-metrics.compact-stats {
+    order: 2;
+  }
+}
+
+.rank-mark span,
+.track-mark.small span {
+  font-size: 1.18rem !important;
+  line-height: 1 !important;
+}
+
+.body-view-switch.map-label {
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  text-align: center !important;
+}
+
+@media (max-width: 760px) {
+  .body-view-switch.map-label {
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+  }
+}

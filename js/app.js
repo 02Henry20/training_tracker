@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.7";
+const APP_VERSION = "0.3.8";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -802,18 +802,26 @@ async function removeDraftExercise(index) {
 }
 
 function pickerRecommendedScore(exercise, usedIds, balanceByMuscle, frequencyCounts = new Map()) {
-  if (exercise.category !== "strength") return -Infinity;
-  const usedBonus = usedIds.has(exercise.id) ? 45 + Math.min(60, (frequencyCounts.get(exercise.id) ?? 0) * 8) : 0;
-  const muscleNeed = [...(exercise.muscles.primary ?? []), ...(exercise.muscles.secondary ?? [])]
-    .map(key => balanceByMuscle.get(key))
-    .filter(Boolean)
-    .reduce((score, item) => {
-      if (item.status === "missing") return score + 38;
-      if (item.status === "low") return score + 24;
-      if (item.status === "balanced") return score + 5;
-      return score - 14;
-    }, 0);
-  return usedBonus + muscleNeed;
+  if (exercise.category !== "strength") return { statusRank: 99, ratio: 99, score: 99, frequency: 0, used: false };
+
+  const statusRank = { missing: 0, low: 1, balanced: 2, high: 3 };
+  const priorityMuscles = [...(exercise.muscles.primary ?? []), ...(exercise.muscles.secondary ?? [])];
+  const fallback = { status: "missing", ratio: 0, score: 0 };
+  const weakest = priorityMuscles
+    .map(key => balanceByMuscle.get(key) ?? fallback)
+    .sort((a, b) =>
+      (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99)
+      || (Number(a.ratio) || 0) - (Number(b.ratio) || 0)
+      || (Number(a.score) || 0) - (Number(b.score) || 0)
+    )[0] ?? fallback;
+
+  return {
+    statusRank: statusRank[weakest.status] ?? 99,
+    ratio: Number(weakest.ratio) || 0,
+    score: Number(weakest.score) || 0,
+    frequency: frequencyCounts.get(exercise.id) ?? 0,
+    used: usedIds.has(exercise.id)
+  };
 }
 
 function renderExercisePicker() {
@@ -838,9 +846,17 @@ function renderExercisePicker() {
       .map(item => ({
         exercise: item.exercise,
         searchScore: item.searchScore,
-        score: pickerRecommendedScore(item.exercise, used, balanceByMuscle, frequencyCounts)
+        priority: pickerRecommendedScore(item.exercise, used, balanceByMuscle, frequencyCounts)
       }))
-      .sort((a, b) => (query ? b.searchScore - a.searchScore : 0) || b.score - a.score || (frequencyCounts.get(b.exercise.id) ?? 0) - (frequencyCounts.get(a.exercise.id) ?? 0) || a.exercise.name.localeCompare(b.exercise.name))
+      .sort((a, b) =>
+        (query ? b.searchScore - a.searchScore : 0)
+        || a.priority.statusRank - b.priority.statusRank
+        || a.priority.ratio - b.priority.ratio
+        || a.priority.score - b.priority.score
+        || b.priority.frequency - a.priority.frequency
+        || Number(b.priority.used) - Number(a.priority.used)
+        || a.exercise.name.localeCompare(b.exercise.name)
+      )
       .slice(0, 24);
   } else if (query) {
     list = list.sort((a, b) => b.searchScore - a.searchScore || (frequencyCounts.get(b.exercise.id) ?? 0) - (frequencyCounts.get(a.exercise.id) ?? 0) || a.exercise.name.localeCompare(b.exercise.name));
@@ -1304,8 +1320,12 @@ function renderSelectedMusclePanel() {
 function renderMuscles() {
   const days = Number(state.settings.bodyWindowDays || 14);
   const leastFirst = state.settings.bodySortMode !== "most";
+  const statusOrder = { missing: 0, low: 1, balanced: 2, high: 3 };
   let balance = muscleBalance(state.workouts, catalog(), state.settings, days).filter(item => item.key !== "cardio");
-  balance = balance.sort((a, b) => leastFirst ? a.score - b.score : b.score - a.score);
+  balance = balance.sort((a, b) => leastFirst
+    ? (statusOrder[a.status] ?? 0) - (statusOrder[b.status] ?? 0) || a.ratio - b.ratio || a.score - b.score
+    : (statusOrder[b.status] ?? 0) - (statusOrder[a.status] ?? 0) || b.ratio - a.ratio || b.score - a.score
+  );
   const balanceByKey = new Map(balance.map(item => [item.key, item]));
   const grid = document.querySelector("#muscle-grid");
   grid.replaceChildren();
@@ -1333,7 +1353,7 @@ function renderMuscles() {
     card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer><small class="muscle-exercise-preview">${escapeHtml(exercisePreview)}</small>${exerciseList}`;
     grid.append(card);
   }
-  document.querySelector("#muscle-status-totals").innerHTML = `<div class="status-balanced"><strong>${counts.balanced}</strong><span>Balanced</span></div><div class="status-low"><strong>${counts.low}</strong><span>Low</span></div><div class="status-missing"><strong>${counts.missing}</strong><span>Missing</span></div><div class="status-high"><strong>${counts.high}</strong><span>High volume</span></div>`;
+  document.querySelector("#muscle-status-totals").innerHTML = `<div class="status-high"><strong>${counts.high}</strong><span>High volume</span></div><div class="status-balanced"><strong>${counts.balanced}</strong><span>Balanced</span></div><div class="status-low"><strong>${counts.low}</strong><span>Low</span></div><div class="status-missing"><strong>${counts.missing}</strong><span>Missing</span></div>`;
 }
 
 function rankEstimateText(targetXp, summary) {

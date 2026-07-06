@@ -97,6 +97,29 @@ export function totalExternalLoad(exercise, set) {
   }
 }
 
+function bodyweightVolumeFactor(exercise) {
+  const fullBodyLoadIds = new Set(["pull-up", "chin-up", "wide-grip-pull-up", "neutral-grip-pull-up", "assisted-pull-up", "muscle-up"]);
+  if (fullBodyLoadIds.has(exercise?.id)) return 1;
+  if (exercise?.id === "dips") return 0.95;
+  if (exercise?.id === "handstand-push-up") return 0.9;
+  if (["decline-push-up", "pike-push-up"].includes(exercise?.id)) return 0.75;
+  if (["push-up", "diamond-push-up", "archer-push-up", "forward-lean-push-up"].includes(exercise?.id)) return 0.65;
+  if (exercise?.id === "front-dips") return 0.55;
+  if (exercise?.id === "inverted-row") return 0.65;
+  if (["hanging-leg-raise", "ab-wheel", "l-sit", "hollow-body-hold", "plank", "side-plank"].includes(exercise?.id)) return 0;
+  if (["burpee", "mountain-climber"].includes(exercise?.id)) return 0.35;
+  return 0.65;
+}
+
+function volumeLoadForSet(exercise, set, bodyWeightKg) {
+  const externalLoad = totalExternalLoad(exercise, set);
+  if (exercise?.inputType === "bodyweightSets") {
+    return bodyWeightKg * bodyweightVolumeFactor(exercise) + Math.max(0, externalLoad);
+  }
+  if (exercise?.inputType === "timedSets") return 0;
+  return externalLoad;
+}
+
 export function caloriesFromMet(met, bodyWeightKg, minutes) {
   const safeMet = Math.max(1, Number(met) || 1);
   const safeWeight = Math.max(20, Number(bodyWeightKg) || 70);
@@ -299,8 +322,9 @@ export function analyseExerciseEntry(entry, exercise, settings) {
       const seconds = Math.max(0, Number(set.seconds) || 0);
       const load = totalExternalLoad(exercise, set);
       const effectiveLoad = exercise.inputType === "bodyweightSets" ? bodyWeight + Math.max(0, load) : load;
+      const volumeLoad = volumeLoadForSet(exercise, set, bodyWeight);
       totalReps += reps;
-      volumeKg += effectiveLoad * reps;
+      volumeKg += volumeLoad * reps;
       activeMinutes += exercise.inputType === "timedSets"
         ? seconds / 60
         : reps * (Number(exercise.calorie?.repSeconds) || 3) / 60;
