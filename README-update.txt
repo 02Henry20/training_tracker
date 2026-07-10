@@ -1,1 +1,0 @@
-Ascend update: onboarding guide functionality has been hard-removed. This root-level package also removes the AR mark from the login screen, keeps autosave/current-rank header/icons, and bumps the service-worker cache so browsers drop older builds.
