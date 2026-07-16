@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.3.19";
+const CACHE_NAME = "ascend-v0.3.20";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -28,7 +28,10 @@ const APP_SHELL = [
   "./icons/icon-maskable-1024.png",
   "./icons/android-circle-192.png",
   "./icons/android-circle-512.png",
-  "./icons/android-circle-1024.png"
+  "./icons/android-circle-1024.png",
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js",
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js",
+  "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js"
 ];
 
 self.addEventListener("install", event => {
@@ -61,7 +64,7 @@ self.addEventListener("fetch", event => {
   }
   if (url.origin !== self.location.origin) return;
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).catch(() => caches.match("./index.html")));
+    event.respondWith(fetch(event.request).catch(() => caches.match("./index.html").then(response => response || caches.match("./"))));
     return;
   }
   event.respondWith(

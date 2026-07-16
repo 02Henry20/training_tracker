@@ -3799,11 +3799,60 @@ h1, h2, h3, strong, .nav-button b, .primary-button, .command-brand strong { lett
   .command-actions .sync-pill.checking {
     position: fixed !important;
     top: calc(10px + env(safe-area-inset-top)) !important;
-    right: 12px !important;
+    right: 86px !important;
     bottom: auto !important;
     z-index: 140 !important;
     min-width: 92px !important;
     box-shadow: 0 14px 34px rgba(0,0,0,.36), 0 0 22px rgba(var(--accent-rgb), .16) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  :root[data-active-view="settings"] .topbar {
+    display: none;
+  }
+
+  .settings-card.settings-mobile-dropdown {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .settings-card.settings-mobile-dropdown > .panel-heading {
+    position: relative;
+    min-height: 62px;
+    margin: 0;
+    padding: 16px 52px 16px 16px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .settings-card.settings-mobile-dropdown > .panel-heading::after {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb), .28);
+    border-radius: 999px;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), .08);
+    content: "+";
+    font-weight: 900;
+    transform: translateY(-50%);
+  }
+
+  .settings-card.settings-mobile-dropdown.settings-open > .panel-heading::after {
+    content: "-";
+  }
+
+  .settings-card.settings-mobile-dropdown:not(.settings-open) > :not(.panel-heading) {
+    display: none !important;
+  }
+
+  .settings-card.settings-mobile-dropdown.settings-open > :not(.panel-heading) {
+    margin: 0 16px 16px;
   }
 }
 

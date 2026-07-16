@@ -57,7 +57,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.16";
+const APP_VERSION = "0.3.20";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -113,6 +113,7 @@ let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
 let levelCelebrationTimer = null;
 let settingsAutosaveTimer = null;
+const settingsMobileQuery = window.matchMedia("(max-width: 680px)");
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -251,6 +252,14 @@ function queueWrite(promise, title, copy = "Saved locally and queued for Firebas
   promise.catch(error => showToast("Save failed", firebaseErrorMessage(error), "error"));
 }
 
+function clearCachedUserProfile() {
+  try {
+    localStorage.removeItem("ascend:last-user");
+  } catch {
+    // Ignore storage cleanup failures during sign-out.
+  }
+}
+
 function createEmptyDraft() {
   return {
     id: null,
@@ -297,6 +306,66 @@ function updateSyncStatus() {
   elements.syncPill.title = label;
 }
 
+function settingsDropdownCards() {
+  return [...document.querySelectorAll(".settings-card")];
+}
+
+function setSettingsDropdownOpen(card, open) {
+  const heading = card.querySelector(".panel-heading");
+  card.classList.toggle("settings-open", open);
+  heading?.setAttribute("aria-expanded", String(open));
+}
+
+function closeSettingsDropdowns() {
+  for (const card of settingsDropdownCards()) setSettingsDropdownOpen(card, false);
+}
+
+function syncSettingsDropdownMode({ reset = false } = {}) {
+  const mobile = settingsMobileQuery.matches;
+  for (const card of settingsDropdownCards()) {
+    const heading = card.querySelector(".panel-heading");
+    card.classList.add("settings-dropdown-ready");
+    card.classList.toggle("settings-mobile-dropdown", mobile);
+    if (heading) {
+      if (mobile) {
+        heading.setAttribute("role", "button");
+        heading.setAttribute("tabindex", "0");
+      } else {
+        heading.removeAttribute("role");
+        heading.removeAttribute("tabindex");
+      }
+    }
+    if (!mobile) setSettingsDropdownOpen(card, true);
+  }
+  if (mobile && reset) closeSettingsDropdowns();
+}
+
+function setupSettingsDropdowns() {
+  for (const card of settingsDropdownCards()) {
+    const heading = card.querySelector(".panel-heading");
+    if (!heading || heading.dataset.dropdownReady) continue;
+    heading.dataset.dropdownReady = "true";
+    const toggle = event => {
+      if (!settingsMobileQuery.matches) return;
+      if (event.target.closest(".info-button")) return;
+      setSettingsDropdownOpen(card, !card.classList.contains("settings-open"));
+    };
+    heading.addEventListener("click", toggle);
+    heading.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggle(event);
+    });
+  }
+  syncSettingsDropdownMode();
+  const handleModeChange = () => syncSettingsDropdownMode();
+  if (typeof settingsMobileQuery.addEventListener === "function") {
+    settingsMobileQuery.addEventListener("change", handleModeChange);
+  } else {
+    settingsMobileQuery.addListener(handleModeChange);
+  }
+}
+
 function showAppForUser(user) {
   elements.authShell.hidden = true;
   elements.appShell.hidden = false;
@@ -317,6 +386,7 @@ function tryOfflineUnlock(email) {
 
 async function handleSignOut() {
   offlineAuthActive = false;
+  clearCachedUserProfile();
   if (state.user?.offlineOnly) {
     disconnectUserData();
     elements.authShell.hidden = false;
@@ -345,10 +415,14 @@ async function initializeAuthentication() {
       window.setTimeout(() => { void maybeOfferSyncChoice(); }, 600);
     } else {
       if (offlineAuthActive) return;
+      if (!navigator.onLine && tryOfflineUnlock("")) return;
       disconnectUserData();
       elements.authShell.hidden = false;
       elements.appShell.hidden = true;
       elements.authPassword.value = "";
+      if (!navigator.onLine) {
+        setMessage(elements.authMessage, "No connection. Sign in once online, then this device can open your cached log offline.", true);
+      }
     }
   });
 }
@@ -415,11 +489,14 @@ async function handleSyncChoice(mode) {
 function navigateTo(view) {
   if (view === "calendar") view = "stats";
   if (!VIEW_META[view]) return;
+  const previousView = activeView;
   activeView = view;
+  document.documentElement.dataset.activeView = view;
   document.querySelectorAll("[data-view-section]").forEach(section => section.classList.toggle("active", section.dataset.viewSection === view));
   document.querySelectorAll("[data-view]").forEach(button => button.classList.toggle("active", button.dataset.view === view));
   elements.viewKicker.textContent = VIEW_META[view][0];
   elements.viewTitle.textContent = VIEW_META[view][1];
+  syncSettingsDropdownMode({ reset: view === "settings" && previousView !== "settings" });
   document.querySelector(".content-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
   if (view === "workout") renderBuilder();
   window.requestAnimationFrame(renderActiveCharts);
@@ -1624,6 +1701,7 @@ function navigateFromButton(button) {
 function bindEvents() {
   elements.authForm.addEventListener("submit", submitAuth);
   elements.signOut.addEventListener("click", () => { void handleSignOut(); });
+  setupSettingsDropdowns();
 
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => navigateTo(button.dataset.view)));
   document.querySelectorAll("[data-go-view]").forEach(button => button.addEventListener("click", () => navigateFromButton(button)));
