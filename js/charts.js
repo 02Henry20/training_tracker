@@ -124,7 +124,11 @@ function showChartTooltip(canvas, target, persistent = false) {
   const rect = wrap.getBoundingClientRect();
   const safeX = clampNumber(target.x, 50, Math.max(50, rect.width - 50));
   const safeY = clampNumber(target.y, 44, Math.max(44, rect.height - 10));
-  tooltip.innerHTML = `<strong>${target.title}</strong><span>${target.subtitle}</span>`;
+  const title = document.createElement("strong");
+  const subtitle = document.createElement("span");
+  title.textContent = target.title;
+  subtitle.textContent = target.subtitle;
+  tooltip.replaceChildren(title, subtitle);
   tooltip.style.left = `${safeX}px`;
   tooltip.style.top = `${safeY}px`;
   tooltip.hidden = false;
@@ -381,7 +385,7 @@ export function drawDonut(canvas, value, target, label) {
   const safeValue = Math.max(0, Number(value) || 0);
   const safeTarget = Math.max(1, Number(target) || 1);
   const ratio = Math.min(1, safeValue / safeTarget);
-  const motionEnabled = document.documentElement.dataset.motion !== "off";
+  const motionEnabled = document.documentElement.dataset.motion === "on" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   if (!canvas.__donutAnimation) canvas.__donutAnimation = { frame: null, cssSize: 0, dpr: 0, lastFrame: 0 };
   if (canvas.__donutAnimation.frame) cancelAnimationFrame(canvas.__donutAnimation.frame);

@@ -1,0 +1,10 @@
+﻿{
+    "tools":  [
+                  "graphify",
+                  "serena",
+                  "rtk",
+                  "agents.md"
+              ],
+    "bootstrapped_at":  "2026-09-19T23:21:07.9955900+02:00",
+    "bootstrap_version":  1
+}

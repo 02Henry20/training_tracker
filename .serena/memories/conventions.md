@@ -1,0 +1,6 @@
+- Gross MET calories, not net exercise calories. Formula and published references/proxy assumptions live in docs/calorie-methodology.md.
+- Strength sessionMet applies to bout time including normal rests; custom definitions without sessionMet retain active/rest fallback.
+- Unilateral reps/seconds are per side. perSide load already represents both sides; perHand means two dumbbells held simultaneously.
+- Explicit stroke variants take their catalog stroke before persisted activity.stroke.
+- Animation state: on/subtle/off; OS reduced motion overrides to off. Canvas loops must obey the same setting as CSS.
+- Keep pending offline bundle protected while cloud snapshots arrive; clear only after sync resolution or confirmed equality.

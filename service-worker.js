@@ -1,4 +1,4 @@
-const CACHE_NAME = "ascend-v0.3.20";
+const CACHE_NAME = "ascend-v0.4.0";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const APP_SHELL = [
   "./styles/layout.css",
   "./styles/responsive.css",
   "./styles/redesign.css",
+  "./styles/refinements.css",
   "./js/app.js",
   "./js/firebase-config.js",
   "./js/firebase.js",
@@ -37,15 +38,14 @@ const APP_SHELL = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => Promise.all(APP_SHELL.map(path => cache.add(path).catch(() => null))))
-      .then(() => self.skipWaiting())
+      .then(cache => Promise.all(APP_SHELL.map(path => cache.add(path))))
   );
 });
 
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith("ascend-") && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -57,7 +57,7 @@ self.addEventListener("fetch", event => {
   if (isFirebaseModule) {
     event.respondWith(fetch(event.request).then(response => {
       const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      if (response.ok) event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
       return response;
     }).catch(() => caches.match(event.request)));
     return;
@@ -70,7 +70,7 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request).then(response => {
       const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      if (response.ok) event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
       return response;
     }).catch(() => caches.match(event.request))
   );

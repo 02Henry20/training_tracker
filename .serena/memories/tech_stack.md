@@ -1,0 +1,4 @@
+- Browser ES modules served directly; no npm build or bundler. Firebase modules load from gstatic in js/firebase.js.
+- Node's built-in assert/fs/http support the tests; no package install needed.
+- CSS is layered: base/components/layout/responsive/redesign/refinements. Earlier redesign rules include !important; verify resulting styles in browser.
+- service-worker.js contains a versioned explicit app-shell list; add new runtime assets there.

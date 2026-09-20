@@ -1,0 +1,5 @@
+- Prefix shell commands with rtk per C:/Users/Henry/.codex/RTK.md.
+- rtk node tests/smoke.mjs; rtk node tests/regression.mjs; rtk node tests/store.mjs.
+- rtk node tests/catalog-audit.mjs regenerates docs/exercise-audit.md from catalog.
+- rtk node tests/preview.mjs serves synthetic offline UI on http://127.0.0.1:8085; Firebase is stubbed. Do not deploy it. Reload reseeds fixture data.
+- For real app use a static server, not the fixture server.

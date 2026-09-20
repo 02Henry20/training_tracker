@@ -1,0 +1,136 @@
+/* A quieter command interface. Rank color remains the progression signal. */
+:root {
+  --bg: #090e19;
+  --bg-2: #101827;
+  --panel: #121c2c;
+  --panel-solid: #121c2c;
+  --muted: #9baac0;
+  --muted-strong: #c4cede;
+  --line: rgba(158, 183, 220, .16);
+  --shadow: 0 12px 32px rgba(0, 0, 0, .16);
+}
+:root[data-theme="light"] {
+  --bg: #eef2f8;
+  --bg-2: #f8faff;
+  --panel: #fff;
+  --panel-solid: #fff;
+  --muted: #53647b;
+  --muted-strong: #34465e;
+  --line: rgba(38, 60, 91, .17);
+  /* Saturated foreground colors remain legible across the light rank stages. */
+  --accent: #3f51b5;
+  --accent-2: #006e8a;
+  --accent-rgb: 63, 81, 181;
+  --accent-2-rgb: 0, 110, 138;
+}
+body {
+  background: radial-gradient(ellipse at 75% 0, rgba(var(--accent-rgb), .065), transparent 55%), var(--bg) !important;
+}
+body::before { opacity: .3; }
+.panel {
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), .025), transparent 60%), var(--panel) !important;
+  backdrop-filter: none;
+  box-shadow: var(--shadow) !important;
+}
+.panel::after { opacity: .12; }
+.command-header {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--line);
+  box-shadow: none !important;
+}
+.command-brand strong, .nav-button, .metric-card strong { text-shadow: none !important; }
+.main-nav { border: 0; background: transparent; gap: 4px; box-shadow: none; }
+.nav-button { border-radius: 8px; border-color: transparent; }
+.nav-button.active { background: rgba(var(--accent-rgb), .09); }
+.nav-button::after { height: 2px; box-shadow: none; }
+.view-heading h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); letter-spacing: -.035em; }
+.topbar { padding-block: 24px 18px; }
+.rank-grid, .dashboard-grid, .stats-grid { gap: 16px !important; }
+.rank-grid .rank-hero {
+  background: radial-gradient(ellipse at 0 0, rgba(var(--accent-rgb), .14), transparent 70%), var(--panel) !important;
+  border-color: rgba(var(--accent-rgb), .3);
+}
+.rank-copy h3 { font-size: clamp(1.65rem, 3.2vw, 2.8rem); letter-spacing: -.035em; }
+.rank-orbit { flex-shrink: 0; }
+.xp-rail { height: 6px; border-radius: 8px; overflow: hidden; }
+.metric-card > span, .eyebrow { font-size: .68rem; letter-spacing: .09em; }
+.metric-card small, .session-row small { color: var(--muted); }
+.session-row { padding: 15px 0; border-bottom: 1px solid var(--line); }
+.session-row:last-child { border-bottom: 0; }
+.session-row strong { font-size: .95rem; }
+.empty-state { color: var(--muted); line-height: 1.7; }
+.field > span { text-transform: none; font: 600 .78rem/1.4 "Segoe UI", sans-serif; letter-spacing: 0; }
+.field input, .field select, .field textarea, .set-row input {
+  border-radius: 8px;
+  background: var(--bg-2) !important;
+  color: var(--text);
+  min-height: 44px;
+  border-color: var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus, .set-row input:focus { border-color: var(--accent); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.primary-button, .secondary-button, .ghost-button, .danger-button { border-radius: 8px; }
+.modal-card { border-radius: 18px; background: var(--panel-solid) !important; }
+.modal-heading { padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.search-field { border-radius: 10px; background: var(--bg-2); }
+.filter-row { gap: 6px; flex-wrap: wrap; }
+.filter-row button { border-radius: 7px; padding: 8px 11px; }
+.picker-item { border: 1px solid transparent; border-bottom-color: var(--line); border-radius: 9px; padding: 13px 10px; }
+.picker-item:hover { background: rgba(var(--accent-rgb), .06); border-color: rgba(var(--accent-rgb), .28); }
+.picker-item > div { min-width: 0; }
+.picker-item strong { white-space: normal; line-height: 1.4; }
+.input-type-tag { display: inline-block; margin-top: 6px; color: var(--accent); font-size: .68rem; font-weight: 600; }
+.picker-symbol { border-radius: 10px; background: rgba(var(--accent-rgb), .07); }
+.exercise-block { overflow: hidden; border-left: 3px solid rgba(var(--accent-rgb), .6); }
+.exercise-block-head { padding-bottom: 15px; }
+.exercise-block-head strong { font-size: 1.05rem; line-height: 1.4; }
+.exercise-block-head small { color: var(--muted); }
+.exercise-footer { border-top: 1px solid var(--line); padding-top: 12px; }
+.exercise-preview { color: var(--muted-strong); line-height: 1.5; }
+.entry-hint, .calorie-note { color: var(--muted); font-size: .78rem; line-height: 1.65; margin: 4px 0 16px; }
+.calorie-note a { display: block; color: var(--accent); margin-top: 8px; }
+.entry-settings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.exercise-body > .entry-hint { margin-inline: 16px; }
+.entry-settings { padding: 0 16px 16px; }
+.set-row { border-bottom: 1px solid var(--line); padding-block: 7px; }
+.set-completion { min-width: 32px; min-height: 36px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; }
+.set-completion.is-complete { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); background: rgba(var(--accent-rgb), .08); }
+.set-completion[aria-pressed="false"] { border-style: dashed; opacity: .5; }
+.set-row:has(.set-completion[aria-pressed="false"]) input { opacity: .55; }
+.draft-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 20px 24px; gap: 16px; border-top: 2px solid var(--accent); }
+.draft-summary > div { display: grid; gap: 8px; }
+.draft-summary span { font-size: .72rem; color: var(--muted); }
+.draft-summary strong { font-size: 1.65rem; font-variant-numeric: tabular-nums; }
+.draft-summary small { font-size: .72rem; color: var(--muted); font-weight: 500; }
+.save-workout-bar { box-shadow: none; }
+.mobile-nav { background: var(--panel-solid) !important; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.2) !important; }
+.mobile-nav span { filter: none !important; }
+
+/* New effects are gated; reduced motion also applies to canvas in charts.js. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion="on"] .draft-summary { animation: session-reveal .35s ease-out both; }
+  :root[data-motion="on"] .picker-item,
+  :root[data-motion="subtle"] .picker-item { transition: background-color .16s, border-color .16s; }
+}
+@keyframes session-reveal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+:root[data-motion="subtle"] *, :root[data-motion="subtle"] *::before, :root[data-motion="subtle"] *::after { animation: none !important; }
+:root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 680px) {
+  .draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 18px; gap: 18px; }
+  .draft-summary strong { font-size: 1.45rem; }
+  .entry-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .entry-settings .field:last-child { grid-column: 1 / -1; }
+  .rank-grid, .dashboard-grid { gap: 12px !important; }
+  .panel { border-radius: 12px; }
+  .modal-card { padding: 18px; }
+  .exercise-block-head strong { font-size: .95rem; }
+  .exercise-preview { font-size: .72rem; }
+}

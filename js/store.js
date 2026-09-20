@@ -47,6 +47,8 @@ export const state = {
 const listeners = new Set();
 let unsubscribers = [];
 let errorHandler = null;
+// Retain offline edits while live snapshots arrive, until the sync choice resolves.
+let protectedDeviceBundle = null;
 
 const USER_COLLECTIONS = ["workouts", "templates", "customExercises"];
 const LOCAL_USER_KEY = "ascend:last-user";
@@ -123,10 +125,12 @@ function bundleFromState() {
 }
 
 function normalizeBundle(bundle = {}) {
+  if (!bundle || typeof bundle !== "object") bundle = {};
   return {
-    workouts: sortWorkouts((bundle.workouts ?? []).map(stripDocumentMeta)),
+    pendingLocal: bundle.pendingLocal === true,
+    workouts: sortWorkouts((Array.isArray(bundle.workouts) ? bundle.workouts : []).filter(item => item && typeof item.date === "string").map(stripDocumentMeta)),
     templates: [],
-    customExercises: sortCustomExercises((bundle.customExercises ?? []).map(stripDocumentMeta)),
+    customExercises: sortCustomExercises((Array.isArray(bundle.customExercises) ? bundle.customExercises : []).filter(item => item && typeof item.name === "string").map(stripDocumentMeta)),
     settings: bundle.settings ? normalizeSettings(bundle.settings) : null
   };
 }
@@ -159,7 +163,8 @@ function writeLocalBundle(userId, bundle) {
 
 function mirrorStateToLocal() {
   if (!state.user?.uid) return;
-  writeLocalBundle(state.user.uid, bundleFromState());
+  if (protectedDeviceBundle) return;
+  writeLocalBundle(state.user.uid, { ...bundleFromState(), pendingLocal: isOfflineUser() && hasPendingWrites() });
 }
 
 function hydrateFromBundle(bundle) {
@@ -264,7 +269,7 @@ function settingsPayload(settings = {}) {
   const normalized = normalizeSettings(settings);
   return {
     theme: normalized.theme === "light" ? "light" : "dark",
-    motion: normalized.motion === "off" ? "off" : "on",
+    motion: ["off", "subtle", "on"].includes(normalized.motion) ? normalized.motion : "on",
     bodyWeightKg: Number(normalized.bodyWeightKg),
     heightCm: Number(normalized.heightCm),
     birthYear: normalizeBirthYear(normalized),
@@ -289,7 +294,9 @@ export function connectUserData(user) {
   state.user = user;
   resetMetadata();
   cacheUserProfile(user);
-  hydrateFromBundle(readLocalBundle(user.uid));
+  const deviceBundle = readLocalBundle(user.uid);
+  protectedDeviceBundle = deviceBundle.pendingLocal ? deviceBundle : null;
+  hydrateFromBundle(deviceBundle);
   notify();
 
   unsubscribers.push(onSnapshot(
@@ -361,6 +368,7 @@ export function connectOfflineUserData(profile) {
 export function disconnectUserData() {
   for (const unsubscribe of unsubscribers) unsubscribe();
   unsubscribers = [];
+  protectedDeviceBundle = null;
   state.user = null;
   state.workouts = [];
   state.templates = [];
@@ -382,10 +390,14 @@ function workoutPayload(workout) {
     date: workout.date,
     title: workout.title || "Training session",
     durationMin: Number(workout.durationMin) || null,
+    bodyWeightKg: Number(workout.bodyWeightKg) >= 20 ? Number(workout.bodyWeightKg) : null,
     notes: workout.notes || "",
     exercises: (workout.exercises ?? []).map(entry => ({
       exerciseId: entry.exerciseId,
-      restSeconds: Number(entry.restSeconds) || null,
+      restSeconds: entry.restSeconds == null || entry.restSeconds === "" ? null : Math.max(0, Number(entry.restSeconds) || 0),
+      durationMin: Number(entry.durationMin) > 0 ? Number(entry.durationMin) : null,
+      repSeconds: Number(entry.repSeconds) > 0 ? Number(entry.repSeconds) : null,
+      trackCompletion: entry.trackCompletion === true,
       notes: entry.notes || "",
       sets: (entry.sets ?? []).map(set => ({
         weightKg: Number(set.weightKg) || 0,
@@ -414,7 +426,7 @@ function workoutPayload(workout) {
 
 function localWorkoutDocument(id, workout) {
   const data = workoutPayload(workout);
-  const createdAtMs = Number(workout.createdAtMs) || Date.now();
+  const createdAtMs = Number(workout.createdAtMs) || state.workouts.find(item => item.id === id)?.createdAtMs || Date.now();
   const { createdAt, updatedAt, ...local } = data;
   return {
     ...local,
@@ -535,7 +547,7 @@ function collectionSignature(items = []) {
 function settingsSignature(settings) {
   if (!settings) return "";
   const normalized = normalizeSettings(settings);
-  return `${normalized.updatedAtMs || 0}:${normalized.bodyWeightKg}:${normalized.heightCm}:${normalized.birthYear}:${normalized.historyViewMode}:${normalized.showRir}:${normalized.bodyWindowDays}:${normalized.showDurationPrompt}`;
+  return JSON.stringify([normalized.updatedAtMs || 0, ...Object.keys(DEFAULT_SETTINGS).sort().map(key => [key, normalized[key]])]);
 }
 
 async function readCollection(user, name, source) {
@@ -572,7 +584,7 @@ async function readUserBundle(user, source) {
 async function readDeviceBundle(user) {
   const [cacheBundle, localBundle] = await Promise.all([
     readUserBundle(user, "cache"),
-    Promise.resolve(readLocalBundle(user.uid))
+    Promise.resolve(protectedDeviceBundle ?? readLocalBundle(user.uid))
   ]);
   return {
     workouts: mergeByNewest(localBundle.workouts, cacheBundle.workouts),
@@ -652,6 +664,7 @@ async function writeUserBundle(user, bundle) {
     }
     await batch.commit();
   }
+  protectedDeviceBundle = null;
   writeLocalBundle(user.uid, bundle);
 }
 
@@ -661,10 +674,15 @@ export async function getSyncSummary() {
     readDeviceBundle(user),
     isOfflineUser(user) ? Promise.resolve({ workouts: [], templates: [], customExercises: [], settings: null }) : readUserBundle(user, "server")
   ]);
+  const differs = bundleDiffers(local, cloud);
+  if (!differs && protectedDeviceBundle) {
+    protectedDeviceBundle = null;
+    writeLocalBundle(user.uid, cloud);
+  }
   return {
     local: bundleCounts(local),
     cloud: bundleCounts(cloud),
-    differs: bundleDiffers(local, cloud),
+    differs,
     hasLocal: local.workouts.length > 0 || local.customExercises.length > 0 || Boolean(local.settings)
   };
 }
@@ -674,9 +692,10 @@ export async function resolveSyncChoice(mode) {
   if (isOfflineUser(user) && mode !== "device") throw new Error("Reconnect and sign in online before fetching cloud data.");
   if (mode === "cloud") {
     const cloud = await readUserBundle(user, "server");
+    protectedDeviceBundle = null;
     state.workouts = sortWorkouts(cloud.workouts);
     state.customExercises = sortCustomExercises(cloud.customExercises);
-    if (cloud.settings) state.settings = normalizeSettings(cloud.settings);
+    state.settings = normalizeSettings(cloud.settings ?? {});
     state.metadata.workouts = { fromCache: false, pending: false };
     state.metadata.customExercises = { fromCache: false, pending: false };
     state.metadata.settings = { fromCache: false, pending: false };
@@ -738,6 +757,22 @@ export function exportState() {
 export async function importState(backup) {
   const user = requireUser();
   if (!backup || backup.format !== "training-track-backup") throw new Error("This is not an Ascend backup.");
+  if ((backup.workouts != null && !Array.isArray(backup.workouts)) || (backup.customExercises != null && !Array.isArray(backup.customExercises))) throw new Error("Backup workouts and custom exercises must be lists.");
+  for (const workout of backup.workouts ?? []) {
+    const date = typeof workout?.date === "string" ? workout.date : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date || !Array.isArray(workout.exercises)) throw new Error("Backup contains an invalid workout date or exercise list.");
+    for (const entry of workout.exercises) {
+      if (!entry || typeof entry.exerciseId !== "string" || (entry.sets != null && !Array.isArray(entry.sets))) throw new Error("Backup contains an invalid exercise entry.");
+      const numericValues = [workout.bodyWeightKg, workout.durationMin, entry.restSeconds, entry.durationMin, entry.repSeconds];
+      for (const set of entry.sets ?? []) {
+        if (!set || typeof set !== "object") throw new Error("Backup contains an invalid set.");
+        numericValues.push(set.weightKg, set.reps, set.seconds, set.rir);
+      }
+      for (const field of ["durationMin", "distanceKm", "elevationM", "inclinePercent", "steps", "packKg", "watts", "floors"]) numericValues.push(entry.activity?.[field]);
+      if (numericValues.some(value => value != null && value !== "" && (!Number.isFinite(Number(value)) || Number(value) < 0))) throw new Error("Backup contains an invalid training measurement.");
+    }
+  }
+  if ((backup.customExercises ?? []).some(exercise => !exercise || typeof exercise.name !== "string")) throw new Error("Backup contains an invalid custom exercise.");
   if (isOfflineUser(user)) {
     hydrateFromBundle({
       workouts: mergeByNewest(backup.workouts ?? [], state.workouts),
@@ -752,7 +787,7 @@ export async function importState(backup) {
   const operations = [];
   for (const workout of backup.workouts ?? []) {
     const id = workout.id || crypto.randomUUID();
-    operations.push({ ref: userDoc(user.uid, "workouts", id), data: { ...workoutPayload(workout), createdAt: serverTimestamp() } });
+    operations.push({ ref: userDoc(user.uid, "workouts", id), data: { ...workoutPayload(workout), createdAtMs: Number(workout.createdAtMs) || Date.now() } });
   }
   for (const exercise of backup.customExercises ?? []) {
     const id = exercise.id || `custom-${crypto.randomUUID()}`;

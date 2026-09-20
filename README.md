@@ -112,7 +112,13 @@ Shared exercise catalog updates can be published at:
 /apps/training-track/exerciseCatalog/{exerciseId}
 ```
 
-A remote exercise document can replace a bundled exercise with the same `id`, or add a new exercise with a new `id`.
+A remote exercise document can add a new exercise with a new `id`. Overriding a bundled exercise now requires `catalogRevision: 2` (or newer), so old cloud documents cannot undo reviewed input types and calorie definitions.
+
+## Exercise catalog and calories
+
+The library contains 193 exercises and activities, including separate cable rows and cardio rowing, unilateral pulldowns, and searchable swimming strokes. See the [complete exercise/input audit](docs/exercise-audit.md) and [calorie sources and methodology](docs/calorie-methodology.md).
+
+Calories are gross MET estimates scaled to body weight. New workouts preserve their logged body weight. Strength entries support rest, optional measured exercise duration and tempo; unilateral repetitions are per side. Set-number buttons include or skip sets. Animation settings offer Full, Subtle and Off; device reduced-motion preferences take priority.
 
 ## Run Locally
 
@@ -134,9 +140,14 @@ Run the smoke test with Node:
 
 ```bash
 node tests/smoke.mjs
+node tests/regression.mjs
+node tests/store.mjs
+node tests/service-worker.mjs
 ```
 
 The test checks bundled exercise integrity, rank data, workout analysis, XP calculation, statistics, muscle balance, and fuzzy exercise search.
+
+For UI verification without Firebase credentials or account writes, run `node tests/preview.mjs` and open `http://127.0.0.1:8085/`. This uses synthetic data and a stubbed backend; it is not the production app server.
 
 ## Deploy
 

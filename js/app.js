@@ -36,6 +36,7 @@ import {
 import {
   addDays,
   analyseExerciseEntry,
+  analyseWorkout,
   buildWorkoutAnalyses,
   calculateProgression,
   calendarIntensity,
@@ -53,11 +54,12 @@ import {
   statistics,
   suggestedFocus,
   xpForLevel,
-  xpSummary
+  xpSummary,
+  workoutXp
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.3.20";
+const APP_VERSION = "0.4.0";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -114,6 +116,8 @@ let draftCollapsedEntries = new Set();
 let levelCelebrationTimer = null;
 let settingsAutosaveTimer = null;
 const settingsMobileQuery = window.matchMedia("(max-width: 680px)");
+const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+reducedMotionQuery.addEventListener("change", () => { applyAppearance(); renderActiveCharts(); });
 
 function catalog() {
   // Custom exercise creation is intentionally no longer exposed. Keep the public
@@ -274,8 +278,12 @@ function createEmptyDraft() {
 
 function applyAppearance(settings = state.settings) {
   document.documentElement.dataset.theme = settings.theme === "light" ? "light" : "dark";
-  document.documentElement.dataset.motion = settings.motion === "off" ? "off" : "on";
+  document.documentElement.dataset.motion = reducedMotionQuery.matches ? "off" : ["off", "subtle", "on"].includes(settings.motion) ? settings.motion : "on";
   applyRankStage();
+}
+
+function draftSettings() {
+  return { ...state.settings, ...(Number(draftWorkout.bodyWeightKg) >= 20 ? { bodyWeightKg: Number(draftWorkout.bodyWeightKg) } : {}) };
 }
 
 function updateSyncStatus() {
@@ -572,6 +580,7 @@ function createDraftEntry(exercise) {
       exerciseId: exercise.id,
       restSeconds: null,
       notes: "",
+      trackCompletion: true,
       sets: [],
       activity: previous?.activity ? { ...deepClone(previous.activity) } : { ...deepClone(exercise.defaults) }
     };
@@ -592,6 +601,7 @@ function createDraftEntry(exercise) {
   return {
     exerciseId: exercise.id,
     restSeconds: exercise.defaults?.restSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds,
+    trackCompletion: true,
     notes: "",
     sets,
     activity: null
@@ -606,13 +616,15 @@ function startNewWorkout(source = null, keepId = false) {
       date: keepId ? source.date : localDateString(),
       title: source.title ? `${source.title}` : "Training session",
       durationMin: keepId ? (source.durationMin ?? "") : "",
+      bodyWeightKg: keepId ? source.bodyWeightKg : undefined,
+      createdAtMs: keepId ? source.createdAtMs : undefined,
       startedAtMs: null,
       notes: keepId ? (source.notes ?? "") : "",
       exercises: deepClone(source.exercises ?? [])
     };
     draftWorkout.exercises = draftWorkout.exercises.map(entry => ({
       ...entry,
-      sets: (entry.sets ?? []).map(set => ({ ...set, completed: true }))
+      sets: (entry.sets ?? []).map(set => ({ ...set, completed: keepId && entry.trackCompletion ? set.completed !== false : true }))
     }));
   }
   draftCollapsedEntries = new Set();
@@ -674,15 +686,12 @@ function markDraftStarted() {
 
 function estimateDraftDurationMin() {
   if (draftWorkout.id && Number(draftWorkout.durationMin) > 0) return Math.min(1440, Math.max(0.1, Number(draftWorkout.durationMin)));
-  if (draftWorkout.startedAtMs) {
-    const elapsedMinutes = (Date.now() - Number(draftWorkout.startedAtMs)) / 60_000;
-    return Math.min(1440, Math.max(0.1, Math.round(elapsedMinutes * 10) / 10));
-  }
   const structural = draftWorkout.exercises.reduce((sum, entry) => {
     const exercise = getExerciseById(entry.exerciseId, catalog());
     return sum + (analyseExerciseEntry(entry, exercise, state.settings)?.durationMinutes ?? 0);
   }, 0);
-  return Math.min(1440, Math.max(0.1, Math.round((structural || 1) * 10) / 10));
+  const elapsedMinutes = draftWorkout.startedAtMs ? (Date.now() - Number(draftWorkout.startedAtMs)) / 60_000 : 0;
+  return Math.min(1440, Math.max(0.1, Math.round(Math.max(structural, elapsedMinutes, 1) * 10) / 10));
 }
 
 function askDurationEstimate(estimate) {
@@ -725,23 +734,25 @@ function setRowsHtml(exercise, entry, entryIndex) {
   const timed = exercise.inputType === "timedSets";
   const bodyweight = exercise.inputType === "bodyweightSets";
   const showRir = Boolean(state.settings.showRir);
-  const loadLabel = bodyweight ? "Added kg" : exercise.loadMode === "perHand" ? "kg / hand" : exercise.loadMode === "perSide" ? "kg / side" : "Weight kg";
+  const loadLabel = exercise.loadMode === "assistance" ? "Assist kg" : bodyweight ? "Added kg" : exercise.loadMode === "perHand" ? "kg / hand" : exercise.loadMode === "perSide" ? "kg / side" : "Weight kg";
+  const setToggle = (set, index) => `<button type="button" class="set-number set-completion ${!entry.trackCompletion || set.completed !== false ? "is-complete" : ""}" data-action="toggle-set" data-entry="${entryIndex}" data-set="${index}" aria-pressed="${!entry.trackCompletion || set.completed !== false}" aria-label="Set ${index + 1} completed">${index + 1}</button>`;
   const header = timed
     ? `<div class="set-head"><span>Set</span><span>Seconds</span>${showRir ? "<span>RIR</span>" : ""}</div>`
     : `<div class="set-head"><span>Set</span><span>${loadLabel}</span><span>Reps</span>${showRir ? "<span>RIR</span>" : ""}</div>`;
   const rows = (entry.sets ?? []).map((set, setIndex) => timed
     ? `<div class="set-row">
-        <span class="set-number">${setIndex + 1}</span>
+        ${setToggle(set, setIndex)}
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="seconds" type="number" min="0" max="3600" inputmode="numeric" value="${Number(set.seconds) || 0}" aria-label="Seconds">
         ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`
     : `<div class="set-row">
-        <span class="set-number">${setIndex + 1}</span>
+        ${setToggle(set, setIndex)}
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="weightKg" type="number" min="0" max="1000" step="0.5" inputmode="decimal" value="${Number(set.weightKg) || 0}" aria-label="Weight">
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="reps" type="number" min="0" max="500" inputmode="numeric" value="${Number(set.reps) || 0}" aria-label="Repetitions">
         ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`).join("");
-  return `<div class="set-table ${timed ? "timed-table" : ""} ${showRir ? "" : "no-rir"}">${header}${rows}</div>`;
+  return `<p class="entry-hint">${exercise.unilateral ? "Enter reps or seconds per side; both sides are counted. " : ""}${exercise.loadMode === "assistance" ? "Assistance reduces the body weight moved. " : ""}Tap a set number to include or skip it.</p><div class="set-table ${timed ? "timed-table" : ""} ${showRir ? "" : "no-rir"}">${header}${rows}</div>
+    <div class="entry-settings"><label class="field"><span>Rest between sets (sec)</span><input type="number" min="0" max="1800" step="5" data-entry="${entryIndex}" data-entry-field="restSeconds" value="${Number(entry.restSeconds ?? exercise.defaults?.restSeconds) || 0}"></label><label class="field"><span>Exercise time incl. rest (min)</span><input type="number" min="0.1" max="1440" step="0.1" data-entry="${entryIndex}" data-entry-field="durationMin" value="${escapeHtml(entry.durationMin ?? "")}" placeholder="Estimate from sets"></label><label class="field"><span>Seconds per rep</span><input type="number" min="0.5" max="30" step="0.5" data-entry="${entryIndex}" data-entry-field="repSeconds" value="${escapeHtml(entry.repSeconds ?? "")}" placeholder="${exercise.calorie?.repSeconds ?? 3}" ${timed ? "disabled" : ""}></label></div>`;
 }
 
 const ACTIVITY_FIELD_META = {
@@ -764,8 +775,8 @@ function activityFieldsHtml(exercise, entry, entryIndex) {
       return `<label class="field"><span>Intensity</span><select data-entry="${entryIndex}" data-activity-field="intensity"><option value="light" ${entry.activity?.intensity === "light" ? "selected" : ""}>Light</option><option value="moderate" ${entry.activity?.intensity === "moderate" ? "selected" : ""}>Moderate</option><option value="vigorous" ${entry.activity?.intensity === "vigorous" ? "selected" : ""}>Vigorous</option></select></label>`;
     }
     const [label, unit, type, step] = ACTIVITY_FIELD_META[field] ?? [field, "", "number", "1"];
-    return `<label class="field"><span>${label}${unit ? ` (${unit})` : ""}</span><input data-entry="${entryIndex}" data-activity-field="${field}" type="${type}" min="0" step="${step}" inputmode="decimal" value="${entry.activity?.[field] ?? ""}"></label>`;
-  }).join("")}</div>`;
+    return `<label class="field"><span>${label}${unit ? ` (${unit})` : ""}</span><input data-entry="${entryIndex}" data-activity-field="${field}" type="${type}" min="${field === "durationMin" ? "0.1" : "0"}" ${field === "durationMin" ? 'max="1440" required' : ""} step="${field === "durationMin" ? "0.1" : step}" inputmode="decimal" value="${escapeHtml(entry.activity?.[field] ?? "")}"></label>`;
+  }).join("")}</div><p class="entry-hint">Log active time; exclude pool breaks, lifts and long pauses.${exercise.activityType === "swimming" ? " Distance is in km: 500 m = 0.5 km. Vigorous means training effort." : ""}${exercise.fields?.includes("watts") ? " Average watts take priority over intensity." : ""}</p>`;
 }
 
 function renderBuilder() {
@@ -777,7 +788,7 @@ function renderBuilder() {
   draftWorkout.exercises.forEach((entry, entryIndex) => {
     const exercise = getExerciseById(entry.exerciseId, allExercises);
     if (!exercise) return;
-    const result = analyseExerciseEntry(entry, exercise, state.settings);
+    const result = analyseExerciseEntry(entry, exercise, draftSettings());
     const collapsed = draftCollapsedEntries.has(entryIndex);
     const block = document.createElement("article");
     block.className = `exercise-block panel ${collapsed ? "collapsed" : ""}`;
@@ -793,10 +804,18 @@ function renderBuilder() {
       </div>
       <div class="exercise-footer ${collapsed ? "collapsed" : ""}">
         ${collapsed || exercise.inputType === "activity" ? "<span></span>" : `<div class="set-controls"><button class="set-control" data-action="add-set" data-entry="${entryIndex}" type="button" aria-label="Add set" title="Add set">+</button><button class="set-control" data-action="remove-set" data-entry="${entryIndex}" type="button" aria-label="Remove set" title="Remove set" ${entry.sets.length <= 1 ? "disabled" : ""}>-</button></div>`}
-        <span class="exercise-preview" data-preview="${entryIndex}">${Math.round(result.calories)} kcal · Rank ${result.level.rank} ${result.level.label} · ${escapeHtml(levelValueLabel(exercise, result))}</span>
+        <span class="exercise-preview" data-preview="${entryIndex}">≈ ${Math.round(result.calories)} kcal · ${escapeHtml(levelValueLabel(exercise, result))}</span>
       </div>`;
     elements.builderList.append(block);
   });
+  renderDraftSummary();
+}
+
+function renderDraftSummary() {
+  const target = document.querySelector("#draft-summary");
+  if (!target) return;
+  const result = analyseWorkout(draftWorkout, catalog(), state.settings);
+  target.innerHTML = `<div><span>Exercises</span><strong>${draftWorkout.exercises.length}</strong></div><div><span>Working sets</span><strong>${result.sets}</strong></div><div><span>Volume</span><strong>${formatNumber(result.volumeKg)} <small>kg</small></strong></div><div><span>Estimated energy</span><strong>≈ ${result.calories} <small>kcal</small></strong></div>`;
 }
 
 function updateEntryPreview(entryIndex) {
@@ -804,8 +823,9 @@ function updateEntryPreview(entryIndex) {
   const exercise = getExerciseById(entry?.exerciseId, catalog());
   const target = document.querySelector(`[data-preview="${entryIndex}"]`);
   if (!entry || !exercise || !target) return;
-  const result = analyseExerciseEntry(entry, exercise, state.settings);
-  target.textContent = `${Math.round(result.calories)} kcal · Rank ${result.level.rank} ${result.level.label} · ${levelValueLabel(exercise, result)}`;
+  const result = analyseExerciseEntry(entry, exercise, draftSettings());
+  target.textContent = `≈ ${Math.round(result.calories)} kcal · ${levelValueLabel(exercise, result)}`;
+  renderDraftSummary();
 }
 
 function addExerciseToDraft(exerciseId) {
@@ -841,6 +861,13 @@ async function submitWorkout(event) {
   }
 
   const saved = deepClone(draftWorkout);
+  // Keep historical body weight stable; legacy workouts retain their old fallback.
+  if (!draftWorkout.id) saved.bodyWeightKg = state.settings.bodyWeightKg;
+  const hasWork = saved.exercises.some(entry => {
+    const result = analyseExerciseEntry(entry, getExerciseById(entry.exerciseId, catalog()), state.settings);
+    return result && (result.activeMinutes > 0 || result.totalReps > 0);
+  });
+  if (!hasWork) { setMessage(message, "Log at least one completed set or an activity duration.", true); return; }
   delete saved.startedAtMs;
   if (!draftWorkout.id) {
     const estimate = estimateDraftDurationMin();
@@ -854,7 +881,8 @@ async function submitWorkout(event) {
   }
 
   try {
-    await saveWorkout(saved);
+    if (navigator.onLine || state.user?.offlineOnly) await saveWorkout(saved);
+    else queueWrite(saveWorkout(saved));
     const afterSummary = currentPlayerSummary();
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
     draftWorkout = createEmptyDraft();
@@ -912,7 +940,7 @@ function renderExercisePicker() {
     .filter(item => {
       const { exercise, searchScore } = item;
       if (query && searchScore <= 0) return false;
-      if (pickerFilter === "recommended" && exercise.category !== "strength") return false;
+      if (!query && pickerFilter === "recommended" && exercise.category !== "strength") return false;
       if (pickerFilter === "strength" && exercise.category !== "strength") return false;
       if (pickerFilter === "activity" && exercise.category !== "activity") return false;
       if (pickerFilter === "favorites" && !used.has(exercise.id)) return false;
@@ -954,7 +982,8 @@ function renderExercisePicker() {
     button.className = "picker-item";
     button.type = "button";
     button.dataset.addExercise = exercise.id;
-    button.innerHTML = `<span class="picker-symbol">${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.equipment)} · ${escapeHtml(exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", "))}</small></div><span class="rank-badge rank-${level.rank}">${level.rank}</span>`;
+    const inputLabel = exercise.inputType === "activity" ? "Time + activity" : exercise.inputType === "timedSets" ? "Timed sets" : exercise.loadMode === "assistance" ? "Assist + reps" : "Weight + reps";
+    button.innerHTML = `<span class="picker-symbol">${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${escapeHtml(exercise.equipment)} · ${escapeHtml(exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", "))}</small><span class="input-type-tag">${inputLabel}${exercise.unilateral ? " · per side" : ""}</span></div><span class="rank-badge rank-${level.rank}">${exercise.standard ? level.rank : "—"}</span>`;
     container.append(button);
   }
 }
@@ -971,8 +1000,7 @@ function workoutXpBreakdown(workout) {
   const strengthSets = Math.max(1, Number(workout.sets || 0));
   const baseShare = results.length ? 80 / results.length : 80;
   const items = results.map(result => {
-    const entry = (workout.exercises ?? []).find(item => item.exerciseId === result.exerciseId);
-    const actualSets = result.exercise.inputType === "activity" ? 0 : (entry?.sets ?? []).filter(set => Number(set.reps) > 0 || Number(set.seconds) > 0).length;
+    const actualSets = result.completedSets;
     const xp = baseShare
       + result.activeMinutes * 0.5
       + result.calories * 0.12
@@ -980,8 +1008,18 @@ function workoutXpBreakdown(workout) {
       + (actualSets ? totalSetBonus * actualSets / strengthSets : 0);
     return { exerciseId: result.exerciseId, xp: Math.max(1, Math.round(xp)) };
   });
-  const total = items.reduce((sum, item) => sum + item.xp, 0);
-  return { total, byExercise: new Map(items.map(item => [item.exerciseId, item.xp])) };
+  const total = workoutXp(workout, prItems.length);
+  const rawTotal = items.reduce((sum, item) => sum + item.xp, 0);
+  let allocated = 0;
+  const byExercise = new Map();
+  const byEntry = new Map();
+  items.forEach((item, index) => {
+    const share = index === items.length - 1 ? total - allocated : Math.floor(total * item.xp / Math.max(1, rawTotal));
+    allocated += share;
+    byExercise.set(item.exerciseId, (byExercise.get(item.exerciseId) ?? 0) + share);
+    byEntry.set(results[index], share);
+  });
+  return { total, byExercise, byEntry };
 }
 
 function renderSessionList(container, workouts, limit = 5, scoreMode = "xp") {
@@ -1000,7 +1038,7 @@ function renderSessionList(container, workouts, limit = 5, scoreMode = "xp") {
       .map(result => {
         const score = scoreMode === "calories"
           ? `${formatNumber(result.calories ?? 0)} kcal`
-          : `+${formatNumber(xpBreakdown.byExercise.get(result.exerciseId) ?? 0)}`;
+          : `+${formatNumber(xpBreakdown.byEntry.get(result) ?? 0)}`;
         return `<span>${escapeHtml(result.exercise.name)} <b>${score}</b></span>`;
       })
       .join("");
@@ -1522,7 +1560,7 @@ function openWorkoutDetail(id) {
   document.querySelector("#detail-content").innerHTML = `
     <div class="detail-summary"><div><span>Date</span><strong>${formatDate(workout.date)}</strong></div><div><span>Duration</span><strong>${formatNumber(workout.durationMin)} min</strong></div><div><span>XP earned</span><strong>+${formatNumber(xpBreakdown.total)} XP</strong></div><div><span>Volume</span><strong>${formatNumber(workout.volumeKg)} kg</strong></div></div>
     ${workout.notes ? `<p class="muted">${escapeHtml(workout.notes)}</p>` : ""}
-    ${workout.exerciseResults.map(result => `<div class="detail-exercise"><div class="detail-exercise-head"><strong>${escapeHtml(result.exercise.name)}</strong><span class="xp-pill">+${formatNumber(xpBreakdown.byExercise.get(result.exerciseId) ?? 0)} XP</span><span class="rank-badge rank-${result.level.rank}">${result.level.rank}</span></div><p>${result.exercise.inputType === "activity" ? `${result.speedKmh ? result.speedKmh.toFixed(1) + " km/h · " : ""}${Math.round(result.activeMinutes)} min` : `${result.totalReps} reps · ${formatNumber(result.volumeKg)} kg volume${result.bestE1RM ? ` · ${result.bestE1RM.toFixed(1)} kg e1RM` : ""}`} · ${Math.round(result.calories)} kcal</p></div>`).join("")}
+    ${workout.exerciseResults.map(result => `<div class="detail-exercise"><div class="detail-exercise-head"><strong>${escapeHtml(result.exercise.name)}</strong><span class="xp-pill">+${formatNumber(xpBreakdown.byEntry.get(result) ?? 0)} XP</span><span class="rank-badge rank-${result.level.rank}">${result.exercise.standard ? result.level.rank : "—"}</span></div><p>${result.exercise.inputType === "activity" ? `${result.speedKmh ? result.speedKmh.toFixed(1) + " km/h · " : ""}${Math.round(result.activeMinutes)} min` : result.exercise.inputType === "timedSets" ? `${Math.round(result.activeMinutes * 60)} sec held` : `${result.totalReps} reps · ${formatNumber(result.volumeKg)} kg volume${result.bestE1RM ? ` · ${result.bestE1RM.toFixed(1)} kg e1RM` : ""}`} · ≈ ${Math.round(result.calories)} kcal</p></div>`).join("")}
     <div class="two-col" style="margin-top:16px"><button class="secondary-button" data-edit-workout="${workout.id}" type="button">Edit workout</button><button class="ghost-button" data-repeat-workout="${workout.id}" type="button">Repeat session</button></div>`;
   openModal("detail");
 }
@@ -1766,6 +1804,7 @@ function bindEvents() {
       draftWorkout.exercises[entryIndex].activity ??= {};
       draftWorkout.exercises[entryIndex].activity[input.dataset.activityField] = input.value;
     }
+    if (input.dataset.entryField != null) draftWorkout.exercises[entryIndex][input.dataset.entryField] = input.value;
     updateEntryPreview(entryIndex);
   });
   elements.builderList.addEventListener("change", event => {
@@ -1782,6 +1821,15 @@ function bindEvents() {
     if (!button) return;
     const index = Number(button.dataset.entry);
     const action = button.dataset.action;
+    if (action === "toggle-set") {
+      const entry = draftWorkout.exercises[index];
+      if (!entry.trackCompletion) entry.sets.forEach(set => { set.completed = true; });
+      entry.trackCompletion = true;
+      const set = entry.sets[Number(button.dataset.set)];
+      set.completed = set.completed === false;
+      renderBuilder();
+      return;
+    }
     if (action === "toggle-exercise") {
       if (draftCollapsedEntries.has(index)) draftCollapsedEntries.delete(index);
       else draftCollapsedEntries.add(index);
@@ -1792,7 +1840,7 @@ function bindEvents() {
     if (action === "add-set") {
       const entry = draftWorkout.exercises[index];
       const previous = entry.sets.at(-1) ?? { weightKg: 0, reps: 10, seconds: 30, rir: "" };
-      entry.sets.push({ ...deepClone(previous), completed: false });
+      entry.sets.push({ ...deepClone(previous), completed: true });
       markDraftStarted();
       renderBuilder();
     }
@@ -1824,7 +1872,7 @@ function bindEvents() {
 
     const addFromMuscle = event.target.closest("#selected-muscle-panel [data-add-exercise], #muscle-grid [data-add-exercise]");
     if (addFromMuscle) {
-      startNewWorkout();
+      navigateTo("workout");
       addExerciseToDraft(addFromMuscle.dataset.addExercise);
       return;
     }

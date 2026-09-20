@@ -16,6 +16,7 @@ export const MUSCLE_GROUPS = Object.freeze({
   quads: { name: "Quads", region: "lower", icon: "▴" },
   hamstrings: { name: "Hamstrings", region: "lower", icon: "▾" },
   calves: { name: "Calves", region: "lower", icon: "∧" },
+  adductors: { name: "Adductors", region: "lower", icon: "◇" },
   hipFlexors: { name: "Hip flexors", region: "lower", icon: "×" },
   cardio: { name: "Cardio", region: "conditioning", icon: "⌁" }
 });
@@ -58,7 +59,8 @@ function strength({
   activeMet = 3.5,
   standard = null,
   aliases = [],
-  unilateral = false
+  unilateral = false,
+  sessionMet = null
 }) {
   return {
     id,
@@ -72,7 +74,7 @@ function strength({
     loadMode,
     unilateral,
     defaults: { sets: defaultSets, reps: defaultReps, restSeconds },
-    calorie: { activeMet, restMet: 2.0, repSeconds: 3.2 },
+    calorie: { activeMet, sessionMet: sessionMet ?? (/squat|hinge/i.test(pattern) ? 5 : 3.5), restMet: 1.5, repSeconds: 3.2, source: "2024 Compendium: 02054 / 02052; movement-category estimate" },
     standard
   };
 }
@@ -89,7 +91,9 @@ function bodyweight({
   restSeconds = 90,
   activeMet = 3.8,
   aliases = [],
-  timed = false
+  timed = false,
+  unilateral = false,
+  loadMode = "added"
 }) {
   return {
     id,
@@ -100,10 +104,11 @@ function bodyweight({
     equipment: "Bodyweight",
     pattern,
     muscles: { primary, secondary },
-    loadMode: "added",
+    loadMode,
+    unilateral,
     defaults: { sets: defaultSets, reps: defaultReps, restSeconds, seconds: timed ? thresholds[0] : null },
-    calorie: { activeMet, restMet: 2.0, repSeconds: timed ? 1 : 3.0 },
-    standard: timed ? timeStandard(thresholds) : repStandard(thresholds)
+    calorie: { activeMet, sessionMet: timed ? 2.8 : activeMet >= 6 ? 7.5 : 3.8, restMet: 1.5, repSeconds: timed ? 1 : 3.0, source: "2024 Compendium: 02020 / 02022 / 02024; movement-category estimate" },
+    standard: loadMode === "assistance" ? null : timed ? timeStandard(thresholds) : repStandard(thresholds)
   };
 }
 
@@ -116,7 +121,10 @@ function activity({
   baseMet,
   speedBands,
   fields,
-  aliases = []
+  aliases = [],
+  stroke = null,
+  intensityMets = null,
+  source = "2024 Compendium; see docs/calorie-methodology.md"
 }) {
   return {
     id,
@@ -127,15 +135,115 @@ function activity({
     equipment: "Activity",
     pattern: activityType,
     activityType,
+    stroke,
     muscles: { primary, secondary },
-    defaults: { durationMin: 30, distanceKm: "", elevationM: "", steps: "", intensity: "moderate" },
-    calorie: { baseMet },
+    defaults: { durationMin: 30, distanceKm: "", elevationM: "", steps: "", intensity: "moderate", ...(stroke ? { stroke } : {}) },
+    calorie: { baseMet, intensityMets, source },
     standard: speedBands ? speedStandard(speedBands) : null,
     fields
   };
 }
 
 export const BUNDLED_EXERCISES = Object.freeze([
+  // Additional equipment variants and activities. Existing IDs remain stable.
+  strength({"id":"one-arm-lat-pulldown","name":"One-Arm Lat Pulldown","equipment":"Cable","pattern":"Vertical pull","primary":["lats"],"secondary":["biceps","upperBack"],"loadMode":"single","unilateral":true,"aliases":["single arm lat pulldown","unilateral pulldown"]}),
+  strength({"id":"close-grip-lat-pulldown","name":"Close-Grip Lat Pulldown","equipment":"Cable","pattern":"Vertical pull","primary":["lats"],"secondary":["biceps","upperBack"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"wide-grip-lat-pulldown","name":"Wide-Grip Lat Pulldown","equipment":"Cable","pattern":"Vertical pull","primary":["lats"],"secondary":["biceps","upperBack"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"reverse-grip-lat-pulldown","name":"Reverse-Grip Lat Pulldown","equipment":"Cable","pattern":"Vertical pull","primary":["lats"],"secondary":["biceps","upperBack"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"straight-arm-pulldown","name":"Straight-Arm Cable Pulldown","equipment":"Cable","pattern":"Vertical pull","primary":["lats"],"secondary":["biceps","upperBack"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"one-arm-cable-row","name":"One-Arm Cable Row","equipment":"Cable","pattern":"Horizontal pull","primary":["lats","upperBack"],"secondary":["biceps","rearDelts"],"loadMode":"single","unilateral":true,"aliases":["single arm cable row"]}),
+  strength({"id":"wide-grip-cable-row","name":"Wide-Grip Cable Row","equipment":"Cable","pattern":"Horizontal pull","primary":["lats","upperBack"],"secondary":["biceps","rearDelts"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"standing-cable-row","name":"Standing Cable Row","equipment":"Cable","pattern":"Horizontal pull","primary":["lats","upperBack"],"secondary":["biceps","rearDelts"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"machine-row","name":"Seated Machine Row","equipment":"Machine","pattern":"Horizontal pull","primary":["upperBack","lats"],"secondary":["biceps","rearDelts"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"plate-loaded-row","name":"Plate-Loaded Row","equipment":"Machine","pattern":"Horizontal pull","primary":["upperBack","lats"],"secondary":["biceps","rearDelts"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"t-bar-row","name":"T-Bar Row","equipment":"Machine","pattern":"Horizontal pull","primary":["upperBack","lats"],"secondary":["biceps","rearDelts"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"db-floor-press","name":"Dumbbell Floor Press","equipment":"Dumbbells","pattern":"Horizontal push","primary":["chest"],"secondary":["triceps","frontDelts"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"db-decline-bench","name":"Decline Dumbbell Bench Press","equipment":"Dumbbells","pattern":"Horizontal push","primary":["chest"],"secondary":["triceps","frontDelts"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"db-fly","name":"Dumbbell Fly","equipment":"Dumbbells","pattern":"Chest isolation","primary":["chest"],"secondary":["frontDelts"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"incline-db-fly","name":"Incline Dumbbell Fly","equipment":"Dumbbells","pattern":"Chest isolation","primary":["chest"],"secondary":["frontDelts"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"low-to-high-cable-fly","name":"Low-to-High Cable Fly","equipment":"Cable","pattern":"Chest isolation","primary":["chest"],"secondary":["frontDelts"],"loadMode":"perSide","unilateral":false,"aliases":[]}),
+  strength({"id":"high-to-low-cable-fly","name":"High-to-Low Cable Fly","equipment":"Cable","pattern":"Chest isolation","primary":["chest"],"secondary":["frontDelts"],"loadMode":"perSide","unilateral":false,"aliases":[]}),
+  strength({"id":"arnold-press","name":"Arnold Press","equipment":"Dumbbells","pattern":"Vertical push","primary":["frontDelts","sideDelts"],"secondary":["triceps"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"single-arm-shoulder-press","name":"Single-Arm Dumbbell Shoulder Press","equipment":"Dumbbells","pattern":"Vertical push","primary":["frontDelts","sideDelts"],"secondary":["triceps"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"front-raise","name":"Dumbbell Front Raise","equipment":"Dumbbells","pattern":"Shoulder isolation","primary":["frontDelts"],"secondary":[],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"machine-lateral-raise","name":"Machine Lateral Raise","equipment":"Machine","pattern":"Shoulder isolation","primary":["sideDelts"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"cable-reverse-fly","name":"Cable Reverse Fly","equipment":"Cable","pattern":"Rear-delt isolation","primary":["rearDelts","upperBack"],"secondary":[],"loadMode":"perSide","unilateral":false,"aliases":[]}),
+  strength({"id":"triceps-kickback","name":"Dumbbell Triceps Kickback","equipment":"Dumbbell","pattern":"Triceps isolation","primary":["triceps"],"secondary":[],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"rope-pushdown","name":"Rope Triceps Pushdown","equipment":"Cable","pattern":"Triceps isolation","primary":["triceps"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"single-arm-pushdown","name":"Single-Arm Triceps Pushdown","equipment":"Cable","pattern":"Triceps isolation","primary":["triceps"],"secondary":[],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"cable-overhead-triceps","name":"Cable Overhead Triceps Extension","equipment":"Cable","pattern":"Triceps isolation","primary":["triceps"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"incline-db-curl","name":"Incline Dumbbell Curl","equipment":"Dumbbells","pattern":"Elbow flexion","primary":["biceps"],"secondary":["forearms"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"concentration-curl","name":"Concentration Curl","equipment":"Dumbbells","pattern":"Elbow flexion","primary":["biceps"],"secondary":["forearms"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"spider-curl","name":"Dumbbell Spider Curl","equipment":"Dumbbells","pattern":"Elbow flexion","primary":["biceps"],"secondary":["forearms"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"bayesian-curl","name":"Bayesian Cable Curl","equipment":"Cable","pattern":"Elbow flexion","primary":["biceps"],"secondary":["forearms"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"reverse-curl","name":"Reverse Curl","equipment":"EZ-bar","pattern":"Elbow flexion","primary":["forearms","biceps"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"wrist-curl","name":"Dumbbell Wrist Curl","equipment":"Dumbbells","pattern":"Wrist flexion","primary":["forearms"],"secondary":[],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"reverse-wrist-curl","name":"Reverse Wrist Curl","equipment":"Dumbbells","pattern":"Wrist flexion","primary":["forearms"],"secondary":[],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"sumo-deadlift","name":"Sumo Deadlift","equipment":"Barbell","pattern":"Hinge","primary":["hamstrings","glutes"],"secondary":["lowerBack","forearms"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"trap-bar-deadlift","name":"Trap-Bar Deadlift","equipment":"Barbell","pattern":"Hinge","primary":["hamstrings","glutes"],"secondary":["lowerBack","forearms"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"good-morning","name":"Barbell Good Morning","equipment":"Barbell","pattern":"Hinge","primary":["hamstrings","glutes"],"secondary":["lowerBack","forearms"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"db-romanian-deadlift","name":"Dumbbell Romanian Deadlift","equipment":"Dumbbells","pattern":"Hinge","primary":["hamstrings","glutes"],"secondary":["lowerBack","forearms"],"loadMode":"perHand","unilateral":false,"aliases":[]}),
+  strength({"id":"single-leg-rdl","name":"Single-Leg Dumbbell Romanian Deadlift","equipment":"Dumbbells","pattern":"Hinge","primary":["hamstrings","glutes"],"secondary":["lowerBack","forearms"],"loadMode":"perHand","unilateral":true,"aliases":[]}),
+  strength({"id":"reverse-lunge","name":"Dumbbell Reverse Lunge","equipment":"Dumbbells","pattern":"Single-leg squat","primary":["quads","glutes"],"secondary":["hamstrings","calves"],"loadMode":"perHand","unilateral":true,"aliases":[]}),
+  strength({"id":"step-up","name":"Dumbbell Step-up","equipment":"Dumbbells","pattern":"Single-leg squat","primary":["quads","glutes"],"secondary":["hamstrings","calves"],"loadMode":"perHand","unilateral":true,"aliases":[]}),
+  strength({"id":"lateral-lunge","name":"Dumbbell Lateral Lunge","equipment":"Dumbbells","pattern":"Single-leg squat","primary":["quads","glutes"],"secondary":["hamstrings","calves"],"loadMode":"perHand","unilateral":true,"aliases":[]}),
+  strength({"id":"pendulum-squat","name":"Pendulum Squat","equipment":"Machine","pattern":"Squat","primary":["quads","glutes"],"secondary":["hamstrings"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"belt-squat","name":"Belt Squat","equipment":"Machine","pattern":"Squat","primary":["quads","glutes"],"secondary":["hamstrings"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"single-leg-press","name":"Single-Leg Press","equipment":"Machine","pattern":"Squat","primary":["quads","glutes"],"secondary":["hamstrings"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"lying-leg-curl","name":"Lying Leg Curl","equipment":"Machine","pattern":"Knee flexion","primary":["hamstrings"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"single-leg-curl","name":"Single-Leg Curl","equipment":"Machine","pattern":"Knee flexion","primary":["hamstrings"],"secondary":[],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"hip-abduction","name":"Hip Abduction Machine","equipment":"Machine","pattern":"Hip abduction","primary":["glutes"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"hip-adduction","name":"Hip Adduction Machine","equipment":"Machine","pattern":"Hip adduction","primary":["adductors"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"cable-kickback","name":"Cable Glute Kickback","equipment":"Cable","pattern":"Hip extension","primary":["glutes"],"secondary":["hamstrings"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"cable-pull-through","name":"Cable Pull-Through","equipment":"Cable","pattern":"Hip extension","primary":["glutes"],"secondary":["hamstrings"],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"leg-press-calf-raise","name":"Leg Press Calf Raise","equipment":"Machine","pattern":"Plantar flexion","primary":["calves"],"secondary":[],"loadMode":"total","unilateral":false,"aliases":[]}),
+  strength({"id":"pallof-press","name":"Pallof Press","equipment":"Cable","pattern":"Anti-rotation","primary":["abs","obliques"],"secondary":[],"loadMode":"single","unilateral":true,"aliases":[]}),
+  strength({"id":"side-bend","name":"Dumbbell Side Bend","equipment":"Dumbbell","pattern":"Lateral flexion","primary":["obliques"],"secondary":["abs"],"loadMode":"single","unilateral":true,"aliases":[]}),
+  bodyweight({"id":"bodyweight-squat","name":"Bodyweight Squat","pattern":"Squat","primary":["quads","glutes"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"bodyweight-lunge","name":"Bodyweight Lunge","pattern":"Single-leg squat","primary":["quads","glutes"],"timed":false,"unilateral":true,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"single-leg-glute-bridge","name":"Single-Leg Glute Bridge","pattern":"Hip extension","primary":["glutes","hamstrings"],"timed":false,"unilateral":true,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"nordic-curl","name":"Nordic Hamstring Curl","pattern":"Knee flexion","primary":["hamstrings"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"crunch","name":"Crunch","pattern":"Spinal flexion","primary":["abs"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"reverse-crunch","name":"Reverse Crunch","pattern":"Spinal flexion","primary":["abs"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"sit-up","name":"Sit-up","pattern":"Spinal flexion","primary":["abs","hipFlexors"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"dead-bug","name":"Dead Bug","pattern":"Anti-extension","primary":["abs"],"timed":false,"unilateral":true,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"bird-dog","name":"Bird Dog","pattern":"Core stability","primary":["abs","lowerBack"],"timed":false,"unilateral":true,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"russian-twist","name":"Russian Twist","pattern":"Rotational core","primary":["obliques","abs"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  bodyweight({"id":"wall-sit","name":"Wall Sit","pattern":"Isometric squat","primary":["quads","glutes"],"timed":true,"unilateral":false,"thresholds":[15,30,60,90,120]}),
+  bodyweight({"id":"dead-hang","name":"Dead Hang","pattern":"Grip hold","primary":["forearms","lats"],"timed":true,"unilateral":false,"thresholds":[15,30,60,90,120]}),
+  bodyweight({"id":"superman-hold","name":"Superman Hold","pattern":"Back extension","primary":["lowerBack","glutes"],"timed":true,"unilateral":false,"thresholds":[15,30,60,90,120]}),
+  bodyweight({"id":"incline-push-up","name":"Incline Push-up","pattern":"Horizontal push","primary":["chest","triceps"],"timed":false,"unilateral":false,"thresholds":[5,10,20,30,45]}),
+  activity({"id":"swimming-freestyle","name":"Swimming — Freestyle","activityType":"swimming","stroke":"freestyle","baseMet":5.8,"aliases":["front crawl","free style"],"primary":["cardio","lats"],"secondary":["sideDelts","abs","glutes"],"fields":["durationMin","distanceKm","intensity"]}),
+  activity({"id":"swimming-breaststroke","name":"Swimming — Breaststroke","activityType":"swimming","stroke":"breaststroke","baseMet":5.3,"aliases":["breast stroke"],"primary":["cardio","lats"],"secondary":["sideDelts","abs","glutes"],"fields":["durationMin","distanceKm","intensity"]}),
+  activity({"id":"swimming-backstroke","name":"Swimming — Backstroke","activityType":"swimming","stroke":"backstroke","baseMet":4.8,"aliases":["back stroke"],"primary":["cardio","lats"],"secondary":["sideDelts","abs","glutes"],"fields":["durationMin","distanceKm","intensity"]}),
+  activity({"id":"swimming-butterfly","name":"Swimming — Butterfly","activityType":"swimming","stroke":"butterfly","baseMet":13.8,"aliases":[],"primary":["cardio","lats"],"secondary":["sideDelts","abs","glutes"],"fields":["durationMin","distanceKm","intensity"]}),
+  activity({"id":"swimming-sidestroke","name":"Swimming — Sidestroke","activityType":"swimming","stroke":"sidestroke","baseMet":7,"aliases":["side stroke"],"primary":["cardio","lats"],"secondary":["sideDelts","abs","glutes"],"fields":["durationMin","distanceKm","intensity"]}),
+  activity({"id":"open-water-swimming","name":"Open-Water Swimming","activityType":"openWater","baseMet":6,"primary":["cardio","lats"],"fields":["durationMin","distanceKm","intensity"],"intensityMets":{"light":6,"moderate":6,"vigorous":10.5}}),
+  activity({"id":"treadmill-walking","name":"Treadmill Walking","activityType":"treadmillWalking","baseMet":3.8,"fields":["durationMin","distanceKm","inclinePercent"]}),
+  activity({"id":"stationary-bike","name":"Stationary Bike","activityType":"stationaryCycling","baseMet":6.8,"aliases":["exercise bike","indoor cycling","ergometer"],"fields":["durationMin","watts","intensity"]}),
+  activity({"id":"spin-class","name":"Spinning Class","activityType":"spinning","baseMet":9,"fields":["durationMin"]}),
+  activity({"id":"mountain-biking","name":"Mountain Biking","activityType":"mountainBike","baseMet":8.5,"fields":["durationMin","distanceKm","intensity"],"intensityMets":{"light":6.8,"moderate":8.5,"vigorous":14}}),
+  activity({"id":"outdoor-rowing","name":"Outdoor Rowing / Sculling","activityType":"outdoorRowing","baseMet":5.8,"primary":["cardio","upperBack","lats"],"fields":["durationMin","distanceKm","intensity"],"intensityMets":{"light":2.8,"moderate":5.8,"vigorous":12}}),
+  activity({"id":"ski-erg","name":"Ski Ergometer","activityType":"skiErg","baseMet":10.5,"fields":["durationMin","intensity"],"intensityMets":{"light":6.8,"moderate":10.5,"vigorous":18}}),
+  activity({"id":"kettlebell-swings","name":"Kettlebell Swings (Timed)","activityType":"kettlebell","baseMet":9.8,"primary":["glutes","hamstrings","cardio"],"fields":["durationMin"]}),
+  activity({"id":"circuit-training","name":"Circuit Training","activityType":"circuit","baseMet":5,"fields":["durationMin","intensity"],"intensityMets":{"light":3.5,"moderate":5,"vigorous":7.5}}),
+  activity({"id":"hiit","name":"HIIT","activityType":"hiit","baseMet":7,"aliases":["interval training","tabata"],"fields":["durationMin","intensity"],"intensityMets":{"light":5,"moderate":7,"vigorous":11}}),
+  activity({"id":"battle-ropes","name":"Battle Ropes","activityType":"calisthenics","baseMet":7.5,"primary":["cardio","sideDelts","forearms"],"fields":["durationMin"]}),
+  activity({"id":"yoga","name":"Yoga (Hatha)","activityType":"yoga","baseMet":2.3,"primary":["abs","lowerBack"],"fields":["durationMin"]}),
+  activity({"id":"power-yoga","name":"Power Yoga","activityType":"yoga","baseMet":4,"primary":["abs","frontDelts"],"fields":["durationMin"]}),
+  activity({"id":"pilates","name":"Pilates","activityType":"pilates","baseMet":2.8,"primary":["abs","obliques"],"fields":["durationMin"]}),
+  activity({"id":"stretching","name":"Stretching / Mobility","activityType":"mobility","baseMet":2.3,"primary":[],"fields":["durationMin"]}),
+  activity({"id":"boxing-bag","name":"Boxing — Punching Bag","activityType":"boxing","baseMet":5.8,"fields":["durationMin","intensity"],"intensityMets":{"light":5.8,"moderate":7,"vigorous":10.8}}),
+  activity({"id":"martial-arts","name":"Martial Arts","activityType":"martialArts","baseMet":10.3,"fields":["durationMin","intensity"],"intensityMets":{"light":5.3,"moderate":10.3,"vigorous":10.3}}),
+  activity({"id":"badminton","name":"Badminton","activityType":"badminton","baseMet":5.5,"fields":["durationMin","intensity"],"intensityMets":{"light":5.5,"moderate":7,"vigorous":9}}),
+  activity({"id":"table-tennis","name":"Table Tennis","activityType":"tableTennis","baseMet":4,"fields":["durationMin"]}),
+  activity({"id":"volleyball","name":"Volleyball","activityType":"volleyball","baseMet":4,"fields":["durationMin","intensity"],"intensityMets":{"light":3,"moderate":4,"vigorous":6}}),
+  activity({"id":"rock-climbing","name":"Rock Climbing","activityType":"climbing","baseMet":5.8,"primary":["lats","forearms","upperBack"],"fields":["durationMin","intensity"],"intensityMets":{"light":5.8,"moderate":7.3,"vigorous":10.5}}),
+  activity({"id":"cross-country-skiing","name":"Cross-Country Skiing","activityType":"crossCountry","baseMet":8.5,"fields":["durationMin","distanceKm","intensity"],"intensityMets":{"light":6.8,"moderate":8.5,"vigorous":11.3}}),
+  activity({"id":"ice-skating","name":"Ice Skating","activityType":"iceSkating","baseMet":7,"fields":["durationMin","intensity"],"intensityMets":{"light":5.5,"moderate":7,"vigorous":9}}),
+  activity({"id":"water-aerobics","name":"Water Aerobics","activityType":"waterAerobics","baseMet":5.5,"fields":["durationMin","intensity"],"intensityMets":{"light":3.8,"moderate":5.5,"vigorous":7.5}}),
+  activity({"id":"paddleboarding","name":"Stand-Up Paddleboarding","activityType":"paddleboarding","baseMet":6.5,"fields":["durationMin","distanceKm","intensity"],"intensityMets":{"light":2.8,"moderate":6.5,"vigorous":9.8}}),
+
   // Chest and push
   strength({ id: "db-bench-press", name: "Dumbbell Bench Press", equipment: "Dumbbells", pattern: "Horizontal push", primary: ["chest"], secondary: ["triceps", "frontDelts"], loadMode: "perHand", activeMet: 5.0, standard: ratioStandard([0.22, 0.38, 0.58, 0.78, 1.0]) }),
   strength({ id: "db-incline-bench-press", name: "Incline Dumbbell Bench Press", equipment: "Dumbbells", pattern: "Incline push", primary: ["chest", "frontDelts"], secondary: ["triceps"], loadMode: "perHand", activeMet: 5.0, standard: ratioStandard([0.18, 0.32, 0.5, 0.68, 0.88]) }),
@@ -154,7 +262,7 @@ export const BUNDLED_EXERCISES = Object.freeze([
   strength({ id: "db-shoulder-press", name: "Dumbbell Shoulder Press", equipment: "Dumbbells", pattern: "Vertical push", primary: ["frontDelts", "sideDelts"], secondary: ["triceps"], loadMode: "perHand", activeMet: 5.0, standard: ratioStandard([0.16, 0.28, 0.42, 0.58, 0.75]) }),
   strength({ id: "barbell-overhead-press", name: "Barbell Overhead Press", equipment: "Barbell", pattern: "Vertical push", primary: ["frontDelts", "sideDelts"], secondary: ["triceps", "abs"], activeMet: 5.0, standard: ratioStandard([0.25, 0.4, 0.58, 0.75, 0.95]) }),
   strength({ id: "lateral-raise", name: "Dumbbell Lateral Raise", equipment: "Dumbbells", pattern: "Shoulder isolation", primary: ["sideDelts"], secondary: ["traps"], loadMode: "perHand", activeMet: 3.5, standard: ratioStandard([0.035, 0.06, 0.095, 0.14, 0.2], 0.78) }),
-  strength({ id: "cable-lateral-raise", name: "Cable Lateral Raise", equipment: "Cable", pattern: "Shoulder isolation", primary: ["sideDelts"], loadMode: "perSide", activeMet: 3.5, standard: ratioStandard([0.025, 0.05, 0.08, 0.12, 0.17], 0.78) }),
+  strength({ id: "cable-lateral-raise", unilateral: true, name: "Cable Lateral Raise", equipment: "Cable", pattern: "Shoulder isolation", primary: ["sideDelts"], loadMode: "perSide", activeMet: 3.5, standard: ratioStandard([0.025, 0.05, 0.08, 0.12, 0.17], 0.78) }),
   strength({ id: "upright-row", name: "Upright Row", equipment: "Barbell or cable", pattern: "Vertical pull", primary: ["sideDelts", "traps"], secondary: ["biceps"], activeMet: 3.5, standard: ratioStandard([0.16, 0.28, 0.42, 0.6, 0.78]) }),
   strength({ id: "reverse-fly", name: "Reverse Fly", equipment: "Dumbbells or machine", pattern: "Rear-delt isolation", primary: ["rearDelts", "upperBack"], secondary: ["traps"], loadMode: "perHand", activeMet: 3.5, standard: ratioStandard([0.035, 0.065, 0.1, 0.15, 0.22], 0.78) }),
   strength({ id: "face-pull", name: "Face Pull", equipment: "Cable", pattern: "Rear-delt pull", primary: ["rearDelts", "upperBack"], secondary: ["traps", "biceps"], activeMet: 3.5, standard: ratioStandard([0.12, 0.22, 0.35, 0.5, 0.68], 0.75) }),
@@ -168,7 +276,7 @@ export const BUNDLED_EXERCISES = Object.freeze([
   strength({ id: "lat-pulldown", name: "Lat Pulldown", equipment: "Cable", pattern: "Vertical pull", primary: ["lats"], secondary: ["biceps", "upperBack"], activeMet: 3.5, standard: ratioStandard([0.28, 0.48, 0.7, 0.95, 1.2], 0.75) }),
   strength({ id: "one-arm-db-row", name: "One-Arm Dumbbell Row", equipment: "Dumbbell", pattern: "Horizontal pull", primary: ["lats", "upperBack"], secondary: ["biceps", "rearDelts"], loadMode: "single", unilateral: true, activeMet: 5.0, standard: ratioStandard([0.18, 0.3, 0.46, 0.64, 0.84], 0.75) }),
   strength({ id: "barbell-row", name: "Barbell Row", equipment: "Barbell", pattern: "Horizontal pull", primary: ["lats", "upperBack"], secondary: ["biceps", "rearDelts", "lowerBack"], activeMet: 5.0, standard: ratioStandard([0.3, 0.5, 0.72, 0.95, 1.2]) }),
-  strength({ id: "seated-cable-row", name: "Seated Cable Row", equipment: "Cable", pattern: "Horizontal pull", primary: ["upperBack", "lats"], secondary: ["biceps", "rearDelts"], activeMet: 3.5, standard: ratioStandard([0.28, 0.48, 0.72, 0.98, 1.25], 0.75) }),
+  strength({ id: "seated-cable-row", name: "Seated Cable Row", aliases: ["cable row", "seated row", "low pulley row"], equipment: "Cable", pattern: "Horizontal pull", primary: ["upperBack", "lats"], secondary: ["biceps", "rearDelts"], activeMet: 3.5, standard: ratioStandard([0.28, 0.48, 0.72, 0.98, 1.25], 0.75) }),
   strength({ id: "chest-supported-row", name: "Chest-Supported Row", equipment: "Dumbbells or machine", pattern: "Horizontal pull", primary: ["upperBack", "lats"], secondary: ["biceps", "rearDelts"], loadMode: "perHand", activeMet: 3.5, standard: ratioStandard([0.18, 0.32, 0.5, 0.7, 0.92], 0.75) }),
   strength({ id: "db-shrug", name: "Dumbbell Shrug", equipment: "Dumbbells", pattern: "Scapular elevation", primary: ["traps"], secondary: ["forearms"], loadMode: "perHand", activeMet: 3.5, standard: ratioStandard([0.3, 0.55, 0.85, 1.15, 1.5], 0.78) }),
   strength({ id: "barbell-shrug", name: "Barbell Shrug", equipment: "Barbell", pattern: "Scapular elevation", primary: ["traps"], secondary: ["forearms"], activeMet: 3.5, standard: ratioStandard([0.45, 0.8, 1.15, 1.55, 2.0], 0.78) }),
@@ -195,7 +303,7 @@ export const BUNDLED_EXERCISES = Object.freeze([
 
   // Core
   bodyweight({ id: "plank", name: "Plank", pattern: "Anti-extension", primary: ["abs"], secondary: ["obliques", "glutes", "frontDelts"], thresholds: [30, 60, 90, 150, 240], defaultSets: 3, restSeconds: 60, activeMet: 2.8, timed: true }),
-  bodyweight({ id: "side-plank", name: "Side Plank", pattern: "Anti-lateral flexion", primary: ["obliques"], secondary: ["abs", "glutes"], thresholds: [20, 45, 75, 120, 180], defaultSets: 3, restSeconds: 45, activeMet: 2.8, timed: true }),
+  bodyweight({ id: "side-plank", unilateral: true, name: "Side Plank", pattern: "Anti-lateral flexion", primary: ["obliques"], secondary: ["abs", "glutes"], thresholds: [20, 45, 75, 120, 180], defaultSets: 3, restSeconds: 45, activeMet: 2.8, timed: true }),
   bodyweight({ id: "hanging-leg-raise", name: "Hanging Leg Raise", pattern: "Hip flexion", primary: ["abs", "hipFlexors"], secondary: ["forearms"], thresholds: [3, 8, 15, 25, 40], defaultReps: 8, activeMet: 3.8, aliases: ["hanging leg raises"] }),
   bodyweight({ id: "ab-wheel", name: "Ab Wheel Rollout", pattern: "Anti-extension", primary: ["abs"], secondary: ["lats", "frontDelts", "triceps"], thresholds: [3, 8, 15, 25, 40], defaultReps: 8, activeMet: 3.8, aliases: ["ab roller"] }),
   strength({ id: "cable-crunch", name: "Cable Crunch", equipment: "Cable", pattern: "Spinal flexion", primary: ["abs"], secondary: ["obliques"], defaultReps: 12, activeMet: 3.5, standard: ratioStandard([0.18, 0.32, 0.5, 0.72, 0.98], 0.75) }),
@@ -206,8 +314,8 @@ export const BUNDLED_EXERCISES = Object.freeze([
   activity({ id: "walking", name: "Walking", activityType: "walking", primary: ["cardio", "calves", "quads"], secondary: ["glutes"], baseMet: 3.8, speedBands: [3, 4, 5, 6, 7], fields: ["durationMin", "distanceKm", "steps", "elevationM"], aliases: ["step count"] }),
   activity({ id: "hiking", name: "Hiking", activityType: "hiking", primary: ["cardio", "quads", "glutes", "calves"], secondary: ["hamstrings", "lowerBack"], baseMet: 5.3, speedBands: [2, 3, 4, 5, 6], fields: ["durationMin", "distanceKm", "elevationM", "packKg"] }),
   activity({ id: "cycling", name: "Cycling", activityType: "cycling", primary: ["cardio", "quads", "glutes"], secondary: ["hamstrings", "calves"], baseMet: 7.0, speedBands: [10, 15, 20, 25, 32], fields: ["durationMin", "distanceKm", "elevationM"], aliases: ["biking"] }),
-  activity({ id: "swimming", name: "Swimming", activityType: "swimming", primary: ["cardio", "lats", "shoulders"].filter(Boolean), secondary: ["chest", "triceps", "abs", "glutes"], baseMet: 6.0, speedBands: [1, 1.5, 2, 2.5, 3], fields: ["durationMin", "distanceKm", "stroke"] }),
-  activity({ id: "rowing-machine", name: "Rowing Machine", activityType: "rowing", primary: ["cardio", "upperBack", "lats", "quads"], secondary: ["biceps", "glutes", "hamstrings"], baseMet: 7.3, speedBands: [8, 10, 12, 14, 16], fields: ["durationMin", "distanceKm", "watts"] }),
+  activity({ id: "swimming", name: "Swimming", activityType: "swimming", primary: ["cardio", "lats", "shoulders"].filter(Boolean), secondary: ["chest", "triceps", "abs", "glutes"], baseMet: 6.0, speedBands: [1, 1.5, 2, 2.5, 3], fields: ["durationMin", "distanceKm", "stroke", "intensity"], aliases: ["swim", "freestyle", "breaststroke", "free style", "breast stroke"] }),
+  activity({ id: "rowing-machine", name: "Rowing Machine (Cardio)", aliases: ["erg", "rower", "rowing ergometer", "cardio rowing"], activityType: "rowing", primary: ["cardio", "upperBack", "lats", "quads"], secondary: ["biceps", "glutes", "hamstrings"], baseMet: 7.3, speedBands: [8, 10, 12, 14, 16], fields: ["durationMin", "distanceKm", "watts", "intensity"] }),
   activity({ id: "elliptical", name: "Elliptical Trainer", activityType: "elliptical", primary: ["cardio", "quads", "glutes"], secondary: ["hamstrings", "calves"], baseMet: 5.0, fields: ["durationMin", "intensity"] }),
   activity({ id: "stair-climber", name: "Stair Climber", activityType: "stairs", primary: ["cardio", "quads", "glutes", "calves"], secondary: ["hamstrings"], baseMet: 9.3, fields: ["durationMin", "floors", "intensity"] }),
   activity({ id: "jump-rope", name: "Jump Rope", activityType: "jumpRope", primary: ["cardio", "calves"], secondary: ["shoulders", "forearms", "abs"].filter(Boolean), baseMet: 11.0, fields: ["durationMin", "intensity"] }),
@@ -215,7 +323,7 @@ export const BUNDLED_EXERCISES = Object.freeze([
   // Expanded calisthenics
   bodyweight({ id: "wide-grip-pull-up", name: "Wide-Grip Pull-up", pattern: "Vertical pull", primary: ["lats", "upperBack"], secondary: ["biceps", "forearms", "abs"], thresholds: [1, 4, 8, 13, 20], defaultReps: 5, activeMet: 5.0, aliases: ["wide pull up"] }),
   bodyweight({ id: "neutral-grip-pull-up", name: "Neutral-Grip Pull-up", pattern: "Vertical pull", primary: ["lats", "biceps"], secondary: ["upperBack", "forearms"], thresholds: [1, 5, 10, 16, 24], defaultReps: 6, activeMet: 5.0 }),
-  bodyweight({ id: "assisted-pull-up", name: "Assisted Pull-up", pattern: "Vertical pull", primary: ["lats", "biceps"], secondary: ["upperBack", "forearms"], thresholds: [4, 8, 14, 22, 32], defaultReps: 8, activeMet: 4.0 }),
+  bodyweight({ id: "assisted-pull-up", loadMode: "assistance", name: "Assisted Pull-up", pattern: "Vertical pull", primary: ["lats", "biceps"], secondary: ["upperBack", "forearms"], thresholds: [4, 8, 14, 22, 32], defaultReps: 8, activeMet: 4.0 }),
   bodyweight({ id: "muscle-up", name: "Muscle-up", pattern: "Explosive pull/push", primary: ["lats", "chest", "triceps"], secondary: ["biceps", "upperBack", "abs"], thresholds: [1, 2, 5, 9, 15], defaultReps: 3, restSeconds: 120, activeMet: 6.0 }),
   bodyweight({ id: "inverted-row", name: "Inverted Row", pattern: "Horizontal pull", primary: ["upperBack", "lats"], secondary: ["biceps", "rearDelts", "abs"], thresholds: [5, 12, 22, 35, 50], defaultReps: 10, activeMet: 4.0, aliases: ["australian pull up"] }),
   bodyweight({ id: "pike-push-up", name: "Pike Push-up", pattern: "Vertical push", primary: ["frontDelts", "sideDelts"], secondary: ["triceps", "chest", "abs"], thresholds: [3, 8, 16, 28, 42], defaultReps: 8, activeMet: 4.6 }),
@@ -237,18 +345,18 @@ export const BUNDLED_EXERCISES = Object.freeze([
   strength({ id: "cable-curl", name: "Cable Curl", equipment: "Cable", pattern: "Elbow flexion", primary: ["biceps"], secondary: ["forearms"], activeMet: 3.5, standard: ratioStandard([0.1, 0.19, 0.3, 0.44, 0.6], 0.75) }),
   strength({ id: "rope-hammer-curl", name: "Rope Hammer Curl", equipment: "Cable", pattern: "Elbow flexion", primary: ["biceps", "forearms"], activeMet: 3.5, standard: ratioStandard([0.1, 0.2, 0.32, 0.46, 0.62], 0.75) }),
   strength({ id: "rear-delt-machine", name: "Rear Delt Machine", equipment: "Machine", pattern: "Rear-delt isolation", primary: ["rearDelts", "upperBack"], secondary: ["traps"], activeMet: 3.5, standard: ratioStandard([0.12, 0.22, 0.34, 0.5, 0.68], 0.75) }),
-  strength({ id: "assisted-dip-machine", name: "Assisted Dip Machine", equipment: "Machine", pattern: "Vertical push", primary: ["triceps", "chest"], secondary: ["frontDelts"], activeMet: 4.0, standard: ratioStandard([0.2, 0.38, 0.58, 0.8, 1.05], 0.75) }),
-  strength({ id: "cable-woodchop", name: "Cable Woodchop", equipment: "Cable", pattern: "Rotational core", primary: ["obliques", "abs"], secondary: ["lats", "frontDelts"], activeMet: 3.8, standard: ratioStandard([0.08, 0.16, 0.26, 0.4, 0.58], 0.75) }),
+  bodyweight({ id: "assisted-dip-machine", name: "Assisted Dip Machine", loadMode: "assistance", pattern: "Vertical push", primary: ["triceps", "chest"], secondary: ["frontDelts"], thresholds: [1, 5, 10, 15, 20], activeMet: 3.8 }),
+  strength({ id: "cable-woodchop", unilateral: true, name: "Cable Woodchop", equipment: "Cable", pattern: "Rotational core", primary: ["obliques", "abs"], secondary: ["lats", "frontDelts"], activeMet: 3.8, standard: ratioStandard([0.08, 0.16, 0.26, 0.4, 0.58], 0.75) }),
 
   // Expanded outdoor and sport activities
   activity({ id: "trail-running", name: "Trail Running", activityType: "running", primary: ["cardio", "quads", "glutes", "calves"], secondary: ["hamstrings", "abs"], baseMet: 10.5, speedBands: [5, 7, 9, 11, 13], fields: ["durationMin", "distanceKm", "elevationM"] }),
-  activity({ id: "bouldering", name: "Bouldering", activityType: "climbing", primary: ["lats", "forearms", "upperBack"], secondary: ["biceps", "abs", "glutes"], baseMet: 8.0, fields: ["durationMin", "intensity"], aliases: ["climbing"] }),
-  activity({ id: "soccer", name: "Soccer", activityType: "fieldSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
-  activity({ id: "basketball", name: "Basketball", activityType: "courtSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "sideDelts"], baseMet: 6.5, fields: ["durationMin", "intensity"] }),
-  activity({ id: "tennis", name: "Tennis", activityType: "courtSport", primary: ["cardio", "quads", "sideDelts"], secondary: ["calves", "glutes", "forearms", "obliques"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
-  activity({ id: "kayaking", name: "Kayaking", activityType: "paddling", primary: ["lats", "upperBack", "cardio"], secondary: ["biceps", "forearms", "abs", "obliques"], baseMet: 5.0, fields: ["durationMin", "distanceKm", "intensity"] }),
-  activity({ id: "skiing", name: "Skiing", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
-  activity({ id: "snowboarding", name: "Snowboarding", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs", "obliques"], baseMet: 5.3, fields: ["durationMin", "intensity"] })
+  activity({ id: "bouldering", intensityMets: { light: 5.8, moderate: 8.8, vigorous: 10.5 }, name: "Bouldering", activityType: "climbing", primary: ["lats", "forearms", "upperBack"], secondary: ["biceps", "abs", "glutes"], baseMet: 8.0, fields: ["durationMin", "intensity"], aliases: ["climbing"] }),
+  activity({ id: "soccer", intensityMets: { light: 3.5, moderate: 7, vigorous: 9.5 }, name: "Soccer", activityType: "fieldSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "basketball", intensityMets: { light: 5, moderate: 6, vigorous: 8 }, name: "Basketball", activityType: "courtSport", primary: ["cardio", "quads", "calves"], secondary: ["glutes", "hamstrings", "sideDelts"], baseMet: 6.5, fields: ["durationMin", "intensity"] }),
+  activity({ id: "tennis", intensityMets: { light: 5, moderate: 6.8, vigorous: 8 }, name: "Tennis", activityType: "courtSport", primary: ["cardio", "quads", "sideDelts"], secondary: ["calves", "glutes", "forearms", "obliques"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "kayaking", intensityMets: { light: 3.5, moderate: 5, vigorous: 9 }, name: "Kayaking", activityType: "paddling", primary: ["lats", "upperBack", "cardio"], secondary: ["biceps", "forearms", "abs", "obliques"], baseMet: 5.0, fields: ["durationMin", "distanceKm", "intensity"] }),
+  activity({ id: "skiing", intensityMets: { light: 4.3, moderate: 6.3, vigorous: 8 }, name: "Skiing", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs"], baseMet: 7.0, fields: ["durationMin", "intensity"] }),
+  activity({ id: "snowboarding", intensityMets: { light: 4.3, moderate: 6.3, vigorous: 8 }, name: "Snowboarding", activityType: "winterSport", primary: ["quads", "glutes", "cardio"], secondary: ["hamstrings", "calves", "abs", "obliques"], baseMet: 5.3, fields: ["durationMin", "intensity"] })
 ]);
 
 // Normalize unsupported umbrella names used by a few endurance activities.
@@ -261,12 +369,23 @@ for (const exercise of BUNDLED_EXERCISES) {
 export function mergeExerciseCatalog(remote = [], custom = []) {
   const merged = new Map(BUNDLED_EXERCISES.map(exercise => [exercise.id, exercise]));
   for (const exercise of remote) {
-    if (exercise?.id && exercise?.name) merged.set(exercise.id, { ...merged.get(exercise.id), ...exercise, source: "remote" });
+    if (!exercise?.id || !exercise?.name) continue;
+    const bundled = merged.get(exercise.id);
+    // Older shared documents must not undo reviewed input/calorie definitions.
+    // A deliberate override must declare this catalog's revision or a newer one.
+    if (bundled && !(Number(exercise.catalogRevision) >= 2)) continue;
+    merged.set(exercise.id, normalizeExercise({ ...bundled, ...exercise, source: "remote" }));
   }
   for (const exercise of custom) {
-    if (exercise?.id && exercise?.name) merged.set(exercise.id, { ...exercise, source: "custom" });
+    if (exercise?.id && exercise?.name && !BUNDLED_EXERCISES.some(item => item.id === exercise.id)) merged.set(exercise.id, normalizeExercise({ ...exercise, source: "custom" }));
   }
   return [...merged.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function normalizeExercise(exercise) {
+  const inputType = ["sets", "bodyweightSets", "timedSets", "activity"].includes(exercise.inputType) ? exercise.inputType : "sets";
+  const muscles = keys => (Array.isArray(keys) ? keys : []).map(key => MUSCLE_ALIASES[key] ?? key).filter(key => MUSCLE_GROUPS[key]);
+  return { ...exercise, inputType, category: inputType === "activity" ? "activity" : "strength", aliases: Array.isArray(exercise.aliases) ? exercise.aliases : [], muscles: { primary: muscles(exercise.muscles?.primary), secondary: muscles(exercise.muscles?.secondary) } };
 }
 
 export function getExerciseById(id, catalog = BUNDLED_EXERCISES) {

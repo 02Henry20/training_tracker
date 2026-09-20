@@ -100,7 +100,7 @@ export function totalExternalLoad(exercise, set) {
 function bodyweightVolumeFactor(exercise) {
   const fullBodyLoadIds = new Set(["pull-up", "chin-up", "wide-grip-pull-up", "neutral-grip-pull-up", "assisted-pull-up", "muscle-up"]);
   if (fullBodyLoadIds.has(exercise?.id)) return 1;
-  if (exercise?.id === "dips") return 0.95;
+  if (["dips", "assisted-dip-machine"].includes(exercise?.id)) return 0.95;
   if (exercise?.id === "handstand-push-up") return 0.9;
   if (["decline-push-up", "pike-push-up"].includes(exercise?.id)) return 0.75;
   if (["push-up", "diamond-push-up", "archer-push-up", "forward-lean-push-up"].includes(exercise?.id)) return 0.65;
@@ -114,16 +114,17 @@ function bodyweightVolumeFactor(exercise) {
 function volumeLoadForSet(exercise, set, bodyWeightKg) {
   const externalLoad = totalExternalLoad(exercise, set);
   if (exercise?.inputType === "bodyweightSets") {
-    return bodyWeightKg * bodyweightVolumeFactor(exercise) + Math.max(0, externalLoad);
+    const bodyLoad = bodyWeightKg * bodyweightVolumeFactor(exercise);
+    return exercise.loadMode === "assistance" ? Math.max(0, bodyLoad - externalLoad) : bodyLoad + externalLoad;
   }
   if (exercise?.inputType === "timedSets") return 0;
   return externalLoad;
 }
 
 export function caloriesFromMet(met, bodyWeightKg, minutes) {
-  const safeMet = Math.max(1, Number(met) || 1);
-  const safeWeight = Math.max(20, Number(bodyWeightKg) || 70);
-  const safeMinutes = Math.max(0, Number(minutes) || 0);
+  const safeMet = Number.isFinite(Number(met)) ? Math.max(1, Number(met)) : 1;
+  const safeWeight = Number.isFinite(Number(bodyWeightKg)) && Number(bodyWeightKg) >= 20 ? Number(bodyWeightKg) : 70;
+  const safeMinutes = Number.isFinite(Number(minutes)) ? Math.max(0, Number(minutes)) : 0;
   return safeMet * 3.5 * safeWeight / 200 * safeMinutes;
 }
 
@@ -143,24 +144,31 @@ function metForRunning(speed) {
   if (speed < 6.9) return 6.5;
   if (speed < 8.0) return 7.8;
   if (speed < 8.9) return 8.5;
+  if (speed < 9.65) return 9.0;
   if (speed < 10.4) return 9.3;
   if (speed < 11.1) return 10.5;
   if (speed < 12.0) return 11.0;
   if (speed < 12.9) return 11.8;
-  if (speed < 13.9) return 12.5;
-  if (speed < 15.5) return 14.8;
-  return 16.8;
+  if (speed < 13.8) return 12.0;
+  if (speed < 14.5) return 12.5;
+  if (speed < 15.0) return 13.0;
+  if (speed < 17.7) return 14.8;
+  if (speed < 19.3) return 16.8;
+  if (speed < 20.9) return 18.5;
+  if (speed < 22.5) return 19.8;
+  return 23;
 }
 
 function metForWalking(speed) {
   if (!Number.isFinite(speed)) return 3.8;
   if (speed < 3.2) return 2.3;
   if (speed < 4.0) return 2.8;
-  if (speed < 4.8) return 3.0;
+  if (speed < 4.5) return 3.0;
   if (speed < 5.6) return 3.8;
   if (speed < 6.4) return 4.8;
   if (speed < 7.2) return 5.5;
-  return 7.0;
+  if (speed < 8.0) return 7.0;
+  return 8.5;
 }
 
 function metForCycling(speed) {
@@ -174,30 +182,40 @@ function metForCycling(speed) {
   return 16.8;
 }
 
-function metForSwimming(speed, stroke) {
+function metForSwimming(speed, stroke, intensity = "moderate") {
   const normalizedStroke = String(stroke ?? "").toLowerCase();
   if (normalizedStroke === "butterfly") return 13.8;
-  if (normalizedStroke === "breaststroke") return speed && speed > 2.2 ? 10.3 : 5.3;
-  if (normalizedStroke === "backstroke") return speed && speed > 2.0 ? 9.5 : 4.8;
-  if (!Number.isFinite(speed)) return 6.0;
-  if (speed < 1.6) return 5.8;
-  if (speed < 2.3) return 8.0;
-  return 9.8;
+  if (normalizedStroke === "breaststroke") return intensity === "vigorous" ? 10.3 : 5.3;
+  if (normalizedStroke === "backstroke") return intensity === "vigorous" ? 9.5 : 4.8;
+  if (normalizedStroke === "sidestroke") return 7.0;
+  if (intensity === "vigorous") return 9.8;
+  if (intensity === "light" || !Number.isFinite(speed)) return 5.8;
+  // Crawl reference speeds: 50 yd/min = 2.74 km/h; 75 yd/min = 4.11 km/h.
+  if (speed < 2.74) return 5.8;
+  if (speed < 4.11) return 8.0;
+  if (speed < 4.94) return 10.5;
+  return 14.5;
 }
 
 export function activityMet(exercise, activity = {}, settings = {}) {
   const speed = speedKmh(activity, settings);
   const elevation = Math.max(0, Number(activity.elevationM) || 0);
-  const distance = Math.max(0.1, Number(activity.distanceKm) || 0.1);
-  const gradeProxy = elevation / (distance * 1000);
+  const distance = Number(activity.distanceKm) || (speed ? speed * Number(activity.durationMin) / 60 : 0);
+  const gradeProxy = distance > 0 ? elevation / (distance * 1000) : 0;
   const intensity = activity.intensity ?? "moderate";
+  const intensityMet = exercise?.calorie?.intensityMets?.[intensity];
+  if (Number.isFinite(intensityMet)) return intensityMet;
 
   switch (exercise?.activityType) {
     case "running":
-      return clamp(metForRunning(speed) + Math.min(5, gradeProxy * 22), 5.5, 18.5);
+      return clamp((exercise.id === "trail-running" && speed == null ? 9.3 : metForRunning(speed)) + Math.min(5, gradeProxy * 22), 3.3, 28);
     case "treadmillRunning": {
       const incline = clamp(Number(activity.inclinePercent) || 0, 0, 30) / 100;
-      return clamp(metForRunning(speed) + Math.min(5, incline * 18), 5.5, 18.5);
+      return clamp(metForRunning(speed) + (speed ? 0.9 * speed * 1000 / 60 * incline / 3.5 : 0), 3.3, 28);
+    }
+    case "treadmillWalking": {
+      const incline = clamp(Number(activity.inclinePercent) || 0, 0, 30) / 100;
+      return clamp(metForWalking(speed) + (speed ? 1.8 * speed * 1000 / 60 * incline / 3.5 : 0), 2, 20);
     }
     case "walking":
       return clamp(metForWalking(speed) + Math.min(5, gradeProxy * 18), 2.0, 12.0);
@@ -208,7 +226,12 @@ export function activityMet(exercise, activity = {}, settings = {}) {
     case "cycling":
       return clamp(metForCycling(speed) + Math.min(2.5, gradeProxy * 10), 3.5, 16.8);
     case "swimming":
-      return metForSwimming(speed, activity.stroke);
+      return metForSwimming(speed, exercise.stroke ?? activity.stroke, intensity);
+    case "stationaryCycling": {
+      const watts = Number(activity.watts);
+      if (!(watts > 0)) return intensity === "light" ? 3.5 : intensity === "vigorous" ? 10.3 : 6.8;
+      return [[37.5,3.5],[55,4],[65,5],[85,5.8],[100,6],[125,6.8],[150,8],[199,10.3],[229,10.8],[260,12.5],[315,13.8],[Infinity,16.3]].find(([max]) => watts <= max)[1];
+    }
     case "rowing": {
       const watts = Number(activity.watts);
       if (Number.isFinite(watts) && watts > 0) {
@@ -217,14 +240,14 @@ export function activityMet(exercise, activity = {}, settings = {}) {
         if (watts < 200) return 11.0;
         return 14.0;
       }
-      return 7.3;
+      return intensity === "light" ? 5 : intensity === "vigorous" ? 11 : 7.3;
     }
     case "stairs":
       return intensity === "light" ? 6.8 : intensity === "vigorous" ? 11.0 : 9.3;
     case "elliptical":
       return intensity === "light" ? 3.5 : intensity === "vigorous" ? 9.0 : 5.0;
     case "jumpRope":
-      return intensity === "light" ? 8.3 : intensity === "vigorous" ? 12.3 : 11.0;
+      return intensity === "light" ? 8.3 : intensity === "vigorous" ? 12.3 : 11.8;
     default:
       return Number(exercise?.calorie?.baseMet) || 4.0;
   }
@@ -246,7 +269,7 @@ function levelFromThresholds(value, thresholds, higherIsBetter = true) {
 }
 
 function bestStrengthSet(exercise, entry) {
-  const sets = (entry.sets ?? []).filter(set => Number(set.reps) > 0 || Number(set.seconds) > 0);
+  const sets = performedSets(exercise, entry);
   if (!sets.length) return null;
   if (exercise.inputType === "timedSets") {
     return sets.reduce((best, set) => Number(set.seconds) > Number(best.seconds) ? set : best, sets[0]);
@@ -263,6 +286,13 @@ function bestStrengthSet(exercise, entry) {
     const bestEstimate = epley1RM(totalExternalLoad(exercise, best), best.reps) ?? 0;
     return estimate > bestEstimate ? set : best;
   }, sets[0]);
+}
+
+function performedSets(exercise, entry) {
+  // Old versions wrote completed:false for added sets without exposing a checkbox.
+  // Only entries with explicit completion tracking can safely interpret that flag.
+  return (entry.sets ?? []).filter(set => (!entry.trackCompletion || set.completed !== false)
+    && (exercise.inputType === "timedSets" ? Number(set.seconds) > 0 : Number(set.reps) > 0));
 }
 
 export function evaluateExerciseLevel(exercise, entry, settings) {
@@ -316,18 +346,21 @@ export function analyseExerciseEntry(entry, exercise, settings) {
     activeMinutes = durationMinutes;
     calories = caloriesFromMet(activityMet(exercise, activity, settings), bodyWeight, durationMinutes);
   } else {
-    const sets = entry.sets ?? [];
+    const sets = performedSets(exercise, entry);
+    const sides = exercise.unilateral ? 2 : 1;
     for (const set of sets) {
-      const reps = Math.max(0, Number(set.reps) || 0);
+      const reps = exercise.inputType === "timedSets" ? 0 : Math.max(0, Number(set.reps) || 0);
       const seconds = Math.max(0, Number(set.seconds) || 0);
       const load = totalExternalLoad(exercise, set);
       const effectiveLoad = exercise.inputType === "bodyweightSets" ? bodyWeight + Math.max(0, load) : load;
       const volumeLoad = volumeLoadForSet(exercise, set, bodyWeight);
-      totalReps += reps;
-      volumeKg += volumeLoad * reps;
+      totalReps += reps * sides;
+      // perSide already represents two separately loaded sides; perHand means
+      // two dumbbells held together, including during a single-leg movement.
+      volumeKg += volumeLoad * reps * (exercise.unilateral && exercise.loadMode !== "perSide" ? 2 : 1);
       activeMinutes += exercise.inputType === "timedSets"
-        ? seconds / 60
-        : reps * (Number(exercise.calorie?.repSeconds) || 3) / 60;
+        ? seconds * sides / 60
+        : reps * sides * (Number(entry.repSeconds) || Number(exercise.calorie?.repSeconds) || 3) / 60;
       if (exercise.inputType === "sets") {
         const estimate = epley1RM(effectiveLoad, reps);
         if (estimate != null && (bestE1RM == null || estimate > bestE1RM)) {
@@ -338,9 +371,19 @@ export function analyseExerciseEntry(entry, exercise, settings) {
     }
     const restSeconds = Math.max(0, Number(entry.restSeconds ?? exercise.defaults?.restSeconds) || 0);
     const restMinutes = Math.max(0, sets.length - 1) * restSeconds / 60;
-    durationMinutes = activeMinutes + restMinutes;
-    calories = caloriesFromMet(exercise.calorie?.activeMet ?? 3.5, bodyWeight, activeMinutes)
-      + caloriesFromMet(exercise.calorie?.restMet ?? 2.0, bodyWeight, restMinutes);
+    durationMinutes = sets.length ? (Number(entry.durationMin) > 0 ? Number(entry.durationMin) : activeMinutes + restMinutes) : 0;
+    const sessionMet = Number(exercise.calorie?.sessionMet);
+    if (sessionMet > 0) {
+      // Compendium lifting METs describe bouts including normal between-set rest.
+      // Discount only unusually long rests when time is inferred from sets.
+      const longRest = Number(entry.durationMin) > 0 ? 0 : Math.max(0, sets.length - 1) * Math.max(0, restSeconds - 180) / 60;
+      calories = caloriesFromMet(sessionMet, bodyWeight, durationMinutes - longRest)
+        + caloriesFromMet(1.5, bodyWeight, longRest);
+    } else {
+      calories = caloriesFromMet(exercise.calorie?.activeMet ?? 3.5, bodyWeight, activeMinutes)
+        + caloriesFromMet(exercise.calorie?.restMet ?? 1.5, bodyWeight, restMinutes);
+      if (Number(entry.durationMin) > 0 && activeMinutes + restMinutes > 0) calories *= durationMinutes / (activeMinutes + restMinutes);
+    }
     bestSet ??= bestStrengthSet(exercise, entry);
   }
 
@@ -349,6 +392,7 @@ export function analyseExerciseEntry(entry, exercise, settings) {
     calories,
     volumeKg,
     totalReps,
+    completedSets: exercise.inputType === "activity" ? 0 : performedSets(exercise, entry).length,
     activeMinutes,
     durationMinutes,
     bestE1RM,
@@ -359,6 +403,7 @@ export function analyseExerciseEntry(entry, exercise, settings) {
 }
 
 export function analyseWorkout(workout, catalog, settings) {
+  settings = { ...settings, ...(Number(workout.bodyWeightKg) >= 20 ? { bodyWeightKg: Number(workout.bodyWeightKg) } : {}) };
   const exerciseResults = [];
   const muscleScore = Object.fromEntries(Object.keys(MUSCLE_GROUPS).map(key => [key, 0]));
   let calories = 0;
@@ -379,8 +424,8 @@ export function analyseWorkout(workout, catalog, settings) {
     estimatedMinutes += result.durationMinutes;
 
     const strengthSetCount = exercise.inputType === "activity"
-      ? Math.max(1, result.activeMinutes / 15)
-      : (entry.sets ?? []).filter(set => Number(set.reps) > 0 || Number(set.seconds) > 0).length;
+      ? result.activeMinutes / 15
+      : performedSets(exercise, entry).length;
     sets += exercise.inputType === "activity" ? 0 : strengthSetCount;
     for (const muscle of exercise.muscles.primary ?? []) muscleScore[muscle] = (muscleScore[muscle] ?? 0) + strengthSetCount;
     for (const muscle of exercise.muscles.secondary ?? []) muscleScore[muscle] = (muscleScore[muscle] ?? 0) + strengthSetCount * 0.45;
@@ -466,7 +511,8 @@ export function calculateProgression(workouts, catalog, settings, exerciseId, me
     for (const result of workout.exerciseResults) {
       if (result.exerciseId !== exerciseId) continue;
       let value = null;
-      if (metric === "e1rm") value = result.bestE1RM;
+      if (metric === "level") value = result.level.value == null ? null : result.level.index + result.level.progress;
+      else if (metric === "e1rm") value = result.bestE1RM;
       else if (metric === "volume") value = result.volumeKg;
       else if (metric === "reps") value = result.totalReps;
       else if (metric === "seconds") value = result.bestSet?.seconds;
@@ -486,6 +532,7 @@ export function muscleBalance(workouts, catalog, settings, days = 7) {
   const bestExerciseScores = new Map();
   const analyses = buildWorkoutAnalyses(workouts, catalog, settings);
   for (const workout of analyses) {
+    if (workout.date > end) continue;
     for (const result of workout.exerciseResults) {
       if (result.level.value == null) continue;
       const score = result.level.index + result.level.progress;
@@ -532,16 +579,23 @@ export function xpSummary(workouts, catalog, settings) {
   const prs = detectPersonalRecords(workouts, catalog, settings);
   let xp = 0;
   for (const workout of analyses) {
+    if (workout.date > localDateString() || (workout.activeMinutes <= 0 && workout.sets <= 0)) continue;
     const prCount = prs.recordsByWorkout.get(workout.id)?.length ?? 0;
-    xp += 80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + prCount * 35 + Math.min(120, workout.sets * 3);
+    xp += workoutXp(workout, prCount);
   }
   xp = Math.round(xp);
-  const level = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+  let level = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+  if (xp >= xpForLevel(level + 1)) level += 1;
   const currentFloor = xpForLevel(level);
   const nextFloor = xpForLevel(level + 1);
   const progress = clamp((xp - currentFloor) / Math.max(1, nextFloor - currentFloor), 0, 1);
   const rank = [...PLAYER_RANKS].reverse().find(item => level >= item.minLevel) ?? PLAYER_RANKS[0];
   return { xp, level, progress, rank, nextXp: nextFloor };
+}
+
+export function workoutXp(workout, prCount = 0) {
+  if (workout.date > localDateString() || (workout.activeMinutes <= 0 && workout.sets <= 0)) return 0;
+  return Math.round(80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + prCount * 35 + Math.min(120, workout.sets * 3));
 }
 
 export function statistics(workouts, catalog, settings, days = 28) {
@@ -555,8 +609,7 @@ export function statistics(workouts, catalog, settings, days = 28) {
   const totalSets = analyses.reduce((sum, workout) => sum + workout.sets, 0);
   const weeks = Math.max(1, days / 7);
   const weekly = [];
-  for (let offset = Math.ceil(days / 7) - 1; offset >= 0; offset -= 1) {
-    const weekStart = addDays(startOfWeek(end), -offset * 7);
+  for (let weekStart = startOfWeek(start); weekStart <= end; weekStart = addDays(weekStart, 7)) {
     const weekEnd = addDays(weekStart, 6);
     const weekWorkouts = analyses.filter(workout => workout.date >= weekStart && workout.date <= weekEnd);
     weekly.push({

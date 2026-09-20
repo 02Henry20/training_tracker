@@ -1,0 +1,5 @@
+- Run node tests/smoke.mjs, node tests/regression.mjs, node tests/store.mjs, node tests/service-worker.mjs; node --check js/app.js and service-worker.js; git diff --check.
+- For UI changes verify desktop and mobile using tests/preview.mjs, including light/dark and motion settings. This cannot verify real Firebase network behavior.
+- Regenerate docs/exercise-audit.md with node tests/catalog-audit.mjs if catalog changes.
+- Keep APP_VERSION in js/app.js and CACHE_NAME in service-worker.js aligned when changing offline assets.
+- Update Graphify incrementally when available; do not claim an empty bootstrap stub is an index. Serena memory references can be checked with serena memories check.

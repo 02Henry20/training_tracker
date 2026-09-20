@@ -1,0 +1,5 @@
+- Static PWA; js/app.js owns UI/draft state; js/store.js owns Firebase and local mirrors; calculations and exercise catalog are pure modules.
+- Bundled exercise IDs are persistent foreign keys in workout histories. Keep IDs stable. Catalog overrides of existing IDs require catalogRevision >= 2; private custom IDs cannot shadow bundled IDs.
+- New workouts snapshot bodyWeightKg. Legacy records fall back to current settings. Preserve snapshot on edit; repeats use current weight.
+- Legacy completed:false was emitted without a control. Only interpret false as skipped when entry.trackCompletion is true.
+- See `mem:tech_stack` for runtime constraints, `mem:conventions` for model/UI invariants, `mem:suggested_commands` for local commands, and `mem:task_completion` for verification.
