@@ -94,9 +94,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .exercise-preview { color: var(--muted-strong); line-height: 1.5; }
 .entry-hint, .calorie-note { color: var(--muted); font-size: .78rem; line-height: 1.65; margin: 4px 0 16px; }
 .calorie-note a { display: block; color: var(--accent); margin-top: 8px; }
-.entry-settings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
 .exercise-body > .entry-hint { margin-inline: 16px; }
-.entry-settings { padding: 0 16px 16px; }
+.estimate-hint { padding: 12px 14px; border-radius: 10px; background: rgba(var(--accent-rgb), .055); }
 .set-row { border-bottom: 1px solid var(--line); padding-block: 7px; }
 .set-completion { min-width: 32px; min-height: 36px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; }
 .set-completion.is-complete { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); background: rgba(var(--accent-rgb), .08); }
@@ -111,9 +110,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mobile-nav { background: var(--panel-solid) !important; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.2) !important; }
 .mobile-nav span { filter: none !important; }
 
+/* Let hierarchy and interaction carry the interface, rather than idle effects. */
+.panel { border-color: var(--line); }
+.metric-card { padding: 20px; border-radius: 14px; background: var(--panel-solid); }
+.metric-card strong { letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.panel-heading { margin-bottom: 20px; }
+.exercise-block { border-left-width: 2px; border-radius: 14px; margin-bottom: 18px; }
+.exercise-block-head { background: rgba(var(--accent-rgb), .035); }
+.set-row { min-height: 58px; }
+.set-row input { box-shadow: none; }
+.set-row:focus-within { background: rgba(var(--accent-rgb), .035); }
+.draft-summary { border-top-width: 1px; border-radius: 14px; background: var(--panel-solid); }
+.save-workout-bar { border-radius: 14px; border: 1px solid var(--line); }
+.rank-orbit::before, .rank-orbit::after,
+.xp-rail span::after, .sync-pill.synced i,
+.weekly-target .donut-wrap::before, .weekly-target .donut-wrap::after,
+.body-core.muscle-map .aura-ring, .figure-aura { animation: none !important; }
+.xp-rail span::after { box-shadow: none; width: 6px; height: 6px; }
+.rank-orbit::after { opacity: .45; }
+.motion-trace i { animation-duration: 4s; }
+.modal-backdrop { backdrop-filter: blur(6px); }
+.primary-button { box-shadow: 0 4px 16px rgba(var(--accent-rgb), .15); }
+@media (hover: hover) {
+  .primary-button:hover, .secondary-button:hover { transform: translateY(-1px); }
+  .session-row:hover { background: rgba(var(--accent-rgb), .035); }
+}
+.primary-button:active, .secondary-button:active { transform: translateY(0) scale(.98); }
+
 /* New effects are gated; reduced motion also applies to canvas in charts.js. */
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-motion="on"] .draft-summary { animation: session-reveal .35s ease-out both; }
+  :root[data-motion="on"] .view.active { animation: session-reveal .24s cubic-bezier(.2,.8,.2,1) both; }
   :root[data-motion="on"] .picker-item,
   :root[data-motion="subtle"] .picker-item { transition: background-color .16s, border-color .16s; }
 }
@@ -126,8 +152,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 680px) {
   .draft-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 18px; gap: 18px; }
   .draft-summary strong { font-size: 1.45rem; }
-  .entry-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .entry-settings .field:last-child { grid-column: 1 / -1; }
   .rank-grid, .dashboard-grid { gap: 12px !important; }
   .panel { border-radius: 12px; }
   .modal-card { padding: 18px; }

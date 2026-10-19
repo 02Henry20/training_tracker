@@ -360,7 +360,7 @@ export function analyseExerciseEntry(entry, exercise, settings) {
       volumeKg += volumeLoad * reps * (exercise.unilateral && exercise.loadMode !== "perSide" ? 2 : 1);
       activeMinutes += exercise.inputType === "timedSets"
         ? seconds * sides / 60
-        : reps * sides * (Number(entry.repSeconds) || Number(exercise.calorie?.repSeconds) || 3) / 60;
+        : reps * sides * (Number(exercise.calorie?.repSeconds) || 3) / 60;
       if (exercise.inputType === "sets") {
         const estimate = epley1RM(effectiveLoad, reps);
         if (estimate != null && (bestE1RM == null || estimate > bestE1RM)) {
@@ -369,20 +369,18 @@ export function analyseExerciseEntry(entry, exercise, settings) {
         }
       }
     }
-    const restSeconds = Math.max(0, Number(entry.restSeconds ?? exercise.defaults?.restSeconds) || 0);
+    // Automatic pacing is a heuristic, not a measured duration. Legacy entry
+    // timing overrides are deliberately ignored so old and new logs agree.
+    const restSeconds = clamp(Number(exercise.defaults?.restSeconds) || 90, 30, 180);
     const restMinutes = Math.max(0, sets.length - 1) * restSeconds / 60;
-    durationMinutes = sets.length ? (Number(entry.durationMin) > 0 ? Number(entry.durationMin) : activeMinutes + restMinutes) : 0;
+    durationMinutes = activeMinutes + restMinutes;
     const sessionMet = Number(exercise.calorie?.sessionMet);
     if (sessionMet > 0) {
-      // Compendium lifting METs describe bouts including normal between-set rest.
-      // Discount only unusually long rests when time is inferred from sets.
-      const longRest = Number(entry.durationMin) > 0 ? 0 : Math.max(0, sets.length - 1) * Math.max(0, restSeconds - 180) / 60;
-      calories = caloriesFromMet(sessionMet, bodyWeight, durationMinutes - longRest)
-        + caloriesFromMet(1.5, bodyWeight, longRest);
+      // Bout MET already includes normal recovery; do not count it twice.
+      calories = caloriesFromMet(sessionMet, bodyWeight, durationMinutes);
     } else {
       calories = caloriesFromMet(exercise.calorie?.activeMet ?? 3.5, bodyWeight, activeMinutes)
         + caloriesFromMet(exercise.calorie?.restMet ?? 1.5, bodyWeight, restMinutes);
-      if (Number(entry.durationMin) > 0 && activeMinutes + restMinutes > 0) calories *= durationMinutes / (activeMinutes + restMinutes);
     }
     bestSet ??= bestStrengthSet(exercise, entry);
   }
@@ -433,9 +431,8 @@ export function analyseWorkout(workout, catalog, settings) {
 
   const explicitDuration = Number(workout.durationMin);
   const durationMin = Number.isFinite(explicitDuration) && explicitDuration > 0 ? explicitDuration : estimatedMinutes;
-  if (durationMin > estimatedMinutes && estimatedMinutes > 0) {
-    calories += caloriesFromMet(1.8, settings.bodyWeightKg, durationMin - estimatedMinutes);
-  }
+  // Elapsed session time is useful history, but leaving a timer running must
+  // not create calories for exercise that was never logged.
 
   return {
     ...workout,

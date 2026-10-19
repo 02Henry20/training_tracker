@@ -1,0 +1,15 @@
+# Generated repository graph, reports, and extraction caches
+/graphify-out/
+
+# Local dependencies and debug output
+node_modules/
+*.log
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+
+# Operating system metadata
+.DS_Store
+Thumbs.db

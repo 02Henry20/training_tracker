@@ -44,17 +44,18 @@ All catalog lifts use a **category proxy**, not invented lift-specific precision
 | Vigorous calisthenics | 7.5 | 02020; assigned to vigorous movements |
 | Light core / static holds | 2.8 | 02024; other holds estimated |
 
-These describe a training bout, including normal rests. Applying them only to
-seconds moving and then applying a low MET during every rest would discount rest
-twice. The revised model applies the category MET to entered exercise time
-(including rests), or estimates that time from reps/seconds and rest between
-nonempty sets. In inferred time, rest exceeding three minutes per gap is assigned
-1.5 MET (an app estimate). Unallocated session time uses 1.8 MET (an app estimate).
-Extra session time is included only when longer than the sum of exercise times.
-If session time is shorter, recorded exercise times take priority.
+These METs describe a training bout, including normal rests. Strength duration is
+now inferred automatically from completed reps (catalog pacing of 3–3.2 seconds
+per rep) or logged hold seconds, plus catalog recovery between nonempty sets
+(bounded to 30–180 seconds, with a 90-second fallback). These pacing values are
+app heuristics, not Compendium measurements. Category MET applies to that whole
+estimated bout, so recovery is not counted twice. Empty and skipped sets add no
+energy. Legacy per-exercise rest, tempo and duration overrides are ignored.
 
-Default tempo (3–3.2 seconds/rep) is an estimate and can be changed. Measured
-exercise duration is preferable. Unilateral reps/hold seconds are entered **per
+Elapsed session time remains available in history but no longer adds calories:
+an unattended timer is not evidence of additional activity. Cardio still uses
+logged activity duration and intensity/speed. Estimates are approximate and may
+change historical calorie and XP totals. Unilateral reps/hold seconds are entered **per
 side**, and elapsed work counts both sides. Two dumbbells held at once count both
 loads; per-side cable load is not doubled twice. Volume is a separate training
 metric; estimated bodyweight fractions in volume do not alter metabolic weight.

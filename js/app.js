@@ -578,7 +578,6 @@ function createDraftEntry(exercise) {
   if (exercise.inputType === "activity") {
     return {
       exerciseId: exercise.id,
-      restSeconds: null,
       notes: "",
       trackCompletion: true,
       sets: [],
@@ -600,7 +599,6 @@ function createDraftEntry(exercise) {
   }
   return {
     exerciseId: exercise.id,
-    restSeconds: exercise.defaults?.restSeconds ?? DEFAULT_SETTINGS.defaultRestSeconds,
     trackCompletion: true,
     notes: "",
     sets,
@@ -752,7 +750,7 @@ function setRowsHtml(exercise, entry, entryIndex) {
         ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`).join("");
   return `<p class="entry-hint">${exercise.unilateral ? "Enter reps or seconds per side; both sides are counted. " : ""}${exercise.loadMode === "assistance" ? "Assistance reduces the body weight moved. " : ""}Tap a set number to include or skip it.</p><div class="set-table ${timed ? "timed-table" : ""} ${showRir ? "" : "no-rir"}">${header}${rows}</div>
-    <div class="entry-settings"><label class="field"><span>Rest between sets (sec)</span><input type="number" min="0" max="1800" step="5" data-entry="${entryIndex}" data-entry-field="restSeconds" value="${Number(entry.restSeconds ?? exercise.defaults?.restSeconds) || 0}"></label><label class="field"><span>Exercise time incl. rest (min)</span><input type="number" min="0.1" max="1440" step="0.1" data-entry="${entryIndex}" data-entry-field="durationMin" value="${escapeHtml(entry.durationMin ?? "")}" placeholder="Estimate from sets"></label><label class="field"><span>Seconds per rep</span><input type="number" min="0.5" max="30" step="0.5" data-entry="${entryIndex}" data-entry-field="repSeconds" value="${escapeHtml(entry.repSeconds ?? "")}" placeholder="${exercise.calorie?.repSeconds ?? 3}" ${timed ? "disabled" : ""}></label></div>`;
+    <p class="entry-hint estimate-hint">Energy is estimated automatically from completed sets, reps or hold time, and body weight.</p>`;
 }
 
 const ACTIVITY_FIELD_META = {
