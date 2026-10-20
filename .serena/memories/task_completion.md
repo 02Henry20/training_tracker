@@ -1,4 +1,4 @@
-- Run node tests/smoke.mjs, node tests/regression.mjs, node tests/store.mjs, node tests/service-worker.mjs; node --check js/app.js and service-worker.js; git diff --check.
+- Run node tests/smoke.mjs, node tests/regression.mjs, node tests/store.mjs, node tests/service-worker.mjs, node tests/app.mjs; node --check js/app.js and service-worker.js; git diff --check.
 - For UI changes verify desktop and mobile using tests/preview.mjs, including light/dark and motion settings. This cannot verify real Firebase network behavior.
 - Regenerate docs/exercise-audit.md with node tests/catalog-audit.mjs if catalog changes.
 - Keep APP_VERSION in js/app.js and CACHE_NAME in service-worker.js aligned when changing offline assets.

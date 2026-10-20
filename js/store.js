@@ -49,6 +49,7 @@ let unsubscribers = [];
 let errorHandler = null;
 // Retain offline edits while live snapshots arrive, until the sync choice resolves.
 let protectedDeviceBundle = null;
+let initializedSnapshots = new Set();
 
 const USER_COLLECTIONS = ["workouts", "templates", "customExercises"];
 const LOCAL_USER_KEY = "ascend:last-user";
@@ -164,7 +165,10 @@ function writeLocalBundle(userId, bundle) {
 function mirrorStateToLocal() {
   if (!state.user?.uid) return;
   if (protectedDeviceBundle) return;
-  writeLocalBundle(state.user.uid, { ...bundleFromState(), pendingLocal: isOfflineUser() && hasPendingWrites() });
+  // Do not let an early, partial cache snapshot erase the local recovery copy.
+  if (!isOfflineUser() && initializedSnapshots.size < 3 && !hasPendingWrites()) return;
+  if (!isOfflineUser() && isUsingCacheOnly() && !hasPendingWrites()) return;
+  writeLocalBundle(state.user.uid, { ...bundleFromState(), pendingLocal: hasPendingWrites() });
 }
 
 function hydrateFromBundle(bundle) {
@@ -177,6 +181,15 @@ function hydrateFromBundle(bundle) {
 function markLocalPending(key = null) {
   const targets = key ? [key] : Object.keys(state.metadata);
   for (const target of targets) state.metadata[target] = { fromCache: true, pending: true };
+}
+
+function persistLocalMutation(key, removedId = null) {
+  if (!protectedDeviceBundle) { mirrorStateToLocal(); return; }
+  if (key === "settings") protectedDeviceBundle.settings = stripDocumentMeta(state.settings);
+  else protectedDeviceBundle[key] = mergeByNewest(state[key], protectedDeviceBundle[key])
+    .filter(item => item.id !== removedId);
+  protectedDeviceBundle.pendingLocal = true;
+  writeLocalBundle(state.user.uid, protectedDeviceBundle);
 }
 
 function isOfflineUser(user = state.user) {
@@ -249,14 +262,23 @@ function normalizeBirthYear(settings = {}) {
 }
 
 function normalizeSettings(settings = {}) {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) settings = {};
   const birthYear = normalizeBirthYear(settings);
+  const bounded = (key, min, max) => {
+    const value = Number(settings[key]);
+    return Number.isFinite(value) && value >= min && value <= max ? value : DEFAULT_SETTINGS[key];
+  };
   return {
     ...DEFAULT_SETTINGS,
     ...settings,
     birthYear,
     age: Math.max(0, currentYear() - birthYear),
-    statsWindowDays: Number(settings.statsWindowDays) || DEFAULT_SETTINGS.statsWindowDays,
-    bodyWindowDays: Number(settings.bodyWindowDays) || DEFAULT_SETTINGS.bodyWindowDays,
+    bodyWeightKg: bounded("bodyWeightKg", 20, 400),
+    heightCm: bounded("heightCm", 120, 230),
+    weeklySessionTarget: bounded("weeklySessionTarget", 1, 14),
+    weeklyMuscleTargetSets: bounded("weeklyMuscleTargetSets", 1, 40),
+    statsWindowDays: Math.round(bounded("statsWindowDays", 7, 730)),
+    bodyWindowDays: Math.round(bounded("bodyWindowDays", 7, 365)),
     bodySortMode: settings.bodySortMode === "most" ? "most" : "least",
     historyViewMode: settings.historyViewMode === "year" ? "year" : "month",
     showRir: Boolean(settings.showRir),
@@ -303,7 +325,9 @@ export function connectUserData(user) {
     userCollection(user.uid, "workouts"),
     { includeMetadataChanges: true },
     snapshot => {
-      state.workouts = sortWorkouts(snapshot.docs.map(cleanDocument));
+      if (state.user !== user) return;
+      if (!snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites || snapshot.docs.length || !state.workouts.length) state.workouts = sortWorkouts(snapshot.docs.map(cleanDocument));
+      initializedSnapshots.add("workouts");
       setMetadata("workouts", snapshot);
       mirrorStateToLocal();
       notify();
@@ -315,7 +339,9 @@ export function connectUserData(user) {
     userCollection(user.uid, "customExercises"),
     { includeMetadataChanges: true },
     snapshot => {
-      state.customExercises = sortCustomExercises(snapshot.docs.map(cleanDocument));
+      if (state.user !== user) return;
+      if (!snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites || snapshot.docs.length || !state.customExercises.length) state.customExercises = sortCustomExercises(snapshot.docs.map(cleanDocument));
+      initializedSnapshots.add("customExercises");
       setMetadata("customExercises", snapshot);
       mirrorStateToLocal();
       notify();
@@ -327,7 +353,9 @@ export function connectUserData(user) {
     userDoc(user.uid, "settings", "preferences"),
     { includeMetadataChanges: true },
     snapshot => {
-      state.settings = normalizeSettings(snapshot.exists() ? snapshot.data() : {});
+      if (state.user !== user) return;
+      if (snapshot.exists() || !snapshot.metadata.fromCache) state.settings = normalizeSettings(snapshot.exists() ? snapshot.data() : {});
+      initializedSnapshots.add("settings");
       state.metadata.settings = {
         fromCache: snapshot.metadata.fromCache,
         pending: snapshot.metadata.hasPendingWrites
@@ -342,6 +370,7 @@ export function connectUserData(user) {
     catalogCollection(),
     { includeMetadataChanges: true },
     snapshot => {
+      if (state.user !== user) return;
       state.remoteExercises = snapshot.docs.map(cleanDocument).filter(item => item.active !== false);
       state.catalogAvailable = true;
       notify();
@@ -369,6 +398,7 @@ export function disconnectUserData() {
   for (const unsubscribe of unsubscribers) unsubscribe();
   unsubscribers = [];
   protectedDeviceBundle = null;
+  initializedSnapshots = new Set();
   state.user = null;
   state.workouts = [];
   state.templates = [];
@@ -382,6 +412,10 @@ export function disconnectUserData() {
 function requireUser() {
   if (!state.user) throw new Error("You must be signed in.");
   return state.user;
+}
+
+function assertCurrentUser(user) {
+  if (state.user !== user) throw new Error("The signed-in account changed. Please try again.");
 }
 
 function workoutPayload(workout) {
@@ -442,7 +476,7 @@ function saveLocalWorkout(user, workout) {
   const existing = state.workouts.filter(item => item.id !== id);
   state.workouts = sortWorkouts([...existing, document]);
   markLocalPending("workouts");
-  mirrorStateToLocal();
+  persistLocalMutation("workouts");
   notify();
 }
 
@@ -467,7 +501,7 @@ export function deleteWorkout(id) {
   if (isOfflineUser(user)) {
     state.workouts = state.workouts.filter(workout => workout.id !== id);
     markLocalPending("workouts");
-    mirrorStateToLocal();
+    persistLocalMutation("workouts", id);
     notify();
     return Promise.resolve();
   }
@@ -481,7 +515,7 @@ export function saveCustomExercise(exercise) {
     const document = { ...stripDocumentMeta(exercise), id, source: "custom", updatedAtMs: Date.now() };
     state.customExercises = sortCustomExercises([...state.customExercises.filter(item => item.id !== id), document]);
     markLocalPending("customExercises");
-    mirrorStateToLocal();
+    persistLocalMutation("customExercises");
     notify();
     return Promise.resolve();
   }
@@ -499,7 +533,7 @@ export function deleteCustomExercise(id) {
   if (isOfflineUser(user)) {
     state.customExercises = state.customExercises.filter(exercise => exercise.id !== id);
     markLocalPending("customExercises");
-    mirrorStateToLocal();
+    persistLocalMutation("customExercises", id);
     notify();
     return Promise.resolve();
   }
@@ -512,7 +546,7 @@ export function saveSettings(settings) {
     const { updatedAt, ...localSettings } = settingsPayload(settings);
     state.settings = normalizeSettings(localSettings);
     markLocalPending("settings");
-    mirrorStateToLocal();
+    persistLocalMutation("settings");
     notify();
     return Promise.resolve();
   }
@@ -539,15 +573,24 @@ function stripDocumentMeta(item = {}) {
 
 function collectionSignature(items = []) {
   return items
-    .map(item => `${item.id}:${metadataScore(item)}:${item.date ?? item.name ?? ""}`)
+    .map(item => {
+      const { createdAtMs, updatedAtMs, ...content } = stripDocumentMeta(item);
+      return JSON.stringify(canonicalValue(content));
+    })
     .sort()
     .join("|");
+}
+
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalValue(value[key])]));
+  return value;
 }
 
 function settingsSignature(settings) {
   if (!settings) return "";
   const normalized = normalizeSettings(settings);
-  return JSON.stringify([normalized.updatedAtMs || 0, ...Object.keys(DEFAULT_SETTINGS).sort().map(key => [key, normalized[key]])]);
+  return JSON.stringify(Object.keys(DEFAULT_SETTINGS).sort().map(key => [key, normalized[key]]));
 }
 
 async function readCollection(user, name, source) {
@@ -582,6 +625,8 @@ async function readUserBundle(user, source) {
 }
 
 async function readDeviceBundle(user) {
+  // A pending device bundle is authoritative for this device, including removals.
+  if (protectedDeviceBundle) return normalizeBundle(protectedDeviceBundle);
   const [cacheBundle, localBundle] = await Promise.all([
     readUserBundle(user, "cache"),
     Promise.resolve(protectedDeviceBundle ?? readLocalBundle(user.uid))
@@ -625,6 +670,7 @@ function bundleDiffers(local, cloud) {
 }
 
 async function writeUserBundle(user, bundle) {
+  assertCurrentUser(user);
   if (isOfflineUser(user)) {
     hydrateFromBundle(bundle);
     markLocalPending();
@@ -658,14 +704,16 @@ async function writeUserBundle(user, bundle) {
     });
   }
   for (let index = 0; index < operations.length; index += 400) {
+    assertCurrentUser(user);
     const batch = writeBatch(db);
     for (const operation of operations.slice(index, index + 400)) {
       batch.set(operation.ref, operation.data, { merge: true });
     }
     await batch.commit();
   }
+  assertCurrentUser(user);
   protectedDeviceBundle = null;
-  writeLocalBundle(user.uid, bundle);
+  writeLocalBundle(user.uid, { ...bundle, pendingLocal: false });
 }
 
 export async function getSyncSummary() {
@@ -675,6 +723,7 @@ export async function getSyncSummary() {
     isOfflineUser(user) ? Promise.resolve({ workouts: [], templates: [], customExercises: [], settings: null }) : readUserBundle(user, "server")
   ]);
   const differs = bundleDiffers(local, cloud);
+  assertCurrentUser(user);
   if (!differs && protectedDeviceBundle) {
     protectedDeviceBundle = null;
     writeLocalBundle(user.uid, cloud);
@@ -692,6 +741,7 @@ export async function resolveSyncChoice(mode) {
   if (isOfflineUser(user) && mode !== "device") throw new Error("Reconnect and sign in online before fetching cloud data.");
   if (mode === "cloud") {
     const cloud = await readUserBundle(user, "server");
+    assertCurrentUser(user);
     protectedDeviceBundle = null;
     state.workouts = sortWorkouts(cloud.workouts);
     state.customExercises = sortCustomExercises(cloud.customExercises);
@@ -699,7 +749,7 @@ export async function resolveSyncChoice(mode) {
     state.metadata.workouts = { fromCache: false, pending: false };
     state.metadata.customExercises = { fromCache: false, pending: false };
     state.metadata.settings = { fromCache: false, pending: false };
-    mirrorStateToLocal();
+    writeLocalBundle(user.uid, { ...bundleFromState(), pendingLocal: false });
     notify();
     return;
   }
@@ -761,6 +811,7 @@ export async function importState(backup) {
   for (const workout of backup.workouts ?? []) {
     const date = typeof workout?.date === "string" ? workout.date : "";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date || !Array.isArray(workout.exercises)) throw new Error("Backup contains an invalid workout date or exercise list.");
+    if ([workout.bodyWeightKg, workout.durationMin].some(value => value != null && value !== "" && (!Number.isFinite(Number(value)) || Number(value) < 0))) throw new Error("Backup contains an invalid training measurement.");
     for (const entry of workout.exercises) {
       if (!entry || typeof entry.exerciseId !== "string" || (entry.sets != null && !Array.isArray(entry.sets))) throw new Error("Backup contains an invalid exercise entry.");
       const numericValues = [workout.bodyWeightKg, workout.durationMin, entry.restSeconds, entry.durationMin, entry.repSeconds];
@@ -773,10 +824,14 @@ export async function importState(backup) {
     }
   }
   if ((backup.customExercises ?? []).some(exercise => !exercise || typeof exercise.name !== "string")) throw new Error("Backup contains an invalid custom exercise.");
+  // Assign stable IDs before merging: Map(undefined) used to collapse imports.
+  const workouts = (backup.workouts ?? []).map(workout => ({ ...workout, id: workout.id || crypto.randomUUID() }));
+  const customExercises = (backup.customExercises ?? []).map(exercise => ({ ...exercise, id: exercise.id || `custom-${crypto.randomUUID()}`, source: "custom" }));
+  if ([...workouts, ...customExercises].some(item => typeof item.id !== "string" || item.id.includes("/") || item.id === "." || item.id === "..")) throw new Error("Backup contains an invalid record ID.");
   if (isOfflineUser(user)) {
     hydrateFromBundle({
-      workouts: mergeByNewest(backup.workouts ?? [], state.workouts),
-      customExercises: mergeByNewest(backup.customExercises ?? [], state.customExercises),
+      workouts: mergeByNewest(workouts.map(workout => localWorkoutDocument(workout.id, workout)), state.workouts),
+      customExercises: mergeByNewest(customExercises, state.customExercises),
       settings: backup.settings ? normalizeSettings({ ...DEFAULT_SETTINGS, ...backup.settings }) : state.settings
     });
     markLocalPending();
@@ -785,19 +840,21 @@ export async function importState(backup) {
     return;
   }
   const operations = [];
-  for (const workout of backup.workouts ?? []) {
+  for (const workout of workouts) {
     const id = workout.id || crypto.randomUUID();
     operations.push({ ref: userDoc(user.uid, "workouts", id), data: { ...workoutPayload(workout), createdAtMs: Number(workout.createdAtMs) || Date.now() } });
   }
-  for (const exercise of backup.customExercises ?? []) {
+  for (const exercise of customExercises) {
     const id = exercise.id || `custom-${crypto.randomUUID()}`;
     operations.push({ ref: userDoc(user.uid, "customExercises", id), data: { ...exercise, id, updatedAt: serverTimestamp() } });
   }
   for (let index = 0; index < operations.length; index += 400) {
+    assertCurrentUser(user);
     const batch = writeBatch(db);
     for (const operation of operations.slice(index, index + 400)) batch.set(operation.ref, operation.data, { merge: true });
     await batch.commit();
   }
+  assertCurrentUser(user);
   if (backup.settings) await saveSettings({ ...DEFAULT_SETTINGS, ...backup.settings });
   mirrorStateToLocal();
 }

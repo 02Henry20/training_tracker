@@ -268,7 +268,7 @@ function levelFromThresholds(value, thresholds, higherIsBetter = true) {
   return { ...LEVELS[index], index, value, progress };
 }
 
-function bestStrengthSet(exercise, entry) {
+function bestStrengthSet(exercise, entry, bodyWeightKg = 70) {
   const sets = performedSets(exercise, entry);
   if (!sets.length) return null;
   if (exercise.inputType === "timedSets") {
@@ -276,8 +276,9 @@ function bestStrengthSet(exercise, entry) {
   }
   if (exercise.inputType === "bodyweightSets") {
     return sets.reduce((best, set) => {
-      const score = Number(set.reps) + Math.max(0, Number(set.weightKg) || 0) * 0.35;
-      const bestScore = Number(best.reps) + Math.max(0, Number(best.weightKg) || 0) * 0.35;
+      const bonusPerKg = 25 / Math.max(20, Number(bodyWeightKg) || 70);
+      const score = Number(set.reps) + Math.max(0, Number(set.weightKg) || 0) * bonusPerKg;
+      const bestScore = Number(best.reps) + Math.max(0, Number(best.weightKg) || 0) * bonusPerKg;
       return score > bestScore ? set : best;
     }, sets[0]);
   }
@@ -298,7 +299,7 @@ function performedSets(exercise, entry) {
 export function evaluateExerciseLevel(exercise, entry, settings) {
   const standard = exercise?.standard;
   if (!standard) return { ...LEVELS[0], index: 0, value: null, progress: 0 };
-  const best = bestStrengthSet(exercise, entry);
+  const best = bestStrengthSet(exercise, entry, settings.bodyWeightKg);
 
   if (standard.type === "bodyweightRatio") {
     if (!best) return { ...LEVELS[0], index: 0, value: null, progress: 0 };
@@ -382,7 +383,7 @@ export function analyseExerciseEntry(entry, exercise, settings) {
       calories = caloriesFromMet(exercise.calorie?.activeMet ?? 3.5, bodyWeight, activeMinutes)
         + caloriesFromMet(exercise.calorie?.restMet ?? 1.5, bodyWeight, restMinutes);
     }
-    bestSet ??= bestStrengthSet(exercise, entry);
+    bestSet ??= bestStrengthSet(exercise, entry, bodyWeight);
   }
 
   return {
@@ -457,13 +458,20 @@ export function detectPersonalRecords(workouts, catalog, settings) {
   const recordsByWorkout = new Map();
   for (const workout of buildWorkoutAnalyses(workouts, catalog, settings)) {
     const records = [];
+    const sessionBest = new Map();
     for (const result of workout.exerciseResults) {
       const comparable = result.bestE1RM ?? result.level.value;
       if (!Number.isFinite(comparable)) continue;
-      const previous = best.get(result.exerciseId);
-      if (previous == null || comparable > previous.value + 0.0001) {
-        if (previous != null) records.push({ exerciseId: result.exerciseId, exercise: result.exercise, value: comparable, previous: previous.value, result });
-        best.set(result.exerciseId, { value: comparable, date: workout.date, workoutId: workout.id, result });
+      if (!sessionBest.has(result.exerciseId) || comparable > sessionBest.get(result.exerciseId).value) {
+        sessionBest.set(result.exerciseId, { value: comparable, result });
+      }
+    }
+    // Compare against earlier workouts, never another entry in the same session.
+    for (const [exerciseId, { value, result }] of sessionBest) {
+      const previous = best.get(exerciseId);
+      if (previous == null || value > previous.value + 0.0001) {
+        if (previous != null) records.push({ exerciseId, exercise: result.exercise, value, previous: previous.value, result });
+        best.set(exerciseId, { value, date: workout.date, workoutId: workout.id, result });
       }
     }
     recordsByWorkout.set(workout.id, records);
@@ -646,12 +654,13 @@ export function calendarIntensity(workouts, catalog, settings, monthDate) {
   date.setMonth(date.getMonth() + 1);
   const end = addDays(localDateString(date), -1);
   const byDate = new Map();
+  const { recordsByWorkout } = detectPersonalRecords(workouts, catalog, settings);
   for (const workout of buildWorkoutAnalyses(workouts, catalog, settings)) {
     if (workout.date < start || workout.date > end) continue;
     const current = byDate.get(workout.date) ?? { date: workout.date, calories: 0, minutes: 0, xp: 0, workouts: [] };
     current.calories += workout.calories;
     current.minutes += workout.durationMin;
-    current.xp += Math.round(80 + workout.activeMinutes * 0.5 + workout.calories * 0.12 + Math.min(120, workout.sets * 3));
+    current.xp += workoutXp(workout, recordsByWorkout.get(workout.id)?.length ?? 0);
     current.workouts.push(workout);
     byDate.set(workout.date, current);
   }

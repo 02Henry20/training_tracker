@@ -2,13 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 const handlers=new Map(),added=[],deleted=[],stored=[];
+const workerSource=await readFile(new URL('../service-worker.js',import.meta.url),'utf8');
+const appSource=await readFile(new URL('../js/app.js',import.meta.url),'utf8');
+const currentCache=workerSource.match(/const CACHE_NAME = "([^"]+)"/)[1];
+assert.equal(currentCache,`ascend-v${appSource.match(/const APP_VERSION = "([^"]+)"/)[1]}`,'UI and offline asset versions agree');
 let skipped=0,failAsset=false,responseOk=true;
 const sandbox={URL,Promise,self:{location:{origin:'https://example.test'},addEventListener:(name,fn)=>handlers.set(name,fn),skipWaiting:()=>{skipped+=1;},clients:{claim:async()=>{}}},caches:{
   open:async()=>({add:async path=>{if(failAsset&&path==='./js/app.js')throw Error('Missing asset');added.push(path);},put:async request=>stored.push(request.url)}),
-  keys:async()=>['ascend-v0.3.20','ascend-v0.4.0','another-app-cache'],
+  keys:async()=>['ascend-v0.3.20','ascend-v0.4.0',currentCache,'another-app-cache'],
   delete:async name=>deleted.push(name),match:async()=>({cached:true})
 },fetch:async()=>({ok:responseOk,clone:()=>({})})};
-vm.runInNewContext(await readFile(new URL('../service-worker.js',import.meta.url),'utf8'),sandbox);
+vm.runInNewContext(workerSource,sandbox);
 async function event(name,props={}){
   const promises=[];
   handlers.get(name)({...props,waitUntil:p=>promises.push(p),respondWith:p=>promises.push(p)});
@@ -21,7 +25,7 @@ assert.equal(skipped,0,'Updates wait for the existing update action');
 failAsset=true;
 await assert.rejects(event('install'),/Missing asset/);
 await event('activate');
-assert.deepEqual(deleted,['ascend-v0.3.20'],'Unrelated caches survive');
+assert.deepEqual(deleted,['ascend-v0.3.20','ascend-v0.4.0'],'Current and unrelated caches survive');
 const request={method:'GET',url:'https://example.test/js/app.js',mode:'cors'};
 await event('fetch',{request});
 assert.equal(stored.length,1);

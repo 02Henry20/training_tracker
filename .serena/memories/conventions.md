@@ -3,4 +3,8 @@
 - Unilateral reps/seconds are per side. perSide load already represents both sides; perHand means two dumbbells held simultaneously.
 - Explicit stroke variants take their catalog stroke before persisted activity.stroke.
 - Animation state: on/subtle/off; OS reduced motion overrides to off. Canvas loops must obey the same setting as CSS.
-- Keep pending offline bundle protected while cloud snapshots arrive; clear only after sync resolution or confirmed equality.
+- Keep pending offline bundles protected while cloud snapshots arrive. Persist new local mutations alongside protected records; clear recovery flags only after acknowledged sync or confirmed content equality. Initial cache snapshots must not erase local recovery data.
+- Sync comparisons use canonical contents, excluding acknowledgement timestamps; async cloud work and callbacks must verify the current account before updating global state.
+- Runtime catalog must include saved custom definitions so historical workouts remain calculable; bundled IDs remain protected.
+- PRs compare each workout's best result per exercise against earlier workouts. Use workoutXp for calendar XP too.
+- Escape persisted IDs and form values at HTML attribute sinks. Tests/app.mjs exercises actual UI functions with VM stubs; it does not replace browser/Firebase integration checks.

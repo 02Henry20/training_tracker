@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { BUNDLED_EXERCISES as catalog, mergeExerciseCatalog, exerciseSearchScore } from '../js/exercises.js';
-import { activityMet, analyseExerciseEntry, analyseWorkout, caloriesFromMet, calculateProgression, statistics, addDays, localDateString, xpSummary, workoutXp, xpForLevel, muscleBalance } from '../js/calculations.js';
+import { activityMet, analyseExerciseEntry, analyseWorkout, caloriesFromMet, calculateProgression, statistics, addDays, localDateString, xpSummary, workoutXp, xpForLevel, muscleBalance, calendarIntensity, detectPersonalRecords } from '../js/calculations.js';
 const settings = {bodyWeightKg:72,heightCm:171,referenceSex:'male',weeklyMuscleTargetSets:10};
 const exercise = id => { const value=catalog.find(e=>e.id===id); assert.ok(value,id); return value; };
 const entry = (id, overrides={}) => ({exerciseId:id,restSeconds:90,sets:[{weightKg:20,reps:10,seconds:30,completed:true},{weightKg:20,reps:10,seconds:30,completed:true}],...overrides});
@@ -68,6 +68,14 @@ for (let targetLevel=2;targetLevel<=54;targetLevel+=1) {
 }
 assert.equal(xpSummary([{...workout,date:addDays(today,1)}],catalog,settings).xp,0);
 assert.equal(xpSummary([{id:'empty',date:today,exercises:[]}],catalog,settings).xp,0);
+const prWorkouts=[{...workout,id:'baseline',date:addDays(today,-1)}, {...workout,id:'improved',exercises:[entry('seated-cable-row',{sets:[{weightKg:40,reps:10}]})]}];
+assert.equal(calendarIntensity(prWorkouts,catalog,settings,today).get(today).xp,workoutXp(analyseWorkout(prWorkouts[1],catalog,settings),1),'Calendar includes earned PR bonus');
+assert.equal(calendarIntensity([{...workout,date:addDays(today,1)}],catalog,settings,addDays(today,1)).get(addDays(today,1)).xp,0,'Planned workouts earn no calendar XP');
+assert.equal(calendarIntensity([{id:'empty',date:today,exercises:[]}],catalog,settings,today).get(today).xp,0);
+near(analyse('pull-up',{sets:[{reps:10,weightKg:20},{reps:14,weightKg:0}]},{...settings,bodyWeightKg:200}).level.value,14);
+const duplicateEntries={...workout,id:'duplicates',exercises:[entry('seated-cable-row'),entry('seated-cable-row',{sets:[{reps:10,weightKg:40}]}),entry('seated-cable-row',{sets:[{reps:10,weightKg:60}]})]};
+assert.equal(detectPersonalRecords([duplicateEntries],catalog,settings).recordsByWorkout.get('duplicates').length,0,'First session establishes a baseline regardless of duplicate entries');
+assert.equal(detectPersonalRecords([{...workout,date:addDays(today,-1)},duplicateEntries],catalog,settings).recordsByWorkout.get('duplicates').length,1,'One PR per exercise per session');
 const future=muscleBalance([{...workout,date:addDays(today,1)}],catalog,settings,7);
 assert.ok(future.every(m=>m.lastTrained===null));
 const stale=mergeExerciseCatalog([{id:'seated-cable-row',name:'Cable row',inputType:'activity',fields:['durationMin','distanceKm']}]);

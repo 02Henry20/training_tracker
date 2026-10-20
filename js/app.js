@@ -59,7 +59,7 @@ import {
 } from "./calculations.js";
 import { drawDonut, drawLineChart, drawWeeklyBars, redrawOnResize } from "./charts.js";
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.4.2";
 const VIEW_META = {
   dashboard: ["LIVE LOG", "Overview"],
   workout: ["SESSION BUILD", "Session"],
@@ -115,14 +115,15 @@ let workoutTimerId = null;
 let draftCollapsedEntries = new Set();
 let levelCelebrationTimer = null;
 let settingsAutosaveTimer = null;
+let workoutSubmitting = false;
+let sessionUserId = null;
 const settingsMobileQuery = window.matchMedia("(max-width: 680px)");
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 reducedMotionQuery.addEventListener("change", () => { applyAppearance(); renderActiveCharts(); });
 
 function catalog() {
-  // Custom exercise creation is intentionally no longer exposed. Keep the public
-  // catalog deterministic so recommendations and muscle standards remain stable.
-  return mergeExerciseCatalog(state.remoteExercises, []);
+  // Creation is hidden, but existing custom definitions remain needed by history.
+  return mergeExerciseCatalog(state.remoteExercises, state.customExercises);
 }
 
 function escapeHtml(value) {
@@ -741,13 +742,13 @@ function setRowsHtml(exercise, entry, entryIndex) {
     ? `<div class="set-row">
         ${setToggle(set, setIndex)}
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="seconds" type="number" min="0" max="3600" inputmode="numeric" value="${Number(set.seconds) || 0}" aria-label="Seconds">
-        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
+        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${escapeHtml(set.rir ?? "")}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`
     : `<div class="set-row">
         ${setToggle(set, setIndex)}
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="weightKg" type="number" min="0" max="1000" step="0.5" inputmode="decimal" value="${Number(set.weightKg) || 0}" aria-label="Weight">
         <input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="reps" type="number" min="0" max="500" inputmode="numeric" value="${Number(set.reps) || 0}" aria-label="Repetitions">
-        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${set.rir ?? ""}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
+        ${showRir ? `<input data-entry="${entryIndex}" data-set="${setIndex}" data-set-field="rir" type="number" min="0" max="10" step="1" value="${escapeHtml(set.rir ?? "")}" placeholder="-" aria-label="Repetitions in reserve">` : ""}
       </div>`).join("");
   return `<p class="entry-hint">${exercise.unilateral ? "Enter reps or seconds per side; both sides are counted. " : ""}${exercise.loadMode === "assistance" ? "Assistance reduces the body weight moved. " : ""}Tap a set number to include or skip it.</p><div class="set-table ${timed ? "timed-table" : ""} ${showRir ? "" : "no-rir"}">${header}${rows}</div>
     <p class="entry-hint estimate-hint">Energy is estimated automatically from completed sets, reps or hold time, and body weight.</p>`;
@@ -848,39 +849,45 @@ function removeCollapsedDraftIndex(index) {
 
 async function submitWorkout(event) {
   event.preventDefault();
-  draftWorkout.date = document.querySelector("#workout-date").value;
-  draftWorkout.title = draftWorkout.title || "Training session";
-  draftWorkout.notes = draftWorkout.notes || "";
-  const beforeSummary = currentPlayerSummary();
+  if (workoutSubmitting) return;
+  workoutSubmitting = true;
+  const submittingUser = state.user;
+  const submittingDraft = draftWorkout;
   const message = document.querySelector("#workout-message");
-  if (!draftWorkout.date || !draftWorkout.exercises.length) {
-    setMessage(message, "Choose a date and add at least one exercise.", true);
-    return;
-  }
-
-  const saved = deepClone(draftWorkout);
-  // Keep historical body weight stable; legacy workouts retain their old fallback.
-  if (!draftWorkout.id) saved.bodyWeightKg = state.settings.bodyWeightKg;
-  const hasWork = saved.exercises.some(entry => {
-    const result = analyseExerciseEntry(entry, getExerciseById(entry.exerciseId, catalog()), state.settings);
-    return result && (result.activeMinutes > 0 || result.totalReps > 0);
-  });
-  if (!hasWork) { setMessage(message, "Log at least one completed set or an activity duration.", true); return; }
-  delete saved.startedAtMs;
-  if (!draftWorkout.id) {
-    const estimate = estimateDraftDurationMin();
-    if (state.settings.showDurationPrompt !== false) {
-      const adjusted = await askDurationEstimate(estimate);
-      if (adjusted == null) return;
-      saved.durationMin = adjusted;
-    } else {
-      saved.durationMin = estimate;
-    }
-  }
-
   try {
+    draftWorkout.date = document.querySelector("#workout-date").value;
+    draftWorkout.title = draftWorkout.title || "Training session";
+    draftWorkout.notes = draftWorkout.notes || "";
+    const beforeSummary = currentPlayerSummary();
+    if (!draftWorkout.date || !draftWorkout.exercises.length) {
+      setMessage(message, "Choose a date and add at least one exercise.", true);
+      return;
+    }
+
+    const saved = deepClone(draftWorkout);
+    // Keep historical body weight stable; legacy workouts retain their old fallback.
+    if (!draftWorkout.id) saved.bodyWeightKg = state.settings.bodyWeightKg;
+    const hasWork = saved.exercises.some(entry => {
+      const result = analyseExerciseEntry(entry, getExerciseById(entry.exerciseId, catalog()), state.settings);
+      return result && (result.activeMinutes > 0 || result.totalReps > 0);
+    });
+    if (!hasWork) { setMessage(message, "Log at least one completed set or an activity duration.", true); return; }
+    delete saved.startedAtMs;
+    if (!draftWorkout.id) {
+      const estimate = estimateDraftDurationMin();
+      if (state.settings.showDurationPrompt !== false) {
+        const adjusted = await askDurationEstimate(estimate);
+        if (adjusted == null) return;
+        saved.durationMin = adjusted;
+      } else {
+        saved.durationMin = estimate;
+      }
+    }
+
+    if (state.user !== submittingUser || draftWorkout !== submittingDraft) return;
     if (navigator.onLine || state.user?.offlineOnly) await saveWorkout(saved);
     else queueWrite(saveWorkout(saved));
+    if (state.user !== submittingUser || draftWorkout !== submittingDraft) return;
     const afterSummary = currentPlayerSummary();
     showToast("Workout saved", "Progress, calories, ranks and muscle coverage were recalculated.");
     draftWorkout = createEmptyDraft();
@@ -892,6 +899,8 @@ async function submitWorkout(event) {
     showLevelUpCelebration(beforeSummary, afterSummary);
   } catch (error) {
     setMessage(message, firebaseErrorMessage(error), true);
+  } finally {
+    workoutSubmitting = false;
   }
 }
 
@@ -1042,7 +1051,7 @@ function renderSessionList(container, workouts, limit = 5, scoreMode = "xp") {
       .join("");
     const moreItems = (workout.exerciseResults ?? []).length > 4 ? `<span>+${workout.exerciseResults.length - 4} more</span>` : "";
     const rowScore = scoreMode === "calories" ? `${formatNumber(totalCalories)} kcal` : `+${formatNumber(xp)} XP`;
-    row.innerHTML = `<button data-open-workout="${workout.id}" type="button"><strong>${escapeHtml(workout.title)}</strong><small>${formatDate(workout.date)} · ${workout.exerciseResults.length} exercises · ${formatNumber(workout.durationMin)} min</small><span class="session-xp-breakdown">${exercisePreview}${moreItems}</span></button><div class="session-score ${scoreMode === "calories" ? "calorie-score" : "xp-score"}">${rowScore}</div>`;
+    row.innerHTML = `<button data-open-workout="${escapeHtml(workout.id)}" type="button"><strong>${escapeHtml(workout.title)}</strong><small>${formatDate(workout.date)} · ${workout.exerciseResults.length} exercises · ${formatNumber(workout.durationMin)} min</small><span class="session-xp-breakdown">${exercisePreview}${moreItems}</span></button><div class="session-score ${scoreMode === "calories" ? "calorie-score" : "xp-score"}">${rowScore}</div>`;
     container.append(row);
   }
 }
@@ -1363,7 +1372,7 @@ function renderProgressPicker() {
     ? filtered.map(exercise => {
         const active = exercise.id === selectedProgressExerciseId;
         const primary = exercise.muscles.primary.map(key => MUSCLE_GROUPS[key]?.name ?? key).join(", ");
-        return `<button class="progress-exercise-chip ${active ? "active" : ""}" data-progress-exercise="${exercise.id}" type="button"><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(counts.get(exercise.id) ?? 0)}× · ${escapeHtml(primary)}</small></button>`;
+        return `<button class="progress-exercise-chip ${active ? "active" : ""}" data-progress-exercise="${escapeHtml(exercise.id)}" type="button"><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(counts.get(exercise.id) ?? 0)}× · ${escapeHtml(primary)}</small></button>`;
       }).join("")
     : `<div class="empty-state">No logged exercise matches the search.</div>`;
 
@@ -1486,7 +1495,7 @@ function renderMuscles() {
     if (selected && muscleExercisePage >= pageCount) muscleExercisePage = pageCount - 1;
     const pageExercises = matchingExercises.slice(muscleExercisePage * pageSize, muscleExercisePage * pageSize + pageSize);
     const pager = selected && pageCount > 1 ? `<div class="muscle-exercise-pager"><button data-muscle-page="prev" type="button" ${muscleExercisePage <= 0 ? "disabled" : ""}>←</button><span>${muscleExercisePage + 1} / ${pageCount}</span><button data-muscle-page="next" type="button" ${muscleExercisePage >= pageCount - 1 ? "disabled" : ""}>→</button></div>` : "";
-    const exerciseList = selected ? `<div class="muscle-card-exercises">${pageExercises.map(exercise => `<button data-add-exercise="${exercise.id}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(exerciseCounts.get(exercise.id) ?? 0)}× logged · ${exercise.muscles.primary.includes(item.key) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}${pager}</div>` : "";
+    const exerciseList = selected ? `<div class="muscle-card-exercises">${pageExercises.map(exercise => `<button data-add-exercise="${escapeHtml(exercise.id)}" type="button"><span>${exerciseSymbol(exercise)}</span><div><strong>${escapeHtml(exercise.name)}</strong><small>${formatNumber(exerciseCounts.get(exercise.id) ?? 0)}× logged · ${exercise.muscles.primary.includes(item.key) ? "Primary" : "Secondary"} · ${escapeHtml(exercise.equipment)}</small></div></button>`).join("") || `<div class="empty-state">No catalog exercise targets this muscle.</div>`}${pager}</div>` : "";
     card.innerHTML = `<div class="muscle-card-head"><div><i>${item.icon}</i><h4>${escapeHtml(item.name)}</h4></div><span class="tag">${muscleRank} · ${statusLabel}</span></div><div class="coverage-rail"><span style="width:${Math.min(100, item.ratio * 100)}%"></span></div><footer><span>${item.score} / ${item.target} effective sets</span><span>${recoveryLabel}</span></footer><small class="muscle-exercise-preview">${escapeHtml(exercisePreview)}</small>${exerciseList}`;
     grid.append(card);
   }
@@ -1559,7 +1568,7 @@ function openWorkoutDetail(id) {
     <div class="detail-summary"><div><span>Date</span><strong>${formatDate(workout.date)}</strong></div><div><span>Duration</span><strong>${formatNumber(workout.durationMin)} min</strong></div><div><span>XP earned</span><strong>+${formatNumber(xpBreakdown.total)} XP</strong></div><div><span>Volume</span><strong>${formatNumber(workout.volumeKg)} kg</strong></div></div>
     ${workout.notes ? `<p class="muted">${escapeHtml(workout.notes)}</p>` : ""}
     ${workout.exerciseResults.map(result => `<div class="detail-exercise"><div class="detail-exercise-head"><strong>${escapeHtml(result.exercise.name)}</strong><span class="xp-pill">+${formatNumber(xpBreakdown.byEntry.get(result) ?? 0)} XP</span><span class="rank-badge rank-${result.level.rank}">${result.exercise.standard ? result.level.rank : "—"}</span></div><p>${result.exercise.inputType === "activity" ? `${result.speedKmh ? result.speedKmh.toFixed(1) + " km/h · " : ""}${Math.round(result.activeMinutes)} min` : result.exercise.inputType === "timedSets" ? `${Math.round(result.activeMinutes * 60)} sec held` : `${result.totalReps} reps · ${formatNumber(result.volumeKg)} kg volume${result.bestE1RM ? ` · ${result.bestE1RM.toFixed(1)} kg e1RM` : ""}`} · ≈ ${Math.round(result.calories)} kcal</p></div>`).join("")}
-    <div class="two-col" style="margin-top:16px"><button class="secondary-button" data-edit-workout="${workout.id}" type="button">Edit workout</button><button class="ghost-button" data-repeat-workout="${workout.id}" type="button">Repeat session</button></div>`;
+    <div class="two-col" style="margin-top:16px"><button class="secondary-button" data-edit-workout="${escapeHtml(workout.id)}" type="button">Edit workout</button><button class="ghost-button" data-repeat-workout="${escapeHtml(workout.id)}" type="button">Repeat session</button></div>`;
   openModal("detail");
 }
 
@@ -1588,6 +1597,11 @@ function readSettingsFromForm() {
 async function saveSettingsFromForm({ toast = false } = {}) {
   const settings = readSettingsFromForm();
   const message = document.querySelector("#settings-message");
+  const numericValues = [settings.bodyWeightKg, settings.heightCm, settings.birthYear, settings.weeklySessionTarget, settings.weeklyMuscleTargetSets, settings.statsWindowDays, settings.bodyWindowDays];
+  if (!document.querySelector("#settings-form").checkValidity() || numericValues.some(value => !Number.isFinite(value) || value <= 0)) {
+    setMessage(message, "Complete all settings within the displayed limits.", true);
+    return;
+  }
   if (settings.bodyWeightKg < 20 || settings.bodyWeightKg > 400 || settings.heightCm < 120 || settings.heightCm > 230) {
     setMessage(message, "Enter a valid body weight and height.", true);
     return;
@@ -1623,6 +1637,7 @@ function scheduleSettingsAutosave() {
 
 function submitSettings(event) {
   event.preventDefault();
+  window.clearTimeout(settingsAutosaveTimer);
   void saveSettingsFromForm({ toast: true });
 }
 
@@ -2006,8 +2021,25 @@ function bindEvents() {
   window.addEventListener("offline", updateSyncStatus);
 }
 
+function handleStateChange() {
+  const userId = state.user?.uid ?? null;
+  if (sessionUserId !== userId) {
+    sessionUserId = userId;
+    window.clearTimeout(settingsAutosaveTimer);
+    stopWorkoutTimer();
+    draftWorkout = createEmptyDraft();
+    draftCollapsedEntries = new Set();
+    resolveConfirmation(false);
+    resolveDurationEstimate(null);
+    closeModal();
+    selectedProgressExerciseId = "";
+    selectedMuscleKey = null;
+  }
+  scheduleRender();
+}
+
 setStoreErrorHandler(error => showToast("Synchronization error", firebaseErrorMessage(error), "error"));
-subscribeState(scheduleRender);
+subscribeState(handleStateChange);
 bindEvents();
 redrawOnResize(() => {
   renderActiveCharts();
